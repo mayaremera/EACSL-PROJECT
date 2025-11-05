@@ -30,7 +30,7 @@ const TrustedBrandsSection = () => {
                 <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
                     {/* Left Text */}
                     <div className="lg:w-1/4">
-                        <h3 className="text-xl font-bold text-gray-800" style={{ fontFamily: 'Lato, sans-serif' }}>
+                        <h3 className="text-xl font-bold text-gray-800">
                             Trusted by the best in the world
                         </h3>
                     </div>
