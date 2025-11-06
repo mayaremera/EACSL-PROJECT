@@ -33,7 +33,7 @@ const Header = () => {
               <a
                 key={link.name}
                 href={link.href}
-                className="text-gray-700 hover:text-teal-600 transition-colors duration-200 text-base font-medium"
+                className="text-gray-700 hover:text-teal-600 transition-colors duration-200 text-base font-semibold"
               >
                 {link.name}
               </a>
@@ -52,7 +52,7 @@ const Header = () => {
                 <Search size={20} />
               </button>
             </div>
-            <button className="bg-[#4C9A8F] hover:bg-[#57A79B] text-white border border-[#4c9a8f] px-6 py-2.5 rounded-lg font-medium transition-colors duration-200 whitespace-nowrap">
+            <button className="bg-[#4C9A8F] hover:bg-[#57A79B] text-white border border-[#4c9a8f] px-6 py-2.5 text-[0.8rem] rounded-lg font-semibold transition-colors duration-200 whitespace-nowrap">
               Become a member
             </button>
           </div>
