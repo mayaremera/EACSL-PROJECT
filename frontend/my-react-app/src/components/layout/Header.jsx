@@ -42,7 +42,7 @@ const Header = () => {
       name: 'Members',
       dropdown: [
         { name: 'Active Members', href: '/' },
-        { name: 'Become a Member', href: '/members-overview' },
+        { name: 'Become a Member', href: '/apply-membership' },
         { name: 'Member Login', href: '/' },
       ],
     },
@@ -126,7 +126,7 @@ const Header = () => {
                 <Search size={20} />
               </button>
             </div>
-            <button className="bg-[#4C9A8F] hover:bg-[#57A79B] text-white border border-[#4c9a8f] px-6 py-2.5 text-[0.8rem] rounded-lg font-semibold transition-colors duration-200 whitespace-nowrap">
+            <button className="bg-[#4C9A8F] hover:bg-[#57A79B] text-white border border-[#4c9a8f] px-6 py-2.5 text-[0.8rem] rounded-lg font-semibold transition-colors duration-200 whitespace-nowrap" href="/apply-membership">
               Become a member
             </button>
           </div>
