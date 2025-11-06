@@ -29,11 +29,11 @@ const Header = () => {
   }, []);
 
   const navLinks = [
-    { name: 'Home', href: '#' },
+    { name: 'Home', href: '/' },
     {
       name: 'Events',
       dropdown: [
-        { name: 'Live Events', href: '#' },
+        { name: 'Live Events', href: '/live-events' },
         { name: 'Upcoming Events', href: '#' },
         { name: 'Past Events', href: '#' },
       ],
@@ -41,22 +41,22 @@ const Header = () => {
     {
       name: 'Members',
       dropdown: [
-        { name: 'Active Members', href: '#' },
-        { name: 'Become a Member', href: '#' },
-        { name: 'Member Login', href: '#' },
+        { name: 'Active Members', href: '/' },
+        { name: 'Become a Member', href: '/members-overview' },
+        { name: 'Member Login', href: '/' },
       ],
     },
     {
       name: 'Education',
       dropdown: [
-        { name: 'General Education', href: '#' },
+        { name: 'General Education', href: '/education' },
         { name: 'Continuing Education', href: '#' },
-        { name: 'Online Courses', href: '#' },
-        { name: 'Articles', href: '#' },
+        { name: 'Online Courses', href: '/online-courses' },
+        { name: 'Articles', href: '/articles' },
       ],
     },
-    { name: 'Gallery', href: '#' },
-    { name: 'Contact', href: '#' },
+    { name: 'Gallery', href: '/gallery' },
+    { name: 'Contact', href: '/contact' },
   ];
 
   return (
@@ -64,9 +64,9 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <div className="flex items-center">
+          <a href="/" className="flex items-center">
             <img src={logo} alt="EACSL Logo" className="h-12" />
-          </div>
+          </a>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-8" ref={dropdownRef}>

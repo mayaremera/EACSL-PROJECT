@@ -24,7 +24,7 @@ import ForParentsPage from "../pages/ForParentsPage";
 import ReservationPage from "../pages/ReservationPage";
 import ContactPage from "../pages/ContactPage";
 import NotFoundPage from "../pages/NotFoundPage";
-
+import Dashboard from "../pages/Dashboard";
 // Layout
 import Layout from "../components/layout/Layout";
 
@@ -55,6 +55,7 @@ function AppRouter() {
           <Route path="/reservation" element={<ReservationPage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="*" element={<NotFoundPage />} />
+          <Route path="/dashboard" element={<Dashboard />} />
         </Route>
       </Routes>
     </BrowserRouter>
