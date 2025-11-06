@@ -10,7 +10,7 @@ const Header = () => {
     { name: 'Events', href: '#' },
     { name: 'Continuing Education', href: '#' },
     { name: 'Services', href: '#' },
-    { name: 'About', href: '#' },
+    { name: 'Members', href: '#' },
     { name: 'Contact', href: '#' }
   ];
 
