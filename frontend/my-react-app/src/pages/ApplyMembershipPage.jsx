@@ -10,6 +10,7 @@ const ApplyMembershipPage = () => {
   };
 
   return (
+
     <div className="min-h-screen bg-white">
 {/* Hero Section */}
     <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-16">
