@@ -1,46 +1,120 @@
-import React, { useState } from 'react';
-import { Search, Menu, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, Menu, X, ChevronDown } from 'lucide-react';
 import logo from '../../assets/logo.png';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activeDropdown, setActiveDropdown] = useState(null);
+  const dropdownRef = useRef(null);
+
+  const toggleDropdown = (menu) => {
+    setActiveDropdown(activeDropdown === menu ? null : menu);
+  };
+
+  // ✅ Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target)
+      ) {
+        setActiveDropdown(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const navLinks = [
     { name: 'Home', href: '#' },
-    { name: 'Events', href: '#' },
-    { name: 'Continuing Education', href: '#' },
-    { name: 'Services', href: '#' },
-    { name: 'About', href: '#' },
-    { name: 'Contact', href: '#' }
+    {
+      name: 'Events',
+      dropdown: [
+        { name: 'Live Events', href: '#' },
+        { name: 'Upcoming Events', href: '#' },
+        { name: 'Past Events', href: '#' },
+      ],
+    },
+    {
+      name: 'Members',
+      dropdown: [
+        { name: 'Active Members', href: '#' },
+        { name: 'Become a Member', href: '#' },
+        { name: 'Member Login', href: '#' },
+      ],
+    },
+    {
+      name: 'Education',
+      dropdown: [
+        { name: 'General Education', href: '#' },
+        { name: 'Continuing Education', href: '#' },
+        { name: 'Online Courses', href: '#' },
+        { name: 'Articles', href: '#' },
+      ],
+    },
+    { name: 'Gallery', href: '#' },
+    { name: 'Contact', href: '#' },
   ];
 
   return (
-    <header className="bg-white shadow-sm">
+    <header className="bg-white shadow-sm relative z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <div className="flex items-center">
-            <img 
-              src={logo} 
-              alt="EACSL Logo" 
-              className="h-12"
-            />
+            <img src={logo} alt="EACSL Logo" className="h-12" />
           </div>
 
-          {/* Desktop Navigation Links */}
-          <div className="hidden lg:flex items-center space-x-8">
+          {/* Desktop Navigation */}
+          <nav className="hidden lg:flex items-center space-x-8" ref={dropdownRef}>
             {navLinks.map((link) => (
-              <a
-                key={link.name}
-                href={link.href}
-                className="text-gray-700 hover:text-teal-600 transition-colors duration-200 text-base font-semibold"
-              >
-                {link.name}
-              </a>
-            ))}
-          </div>
+              <div key={link.name} className="relative group">
+                {!link.dropdown ? (
+                  <a
+                    href={link.href}
+                    className="text-gray-700 hover:text-teal-600 transition-colors duration-200 text-base font-semibold"
+                  >
+                    {link.name}
+                  </a>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => toggleDropdown(link.name)}
+                      className="flex items-center gap-1 text-gray-700 hover:text-teal-600 font-semibold transition-colors duration-200"
+                    >
+                      {link.name}
+                      <ChevronDown
+                        size={18}
+                        className={`transition-transform duration-300 ${
+                          activeDropdown === link.name ? 'rotate-180' : ''
+                        }`}
+                      />
+                    </button>
 
-          {/* Search Bar and CTA Button */}
+                    {/* Dropdown Menu */}
+                    {activeDropdown === link.name && (
+                      <div className="absolute left-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg py-2 w-56">
+                        {link.dropdown.map((item) => (
+                          <a
+                            key={item.name}
+                            href={item.href}
+                            className="block px-4 py-2 text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-colors text-sm font-medium"
+                          >
+                            {item.name}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            ))}
+          </nav>
+
+          {/* Search and CTA */}
           <div className="hidden lg:flex items-center space-x-4">
             <div className="relative">
               <input
@@ -71,14 +145,36 @@ const Header = () => {
           <div className="lg:hidden py-4 border-t border-gray-200">
             <div className="flex flex-col space-y-4">
               {navLinks.map((link) => (
-                <a
-                  key={link.name}
-                  href={link.href}
-                  className="text-gray-700 hover:text-teal-600 transition-colors duration-200 text-base font-medium py-2"
-                >
-                  {link.name}
-                </a>
+                <div key={link.name}>
+                  {!link.dropdown ? (
+                    <a
+                      href={link.href}
+                      className="text-gray-700 hover:text-teal-600 transition-colors duration-200 text-base font-medium py-2 block"
+                    >
+                      {link.name}
+                    </a>
+                  ) : (
+                    <details className="group">
+                      <summary className="cursor-pointer text-gray-700 hover:text-teal-600 text-base font-medium flex justify-between items-center py-2">
+                        {link.name}
+                        <ChevronDown size={18} className="group-open:rotate-180 transition-transform duration-200" />
+                      </summary>
+                      <div className="pl-4 mt-2 space-y-2">
+                        {link.dropdown.map((item) => (
+                          <a
+                            key={item.name}
+                            href={item.href}
+                            className="block text-gray-600 hover:text-teal-600 text-sm font-medium transition-colors"
+                          >
+                            {item.name}
+                          </a>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                </div>
               ))}
+              {/* Mobile Search and CTA */}
               <div className="pt-4 space-y-4">
                 <div className="relative">
                   <input
@@ -103,3 +199,4 @@ const Header = () => {
 };
 
 export default Header;
+ 
