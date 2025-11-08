@@ -1,14 +1,292 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { MapPin, Phone, Mail, Clock, Send, ArrowLeft } from 'lucide-react';
 
-function ReservationPage() {
+const ReservationPage = () => {
+  const [formData, setFormData] = useState({
+    kidsName: '',
+    yourName: '',
+    phoneNumber: '',
+    speechAssessment: false,
+    skillsAssessment: false,
+    academicAssessment: false,
+    iqTests: false,
+    concern: ''
+  });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log('Reservation submitted:', formData);
+    alert('Thank you for your reservation! We will contact you soon to confirm your appointment.');
+    setFormData({
+      kidsName: '',
+      yourName: '',
+      phoneNumber: '',
+      speechAssessment: false,
+      skillsAssessment: false,
+      academicAssessment: false,
+      iqTests: false,
+      concern: ''
+    });
+  };
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData({
+      ...formData,
+      [name]: type === 'checkbox' ? checked : value
+    });
+  };
+
+  const officeInfo = [
+    {
+      icon: MapPin,
+      title: 'Our Office',
+      content: '23 Galal Hammad Street Alexandria, Egypt',
+      link: 'https://maps.app.goo.gl/QiXXLmAZyD61wkjA9'
+    },
+    {
+      icon: Clock,
+      title: 'Days',
+      content: 'Saturday to Wednesday',
+      link: null
+    },
+    {
+      icon: Phone,
+      title: 'Contacts',
+      content: '+201061162520 - +201062048067',
+      link: 'tel:+201061162520'
+    },
+    {
+      icon: Mail,
+      title: 'Email',
+      content: 'info@eacsl.net',
+      link: 'mailto:info@eacsl.net'
+    }
+  ];
+
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">Reservation</h1>
-        <p className="text-lg text-gray-600">Reservation page content will be added here.</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Section */}
+      <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4">Book an Assessment</h1>
+            <p className="text-lg md:text-xl text-teal-50 max-w-2xl mx-auto">
+              Schedule your appointment with our professional team
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Breadcrumb */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center text-sm text-gray-600">
+              <a href="#" className="hover:text-[#4C9A8F] transition-colors">Home</a>
+              <span className="mx-2">/</span>
+              <span className="text-gray-900 font-medium">Reservation</span>
+            </div>
+            <button className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] font-semibold transition-colors">
+              <ArrowLeft size={16} />
+              Back to Services
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Office Info Cards */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          {officeInfo.map((info, index) => {
+            const Icon = info.icon;
+            return (
+              <div
+                key={index}
+                className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-6 text-center"
+              >
+                <div className="inline-flex items-center justify-center w-14 h-14 bg-teal-50 rounded-full mb-4">
+                  <Icon className="text-[#4C9A8F]" size={28} />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                  {info.title}
+                </h3>
+                {info.link ? (
+                  <a
+                    href={info.link}
+                    target={info.link.startsWith('http') ? '_blank' : '_self'}
+                    rel={info.link.startsWith('http') ? 'noopener noreferrer' : ''}
+                    className="text-gray-600 hover:text-[#4C9A8F] transition-colors text-sm leading-relaxed"
+                  >
+                    {info.content}
+                  </a>
+                ) : (
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    {info.content}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Reservation Form */}
+          <div className="bg-white rounded-lg shadow-md p-8">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">Book an Assessment</h2>
+            <div className="space-y-5">
+              <div>
+                <label htmlFor="kidsName" className="block text-sm font-medium text-gray-700 mb-2">
+                  Kid's Name *
+                </label>
+                <input
+                  type="text"
+                  id="kidsName"
+                  name="kidsName"
+                  value={formData.kidsName}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
+                  placeholder="Your name"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="yourName" className="block text-sm font-medium text-gray-700 mb-2">
+                  Your Name *
+                </label>
+                <input
+                  type="text"
+                  id="yourName"
+                  name="yourName"
+                  value={formData.yourName}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
+                  placeholder="Your last name"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone No. *
+                </label>
+                <input
+                  type="tel"
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
+                  placeholder="Your email address"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  Assessments Needed
+                </label>
+                <div className="space-y-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="speechAssessment"
+                      checked={formData.speechAssessment}
+                      onChange={handleChange}
+                      className="w-4 h-4 text-[#4C9A8F] border-gray-300 rounded focus:ring-[#4C9A8F]"
+                    />
+                    <span className="text-sm text-gray-700">Speech assessment</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="skillsAssessment"
+                      checked={formData.skillsAssessment}
+                      onChange={handleChange}
+                      className="w-4 h-4 text-[#4C9A8F] border-gray-300 rounded focus:ring-[#4C9A8F]"
+                    />
+                    <span className="text-sm text-gray-700">Skills assessment</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="academicAssessment"
+                      checked={formData.academicAssessment}
+                      onChange={handleChange}
+                      className="w-4 h-4 text-[#4C9A8F] border-gray-300 rounded focus:ring-[#4C9A8F]"
+                    />
+                    <span className="text-sm text-gray-700">Academic assessment</span>
+                  </label>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="iqTests"
+                      checked={formData.iqTests}
+                      onChange={handleChange}
+                      className="w-4 h-4 text-[#4C9A8F] border-gray-300 rounded focus:ring-[#4C9A8F]"
+                    />
+                    <span className="text-sm text-gray-700">IQ or other tests</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="concern" className="block text-sm font-medium text-gray-700 mb-2">
+                  Describe Your Concern *
+                </label>
+                <textarea
+                  id="concern"
+                  name="concern"
+                  rows={5}
+                  value={formData.concern}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors resize-none"
+                  placeholder="Enter your message"
+                ></textarea>
+              </div>
+
+              <button
+                onClick={handleSubmit}
+                className="w-full bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+
+          {/* Map */}
+          <div className="bg-white rounded-lg shadow-md overflow-hidden h-full min-h-[600px]">
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3410.4703002587653!2d29.993074803357448!3d31.263083860726432!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x14f5daa30a053b4f%3A0xccecf40391be2264!2s23%20Ahmed%20Galal%20Hammad%2C%20Sidi%20Beshr%20Bahri%2C%20Montaza%201%2C%20Alexandria%20Governorate%205517230%2C%20Egypt!5e0!3m2!1sen!2sus!4v1762491764890!5m2!1sen!2sus"
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              allowFullScreen=""
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              title="EACSL Office Location"
+            ></iframe>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer CTA Section */}
+      <div className="bg-white border-t border-gray-200 py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] rounded-2xl p-8 md:p-12 text-center">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+              Join Our Community
+            </h2>
+            <p className="text-teal-50 mb-6 max-w-2xl mx-auto">
+              Become a member and be part of our growing professional community
+            </p>
+            <button className="bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg">
+              Become a Member
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
-}
+};
 
 export default ReservationPage;
