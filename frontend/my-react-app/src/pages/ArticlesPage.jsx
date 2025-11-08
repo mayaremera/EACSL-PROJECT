@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BookOpen, X, Clock, Tag, ExternalLink, Search } from 'lucide-react';
+import { BookOpen, X, Clock, Tag, ExternalLink, Search, Filter } from 'lucide-react';
 
 const ArticlesPage = () => {
   const [selectedArticle, setSelectedArticle] = useState(null);
@@ -137,14 +137,14 @@ const ArticlesPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-16">
+      <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <div className="flex justify-center mb-4">
-              <BookOpen className="w-16 h-16" />
+            <div className="flex justify-center mb-3">
+              <BookOpen className="w-12 h-12" />
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Articles & Resources</h1>
-            <p className="text-lg md:text-xl text-teal-50 max-w-2xl mx-auto">
+            <h1 className="text-3xl md:text-4xl font-bold mb-3">Articles & Resources</h1>
+            <p className="text-base md:text-lg text-teal-50 max-w-2xl mx-auto">
               مقالات ومصادر علمية | Scientific Articles and Resources
             </p>
           </div>
@@ -162,47 +162,89 @@ const ArticlesPage = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Search and Filter Section */}
-        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Search Bar */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Search and Filter Section - New Elegant Design */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+          <div className="grid md:grid-cols-[1fr_auto] divide-y md:divide-y-0 md:divide-x divide-gray-200">
+            {/* Search Section */}
+            <div className="p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <Search className="w-4 h-4 text-[#4C9A8F]" />
+                <h3 className="text-sm font-semibold text-gray-700">Search Articles</h3>
+              </div>
               <input
                 type="text"
-                placeholder="Search articles... | ابحث في المقالات..."
+                placeholder="Type to search..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none transition-all"
               />
             </div>
 
-            {/* Category Filter */}
-            <div className="flex flex-wrap gap-2">
-              {categories.map((cat) => (
-                <button
-                  key={cat.value}
-                  onClick={() => setSelectedCategory(cat.value)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    selectedCategory === cat.value
-                      ? 'bg-[#4C9A8F] text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {cat.labelEn} | {cat.labelAr}
-                </button>
-              ))}
+            {/* Filter Section */}
+            <div className="p-5 md:min-w-[280px]">
+              <div className="flex items-center gap-2 mb-3">
+                <Filter className="w-4 h-4 text-[#4C9A8F]" />
+                <h3 className="text-sm font-semibold text-gray-700">Category</h3>
+              </div>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none transition-all bg-white"
+              >
+                {categories.map((cat) => (
+                  <option key={cat.value} value={cat.value}>
+                    {cat.labelEn} - {cat.labelAr}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
+
+          {/* Active Filters Display */}
+          {(searchTerm || selectedCategory !== 'all') && (
+            <div className="px-5 py-3 bg-gray-50 border-t border-gray-200 flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-gray-600">Active filters:</span>
+              {searchTerm && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-200 rounded text-xs">
+                  Search: "{searchTerm}"
+                  <button onClick={() => setSearchTerm('')} className="text-gray-400 hover:text-gray-600">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              {selectedCategory !== 'all' && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-white border border-gray-200 rounded text-xs">
+                  Category: {categories.find(c => c.value === selectedCategory)?.labelEn}
+                  <button onClick={() => setSelectedCategory('all')} className="text-gray-400 hover:text-gray-600">
+                    <X className="w-3 h-3" />
+                  </button>
+                </span>
+              )}
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setSelectedCategory('all');
+                }}
+                className="text-xs text-[#4C9A8F] hover:text-[#3d8178] font-medium ml-auto"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Results Count */}
+        <div className="mb-4 text-sm text-gray-600">
+          Showing {filteredArticles.length} {filteredArticles.length === 1 ? 'article' : 'articles'}
         </div>
 
         {/* Articles Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
           {filteredArticles.map((article) => (
             <div
               key={article.id}
-              className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer"
+              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer"
               onClick={() => setSelectedArticle(article)}
             >
               <div className="aspect-video bg-gray-100 overflow-hidden">
@@ -212,9 +254,9 @@ const ArticlesPage = () => {
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                 />
               </div>
-              <div className="p-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="px-3 py-1 bg-teal-50 text-[#4C9A8F] text-xs font-medium rounded-full">
+              <div className="p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="px-2 py-0.5 bg-teal-50 text-[#4C9A8F] text-xs font-medium rounded-full">
                     {article.categoryAr}
                   </span>
                   <span className="flex items-center text-xs text-gray-500">
@@ -222,20 +264,20 @@ const ArticlesPage = () => {
                     {article.readTime}
                   </span>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
+                <h3 className="text-base font-bold text-gray-900 mb-1 line-clamp-2">
                   {article.titleAr}
                 </h3>
-                <p className="text-sm text-gray-600 mb-2 line-clamp-1">
+                <p className="text-xs text-gray-600 mb-2 line-clamp-1">
                   {article.titleEn}
                 </p>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-3">
+                <p className="text-gray-600 text-xs mb-3 line-clamp-2">
                   {article.excerptAr}
                 </p>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500">{article.date}</span>
-                  <button className="text-[#4C9A8F] hover:text-[#3d8178] text-sm font-medium flex items-center gap-1">
+                  <button className="text-[#4C9A8F] hover:text-[#3d8178] text-xs font-medium flex items-center gap-1">
                     Read More
-                    <ExternalLink className="w-4 h-4" />
+                    <ExternalLink className="w-3 h-3" />
                   </button>
                 </div>
               </div>
@@ -251,18 +293,24 @@ const ArticlesPage = () => {
         )}
       </div>
 
-      {/* Article Modal */}
+      {/* Article Modal - Smaller and More Compact */}
       {selectedArticle && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-4xl w-full my-8 relative">
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 overflow-y-auto"
+          onClick={() => setSelectedArticle(null)}
+        >
+          <div 
+            className="bg-white rounded-xl max-w-2xl w-full my-8 relative shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <button
               onClick={() => setSelectedArticle(null)}
-              className="absolute top-4 right-4 w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition-colors z-10"
+              className="absolute top-3 right-3 w-8 h-8 bg-white hover:bg-gray-100 rounded-full flex items-center justify-center transition-colors z-10 shadow-md"
             >
-              <X className="w-6 h-6 text-gray-600" />
+              <X className="w-5 h-5 text-gray-600" />
             </button>
 
-            <div className="aspect-video bg-gray-100 overflow-hidden rounded-t-2xl">
+            <div className="aspect-video bg-gray-100 overflow-hidden rounded-t-xl">
               <img
                 src={selectedArticle.image}
                 alt={selectedArticle.titleEn}
@@ -270,45 +318,45 @@ const ArticlesPage = () => {
               />
             </div>
 
-            <div className="p-8">
-              <div className="flex items-center gap-3 mb-4">
-                <span className="px-4 py-2 bg-teal-50 text-[#4C9A8F] text-sm font-medium rounded-full">
-                  {selectedArticle.categoryAr} | {selectedArticle.category}
+            <div className="p-6">
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <span className="px-3 py-1 bg-teal-50 text-[#4C9A8F] text-xs font-medium rounded-full">
+                  {selectedArticle.categoryAr}
                 </span>
-                <span className="flex items-center text-sm text-gray-500">
-                  <Clock className="w-4 h-4 mr-1" />
+                <span className="flex items-center text-xs text-gray-500">
+                  <Clock className="w-3 h-3 mr-1" />
                   {selectedArticle.readTime}
                 </span>
-                <span className="text-sm text-gray-500">{selectedArticle.date}</span>
+                <span className="text-xs text-gray-500">{selectedArticle.date}</span>
               </div>
 
-              <h2 className="text-3xl font-bold text-gray-900 mb-3">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
                 {selectedArticle.titleAr}
               </h2>
-              <h3 className="text-xl text-gray-600 mb-6">
+              <h3 className="text-sm text-gray-600 mb-4">
                 {selectedArticle.titleEn}
               </h3>
 
-              <div className="prose max-w-none mb-8">
-                <p className="text-gray-700 text-lg leading-relaxed mb-4">
+              <div className="mb-5">
+                <p className="text-gray-700 text-sm leading-relaxed mb-3">
                   {selectedArticle.excerptAr}
                 </p>
-                <p className="text-gray-600 leading-relaxed">
+                <p className="text-gray-600 text-sm leading-relaxed">
                   {selectedArticle.excerptEn}
                 </p>
               </div>
 
-              <div className="border-t border-gray-200 pt-6">
+              <div className="border-t border-gray-200 pt-4">
                 <a
                   href={selectedArticle.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                  className="inline-flex items-center gap-2 bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors"
                 >
-                  <ExternalLink className="w-5 h-5" />
+                  <ExternalLink className="w-4 h-4" />
                   Read Full Article | اقرأ المقال كاملاً
                 </a>
-                <p className="text-sm text-gray-500 mt-3">
+                <p className="text-xs text-gray-500 mt-2">
                   This will open the original article in a new tab
                 </p>
               </div>
@@ -318,16 +366,16 @@ const ArticlesPage = () => {
       )}
 
       {/* Footer CTA Section */}
-      <div className="bg-white border-t border-gray-200 py-12 mt-12">
+      <div className="bg-white border-t border-gray-200 py-8 mt-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] rounded-2xl p-8 md:p-12 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+          <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] rounded-2xl p-6 md:p-8 text-center">
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-3">
               Join Our Community
             </h2>
-            <p className="text-teal-50 mb-6 max-w-2xl mx-auto">
+            <p className="text-teal-50 mb-4 max-w-2xl mx-auto text-sm">
               Become a member and be part of our growing professional community
             </p>
-            <button className="bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg">
+            <button className="bg-white text-[#4C9A8F] hover:bg-gray-50 px-6 py-2.5 rounded-lg font-semibold transition-colors duration-200 shadow-lg text-sm">
               Become a Member
             </button>
           </div>
