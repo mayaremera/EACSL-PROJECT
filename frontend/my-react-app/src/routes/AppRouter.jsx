@@ -25,6 +25,8 @@ import ReservationPage from "../pages/ReservationPage";
 import ContactPage from "../pages/ContactPage";
 import NotFoundPage from "../pages/NotFoundPage";
 import Dashboard from "../pages/Dashboard";
+import MemberProfile from "../pages/MemberProfile";
+
 // Layout
 import Layout from "../components/layout/Layout";
 
@@ -56,6 +58,7 @@ function AppRouter() {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="*" element={<NotFoundPage />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/member-profile" element={<MemberProfile />} />
         </Route>
       </Routes>
     </BrowserRouter>
