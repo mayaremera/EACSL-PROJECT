@@ -19,9 +19,9 @@ const MemberSection = () => {
                     Want to become a member<br />of EACSL?
                 </h2>
 
-                <button className="text-[1rem] lg:text-lg px-10 py-4 bg-[#5A9B8E] text-white font-semibold rounded-md hover:bg-[#4A8B7E] transition-all duration-300 shadow-lg">
+                <a className="text-[1rem] lg:text-lg px-10 py-4 bg-[#5A9B8E] text-white font-semibold rounded-md hover:bg-[#4A8B7E] transition-all duration-300 shadow-lg" href='/apply-membership'>
                     Become a member
-                </button>
+                </a>
             </div>
         </section>
     );

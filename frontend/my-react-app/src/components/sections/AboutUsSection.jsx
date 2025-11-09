@@ -44,9 +44,9 @@ const AboutUsSection = () => {
             </div>
 
             {/* View More Button */}
-            <button className="text-[0.8rem] px-8 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] font-semibold rounded-md hover:bg-[#5A9B8E] hover:text-white transition-all duration-300 mx-auto block lg:mx-0 lg:inline-block">
+            <a className="text-[0.8rem] px-8 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] font-semibold rounded-md hover:bg-[#5A9B8E] hover:text-white transition-all duration-300 mx-auto block lg:mx-0 lg:inline-block" href="/about">
               Learn More
-            </button>
+            </a>
           </div>
 
           {/* Right Image with decorative lines */}

@@ -8,13 +8,13 @@ const Footer = () => {
       title: null,
       content: (
         <>
-          <div className="mb-6 lg:mb-5 flex justify-center lg:justify-start">
+          <a className="mb-6 lg:mb-5 flex justify-center lg:justify-start" href='/'>
             <img 
               src={whiteLogo} 
               alt="Company Logo" 
               className="h-16 sm:h-20 w-auto lg:h-16 lg:w-auto"
             />
-          </div> 
+          </a> 
           <div className="flex gap-4 justify-center lg:justify-start">
             <a 
               href="#" 

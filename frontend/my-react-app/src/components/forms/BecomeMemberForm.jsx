@@ -21,12 +21,8 @@ const BecomeMemberForm = ({ onSubmit }) => {
     });
 
     const specialties = [
-        'Speech sound disorder (children)',
-        'Language disorder (children)',
-        'Neurogenic communication disorder',
-        'Voice and upper respiratory disorders',
-        'Fluency disorders',
-        'Craniofacial and velopharyngeal disorders'
+        'Phonetics and linguistics',
+        'Speech and language therapy department'
     ];
 
     const validateField = (name, value) => {
