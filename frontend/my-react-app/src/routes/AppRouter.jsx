@@ -51,7 +51,6 @@ function AppRouter() {
           <Route path="/gallery" element={<GalleryPage />} />
           <Route path="/education" element={<EducationPage />} />
           <Route path="/online-courses" element={<OnlineCoursesPage />} />
-          <Route path="/live-events" element={<LiveEventsPage />} />
           <Route path="/articles" element={<ArticlesPage />} />
           <Route path="/members-overview" element={<MembersOverviewPage />} />
           <Route path="/apply-membership" element={<ApplyMembershipPage />} />
