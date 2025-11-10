@@ -30,6 +30,7 @@ import ContinuingEducationMember from "../pages/ContinuingEducationMember";
 import UpcomingEventsPage from "./../pages/UpcomingEventsPage";
 import PastEventsPage from "./../pages/PastEventsPage";
 import CourseDetailsPage from './../pages/CourseDetailsPage';
+import DashboardCourseEditorPage from './../pages/DashboardCourseEditorPage';
 
 // Layout
 import Layout from "../components/layout/Layout";
@@ -66,7 +67,8 @@ function AppRouter() {
           <Route path="/continuing-education" element={<ContinuingEducationMember />} />
           <Route path="/upcoming-events" element={<UpcomingEventsPage />} />
           <Route path="/past-events" element={<PastEventsPage />} />
-          <Route path="/course-details" element={<CourseDetailsPage />} />
+          <Route path="/course-details/:courseId" element={<CourseDetailsPage />} />
+          <Route path="/dashboard-course-editor" element={<DashboardCourseEditorPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

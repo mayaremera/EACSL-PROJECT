@@ -1,8 +1,10 @@
 import React from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { getFeaturedCourses } from '../../data/courses';
 import CourseCard from '../cards/CourseCard';
 
 const CoursesSection = () => {
+    const navigate = useNavigate();
     // Get featured courses dynamically from data
     const featuredCourses = getFeaturedCourses(6);
 
@@ -14,12 +16,12 @@ const CoursesSection = () => {
                     <h2 className="text-3xl font-bold text-black">
                         TOP POPULAR COURSE
                     </h2>
-                    <a
-                        href="/online-courses"
+                    <Link
+                        to="/online-courses"
                         className="text-gray-700 font-medium hover:text-[#5A9B8E] transition-colors duration-300"
                     >
                         View All
-                    </a>
+                    </Link>
                 </div>
 
                 {/* Courses Grid */}
@@ -28,7 +30,7 @@ const CoursesSection = () => {
                         <CourseCard
                             key={course.id}
                             course={course}
-                            onClick={() => window.location.href = `/online-courses`}
+                            onClick={() => navigate(`/course-details/${course.id}`)}
                         />
                     ))}
                 </div>

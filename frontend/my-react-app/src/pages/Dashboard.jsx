@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
     Home,
     CreditCard,
@@ -10,14 +11,14 @@ import {
     Wrench,
     Award,
 } from "lucide-react";
-import CoursesSection from '../components/sections/CoursesSection';
 
 const Dashboard = () => {
+    const navigate = useNavigate();
     const [activeItem, setActiveItem] = useState("Dashboard");
 
     const menuItems = [
-        { icon: Home, label: "Dashboard", path: "/" },
-        { icon: CreditCard, label: "Transactions", path: "/transactions" },
+        { icon: Home, label: "Dashboard", path: "/dashboard" },
+        { icon: CreditCard, label: "Courses", path: "/dashboard-course-editor" },
         { icon: Users, label: "Accounts", path: "/accounts" },
         { icon: TrendingUp, label: "Investments", path: "/investments" },
         { icon: DollarSign, label: "Credit Cards", path: "/credit-cards" },
@@ -26,6 +27,11 @@ const Dashboard = () => {
         { icon: Award, label: "My Privileges", path: "/privileges" },
         { icon: Settings, label: "Setting", path: "/settings" },
     ];
+
+    const handleMenuClick = (item) => {
+        setActiveItem(item.label);
+        navigate(item.path);
+    };
 
     return (
         
@@ -42,7 +48,7 @@ const Dashboard = () => {
                             return (
                                 <li key={item.label}>
                                     <button
-                                        onClick={() => setActiveItem(item.label)}
+                                        onClick={() => handleMenuClick(item)}
                                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
                                                 ? "bg-teal-50 text-[#4C9A8F] font-medium"
                                                 : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
@@ -81,8 +87,6 @@ const Dashboard = () => {
                     <p className="text-gray-600 mb-8">
                         Welcome back! Here's what's happening with your courses today.
                     </p>
-
-                    <CoursesSection />
                 </div>
             </div>
         </div>

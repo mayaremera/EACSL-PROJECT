@@ -1,9 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { BookOpen, X, Clock, Users, Search, ChevronDown, Star, ArrowRight, Filter } from 'lucide-react';
 import { courses, getCategories, getLevels } from '../data/courses';
 import CourseCard from '../components/cards/CourseCard';
 
 const OnlineCoursesPage = () => {
+  const navigate = useNavigate();
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
@@ -138,7 +140,7 @@ const OnlineCoursesPage = () => {
             <CourseCard
               key={course.id}
               course={course}
-              onClick={() => setSelectedCourse(course)}
+              onClick={() => navigate(`/course-details/${course.id}`)}
             />
           ))}
         </div>
@@ -221,8 +223,14 @@ const OnlineCoursesPage = () => {
                 </div>
                 <div className="text-right">
                   <p className="text-2xl font-bold text-[#4C9A8F]">{selectedCourse.price}</p>
-                  <button className="mt-2 bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2">
-                    Enroll Now
+                  <button 
+                    onClick={() => {
+                      setSelectedCourse(null);
+                      navigate(`/course-details/${selectedCourse.id}`);
+                    }}
+                    className="mt-2 bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
+                  >
+                    View Details
                     <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
