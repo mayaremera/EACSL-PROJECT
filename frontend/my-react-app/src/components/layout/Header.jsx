@@ -57,14 +57,6 @@ const Header = () => {
     {
       name: 'Services',
       dropdown: [
-        { name: 'Reservation', href: '/reservation' },
-        { name: 'Therapy Programs', href: '/therapy-programs' },
-        { name: 'For Parents', href: '/for-parents' },
-      ],
-    },
-    {
-      name: 'Services',
-      dropdown: [
         { name: 'Therapy Programs', href: '/therapy-programs' },
         { name: 'Reservation', href: '/reservation' },
         { name: 'For Parents', href: '/for-parents' },
