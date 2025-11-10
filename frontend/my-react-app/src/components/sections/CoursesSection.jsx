@@ -358,7 +358,7 @@ const CoursesSection = () => {
                         TOP POPULAR COURSE
                     </h2>
                     <a
-                        href="#"
+                        href="/online-courses"
                         className="text-gray-700 font-medium hover:text-[#5A9B8E] transition-colors duration-300"
                     >
                         View All

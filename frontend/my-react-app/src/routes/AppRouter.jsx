@@ -13,7 +13,6 @@ import RegistrationPage from "../pages/RegistrationPage";
 import GalleryPage from "../pages/GalleryPage";
 import EducationPage from "../pages/EducationPage";
 import OnlineCoursesPage from "../pages/OnlineCoursesPage";
-import LiveEventsPage from "../pages/LiveEventsPage";
 import ArticlesPage from "../pages/ArticlesPage";
 import MembersOverviewPage from "../pages/MembersOverviewPage";
 import ApplyMembershipPage from "../pages/ApplyMembershipPage";
@@ -26,9 +25,15 @@ import ContactPage from "../pages/ContactPage";
 import NotFoundPage from "../pages/NotFoundPage";
 import Dashboard from "../pages/Dashboard";
 import MemberProfile from "../pages/MemberProfile";
+import LiveEventsPage from './../pages/LiveEventsPage';
+import ContinuingEducationMember from "../pages/ContinuingEducationMember";
+import UpcomingEventsPage from "./../pages/UpcomingEventsPage";
+import PastEventsPage from "./../pages/PastEventsPage";
+import CourseDetailsPage from './../pages/CourseDetailsPage';
 
 // Layout
 import Layout from "../components/layout/Layout";
+
 
 function AppRouter() {
   return (
@@ -59,6 +64,10 @@ function AppRouter() {
           <Route path="*" element={<NotFoundPage />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/member-profile" element={<MemberProfile />} />
+          <Route path="/continuing-education" element={<ContinuingEducationMember />} />
+          <Route path="/upcoming-events" element={<UpcomingEventsPage />} />
+          <Route path="/past-events" element={<PastEventsPage />} />
+          <Route path="/course-details" element={<CourseDetailsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
