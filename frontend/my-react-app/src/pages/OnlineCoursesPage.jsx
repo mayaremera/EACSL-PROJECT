@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, X, Clock, Users, Search, ChevronDown, Star, ArrowRight, Filter } from 'lucide-react';
-import { courses, getCategories, getLevels } from '../data/courses';
+import { getCategories, getLevels } from '../data/courses';
+import { coursesManager } from '../utils/dataManager';
 import CourseCard from '../components/cards/CourseCard';
 
 const OnlineCoursesPage = () => {
@@ -11,7 +12,23 @@ const OnlineCoursesPage = () => {
   const [selectedLevel, setSelectedLevel] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [courses, setCourses] = useState([]);
   const modalRef = useRef(null);
+
+  useEffect(() => {
+    const loadCourses = () => {
+      setCourses(coursesManager.getAll());
+    };
+    
+    loadCourses();
+    window.addEventListener('coursesUpdated', (e) => {
+      setCourses(e.detail);
+    });
+
+    return () => {
+      window.removeEventListener('coursesUpdated', loadCourses);
+    };
+  }, []);
 
   // Close modal when clicking outside
   useEffect(() => {

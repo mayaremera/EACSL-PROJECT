@@ -169,9 +169,11 @@ export const getLevels = () => {
 };
 
 // Helper function to get featured/popular courses (for CoursesSection)
-export const getFeaturedCourses = (limit = 6) => {
+export const getFeaturedCourses = (limit = 6, coursesList = null) => {
+  // Use provided courses list or default to exported courses
+  const coursesToUse = coursesList || courses;
   // Sort by rating and students, then take top courses
-  return [...courses]
+  return [...coursesToUse]
     .sort((a, b) => {
       const scoreA = a.rating * 10 + a.students / 10;
       const scoreB = b.rating * 10 + b.students / 10;
