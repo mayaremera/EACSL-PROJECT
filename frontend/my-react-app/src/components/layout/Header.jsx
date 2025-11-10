@@ -34,7 +34,6 @@ const Header = () => {
       name: 'Events',
       dropdown: [
         { name: 'Upcoming Events', href: '/upcoming-events' },
-        { name: 'Live Events', href: '/live-events' },
         { name: 'Past Events', href: '/past-events' },
       ],
     },

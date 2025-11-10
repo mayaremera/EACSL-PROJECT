@@ -29,12 +29,9 @@ const OnlineCoursesPage = () => {
   const courses = [
     {
       id: 1,
-      titleAr: "أساسيات علاج النطق واللغة",
-      titleEn: "Fundamentals of Speech and Language Therapy",
+      title: "Fundamentals of Speech and Language Therapy",
       category: "Speech Therapy",
-      categoryAr: "علاج النطق",
       level: "Beginner",
-      levelAr: "مبتدئ",
       duration: "8 weeks",
       lessons: 24,
       students: 156,
@@ -43,17 +40,13 @@ const OnlineCoursesPage = () => {
       image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80",
       instructor: "Dr. Sarah Ahmed",
       instructorImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop",
-      descriptionAr: "دورة شاملة تغطي أساسيات علاج النطق واللغة للمبتدئين",
-      descriptionEn: "Comprehensive course covering speech and language therapy fundamentals for beginners"
+      description: "Comprehensive course covering speech and language therapy fundamentals for beginners"
     },
     {
       id: 2,
-      titleAr: "اضطرابات طيف التوحد: التقييم والتدخل",
-      titleEn: "Autism Spectrum Disorders: Assessment & Intervention",
+      title: "Autism Spectrum Disorders: Assessment & Intervention",
       category: "Autism",
-      categoryAr: "التوحد",
       level: "Intermediate",
-      levelAr: "متوسط",
       duration: "10 weeks",
       lessons: 30,
       students: 203,
@@ -62,17 +55,13 @@ const OnlineCoursesPage = () => {
       image: "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=600&q=80",
       instructor: "Dr. Mohamed Hassan",
       instructorImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop",
-      descriptionAr: "دورة متقدمة في تقييم وعلاج اضطرابات طيف التوحد",
-      descriptionEn: "Advanced course in autism spectrum disorder assessment and treatment"
+      description: "Advanced course in autism spectrum disorder assessment and treatment"   
     },
     {
       id: 3,
-      titleAr: "علاج اضطرابات البلع",
-      titleEn: "Dysphagia Management",
+      title: "Dysphagia Management",
       category: "Dysphagia",
-      categoryAr: "عسر البلع",
       level: "Advanced",
-      levelAr: "متقدم",
       duration: "6 weeks",
       lessons: 18,
       students: 89,
@@ -81,17 +70,13 @@ const OnlineCoursesPage = () => {
       image: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&q=80",
       instructor: "Dr. Layla Ibrahim",
       instructorImage: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
-      descriptionAr: "تقنيات متقدمة في تشخيص وعلاج اضطرابات البلع",
-      descriptionEn: "Advanced techniques in dysphagia diagnosis and treatment"
+      description: "Advanced techniques in dysphagia diagnosis and treatment"
     },
     {
       id: 4,
-      titleAr: "اضطرابات الطلاقة والتلعثم",
-      titleEn: "Fluency Disorders and Stuttering",
+      title: "Fluency Disorders and Stuttering",
       category: "Fluency Disorders",
-      categoryAr: "اضطرابات الطلاقة",
       level: "Intermediate",
-      levelAr: "متوسط",
       duration: "8 weeks",
       lessons: 22,
       students: 134,
@@ -100,17 +85,13 @@ const OnlineCoursesPage = () => {
       image: "https://images.unsplash.com/photo-1581579186913-45ac3e6efe93?w=600&q=80",
       instructor: "Dr. Ahmed Ali",
       instructorImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop",
-      descriptionAr: "دورة شاملة في تقييم وعلاج اضطرابات الطلاقة",
-      descriptionEn: "Comprehensive course in fluency disorder assessment and treatment"
+      description: "Comprehensive course in fluency disorder assessment and treatment"
     },
     {
       id: 5,
-      titleAr: "تطور اللغة عند الأطفال",
-      titleEn: "Child Language Development",
+      title: "Child Language Development",
       category: "Language Development",
-      categoryAr: "تطور اللغة",
       level: "Beginner",
-      levelAr: "مبتدئ",
       duration: "6 weeks",
       lessons: 20,
       students: 245,
@@ -119,17 +100,13 @@ const OnlineCoursesPage = () => {
       image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&q=80",
       instructor: "Dr. Fatima Khaled",
       instructorImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop",
-      descriptionAr: "دراسة مراحل تطور اللغة الطبيعي عند الأطفال",
-      descriptionEn: "Study of normal language development stages in children"
+      description: "Study of normal language development stages in children"
     },
     {
       id: 6,
-      titleAr: "اضطرابات الصوت والحنجرة",
-      titleEn: "Voice and Laryngeal Disorders",
+      title: "Voice and Laryngeal Disorders",
       category: "Voice Disorders",
-      categoryAr: "اضطرابات الصوت",
       level: "Advanced",
-      levelAr: "متقدم",
       duration: "7 weeks",
       lessons: 21,
       students: 98,
@@ -138,17 +115,13 @@ const OnlineCoursesPage = () => {
       image: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&q=80",
       instructor: "Dr. Karim Nasser",
       instructorImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop",
-      descriptionAr: "تشخيص وعلاج اضطرابات الصوت والحنجرة",
-      descriptionEn: "Diagnosis and treatment of voice and laryngeal disorders"
+      description: "Diagnosis and treatment of voice and laryngeal disorders"
     },
     {
       id: 7,
-      titleAr: "الحبسة الكلامية: التشخيص والتأهيل",
-      titleEn: "Aphasia: Diagnosis and Rehabilitation",
+      title: "Aphasia: Diagnosis and Rehabilitation",
       category: "Aphasia",
-      categoryAr: "الحبسة الكلامية",
       level: "Intermediate",
-      levelAr: "متوسط",
       duration: "9 weeks",
       lessons: 27,
       students: 167,
@@ -157,17 +130,13 @@ const OnlineCoursesPage = () => {
       image: "https://images.unsplash.com/photo-1559757175-5700dde675bc?w=600&q=80",
       instructor: "Dr. Nour Hassan",
       instructorImage: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
-      descriptionAr: "برنامج شامل في تشخيص وتأهيل الحبسة الكلامية",
-      descriptionEn: "Comprehensive program in aphasia diagnosis and rehabilitation"
+      description: "Comprehensive program in aphasia diagnosis and rehabilitation"
     },
     {
       id: 8,
-      titleAr: "تقنيات التواصل البديل والمعزز",
-      titleEn: "Augmentative and Alternative Communication",
+      title: "Augmentative and Alternative Communication",
       category: "AAC",
-      categoryAr: "التواصل البديل",
       level: "Intermediate",
-      levelAr: "متوسط",
       duration: "7 weeks",
       lessons: 19,
       students: 112,
@@ -176,17 +145,13 @@ const OnlineCoursesPage = () => {
       image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&q=80",
       instructor: "Dr. Maha Fathy",
       instructorImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop",
-      descriptionAr: "استخدام تقنيات التواصل البديل والمعزز في العلاج",
-      descriptionEn: "Using AAC techniques in therapy"
+      description: "Using AAC techniques in therapy"
     },
     {
       id: 9,
-      titleAr: "علاج النطق للأطفال ذوي الإعاقة السمعية",
-      titleEn: "Speech Therapy for Hearing Impaired Children",
+      title: "Speech Therapy for Hearing Impaired Children",
       category: "Hearing Impairment",
-      categoryAr: "الإعاقة السمعية",
       level: "Advanced",
-      levelAr: "متقدم",
       duration: "10 weeks",
       lessons: 28,
       students: 145,
@@ -195,36 +160,34 @@ const OnlineCoursesPage = () => {
       image: "https://images.unsplash.com/photo-1531545514256-b1400bc00f31?w=600&q=80",
       instructor: "Dr. Omar Saleh",
       instructorImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop",
-      descriptionAr: "تقنيات علاج النطق المتخصصة للأطفال ذوي الإعاقة السمعية",
-      descriptionEn: "Specialized speech therapy techniques for hearing impaired children"
+      description: "Specialized speech therapy techniques for hearing impaired children"
     }
   ];
 
   const categories = [
-    { value: 'all', labelAr: 'الكل', labelEn: 'All Courses' },
-    { value: 'Speech Therapy', labelAr: 'علاج النطق', labelEn: 'Speech Therapy' },
-    { value: 'Autism', labelAr: 'التوحد', labelEn: 'Autism' },
-    { value: 'Dysphagia', labelAr: 'عسر البلع', labelEn: 'Dysphagia' },
-    { value: 'Fluency Disorders', labelAr: 'اضطرابات الطلاقة', labelEn: 'Fluency' },
-    { value: 'Language Development', labelAr: 'تطور اللغة', labelEn: 'Language Dev' },
-    { value: 'Voice Disorders', labelAr: 'اضطرابات الصوت', labelEn: 'Voice' },
-    { value: 'Aphasia', labelAr: 'الحبسة الكلامية', labelEn: 'Aphasia' },
-    { value: 'AAC', labelAr: 'التواصل البديل', labelEn: 'AAC' }
+    { value: 'all', label: 'All Courses' },
+    { value: 'Speech Therapy', label: 'Speech Therapy' },
+    { value: 'Autism', label: 'Autism' },
+    { value: 'Dysphagia', label: 'Dysphagia' },
+    { value: 'Fluency Disorders', label: 'Fluency' },
+    { value: 'Language Development', label: 'Language Dev' },
+    { value: 'Voice Disorders', label: 'Voice' },
+    { value: 'Aphasia', label: 'Aphasia' },
+    { value: 'AAC', label: 'AAC' }
   ];
 
   const levels = [
-    { value: 'all', labelAr: 'جميع المستويات', labelEn: 'All Levels' },
-    { value: 'Beginner', labelAr: 'مبتدئ', labelEn: 'Beginner' },
-    { value: 'Intermediate', labelAr: 'متوسط', labelEn: 'Intermediate' },
-    { value: 'Advanced', labelAr: 'متقدم', labelEn: 'Advanced' }
+    { value: 'all', label: 'All Levels' },
+    { value: 'Beginner', label: 'Beginner' },
+    { value: 'Intermediate', label: 'Intermediate' },
+    { value: 'Advanced', label: 'Advanced' }
   ];
 
   const filteredCourses = courses.filter(course => {
     const matchesCategory = selectedCategory === 'all' || course.category === selectedCategory;
     const matchesLevel = selectedLevel === 'all' || course.level === selectedLevel;
     const matchesSearch = searchTerm === '' || 
-      course.titleAr.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.titleEn.toLowerCase().includes(searchTerm.toLowerCase());
+      course.title.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesLevel && matchesSearch;
   });
 
@@ -239,7 +202,7 @@ const OnlineCoursesPage = () => {
             </div>
             <h1 className="text-3xl md:text-4xl font-bold mb-2">Online Courses</h1>
             <p className="text-base text-teal-50">
-              الدورات التدريبية عبر الإنترنت | Professional Development Courses
+              Professional Development Courses
             </p>
           </div>
         </div>
@@ -265,7 +228,7 @@ const OnlineCoursesPage = () => {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
-                placeholder="Search courses... | ابحث عن دورة..."
+                placeholder="Search courses..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none text-sm"
@@ -281,7 +244,7 @@ const OnlineCoursesPage = () => {
               >
                 {categories.map((cat) => (
                   <option key={cat.value} value={cat.value}>
-                    {cat.labelEn}
+                    {cat.label}
                   </option>
                 ))}
               </select>
@@ -297,7 +260,7 @@ const OnlineCoursesPage = () => {
               >
                 {levels.map((level) => (
                   <option key={level.value} value={level.value}>
-                    {level.labelEn}
+                    {level.label}
                   </option>
                 ))}
               </select>
@@ -324,28 +287,25 @@ const OnlineCoursesPage = () => {
               <div className="relative h-40 overflow-hidden">
                 <img
                   src={course.image}
-                  alt={course.titleEn}
+                  alt={course.title}
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                 />
                 <div className="absolute top-3 left-3">
                   <span className="px-2.5 py-1 bg-[#4C9A8F] text-white text-xs font-semibold rounded">
-                    {course.categoryAr}
+                    {course.category}
                   </span>
                 </div>
                 <div className="absolute top-3 right-3">
                   <span className="px-2.5 py-1 bg-white/90 text-gray-800 text-xs font-semibold rounded">
-                    {course.levelAr}
+                    {course.level}
                   </span>
                 </div>
               </div>
 
               <div className="p-4">
                 <h3 className="text-base font-bold text-gray-900 mb-1 line-clamp-2 leading-snug">
-                  {course.titleAr}
+                  {course.title}
                 </h3>
-                <p className="text-xs text-gray-600 mb-3 line-clamp-1">
-                  {course.titleEn}
-                </p>
 
                 <div className="flex items-center gap-3 mb-3 text-xs text-gray-600">
                   <div className="flex items-center gap-1">
@@ -388,7 +348,7 @@ const OnlineCoursesPage = () => {
         {filteredCourses.length === 0 && (
           <div className="text-center py-12">
             <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500">No courses found | لا توجد دورات</p>
+            <p className="text-gray-500">No courses found</p>
           </div>
         )}
       </div>
@@ -407,7 +367,7 @@ const OnlineCoursesPage = () => {
             <div className="relative h-56 overflow-hidden">
               <img
                 src={selectedCourse.image}
-                alt={selectedCourse.titleEn}
+                alt={selectedCourse.title}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -415,10 +375,10 @@ const OnlineCoursesPage = () => {
             <div className="p-6">
               <div className="flex items-center gap-2 mb-3">
                 <span className="px-3 py-1 bg-teal-50 text-[#4C9A8F] text-xs font-semibold rounded-full">
-                  {selectedCourse.categoryAr}
+                  {selectedCourse.category}
                 </span>
                 <span className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">
-                  {selectedCourse.levelAr}
+                  {selectedCourse.level}
                 </span>
                 <div className="flex items-center gap-1 ml-auto">
                   <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
@@ -426,12 +386,9 @@ const OnlineCoursesPage = () => {
                 </div>
               </div>
 
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                {selectedCourse.titleAr}
+              <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                {selectedCourse.title}
               </h2>
-              <h3 className="text-lg text-gray-600 mb-4">
-                {selectedCourse.titleEn}
-              </h3>
 
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="flex items-center gap-2 text-sm">
@@ -449,8 +406,7 @@ const OnlineCoursesPage = () => {
               </div>
 
               <div className="mb-5">
-                <p className="text-gray-700 mb-2">{selectedCourse.descriptionAr}</p>
-                <p className="text-gray-600 text-sm">{selectedCourse.descriptionEn}</p>
+                <p className="text-gray-700">{selectedCourse.description}</p>
               </div>
 
               <div className="border-t pt-4 flex items-center justify-between">

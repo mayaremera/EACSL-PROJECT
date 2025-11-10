@@ -1,9 +1,431 @@
-import React from 'react'
+import React, { useState } from 'react';
+import { Calendar, MapPin, Clock, Users, DollarSign, CheckCircle, User, Mail, Phone, Building2 } from 'lucide-react';
 
-export default function UpcomingEventsPage() {
+const UpcomingEventsPage = () => {
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    phone: '',
+    organization: '',
+    membershipType: 'member',
+    selectedTracks: [],
+    specialRequirements: ''
+  });
+
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    
+    if (type === 'checkbox') {
+      if (checked) {
+        setFormData({
+          ...formData,
+          selectedTracks: [...formData.selectedTracks, value]
+        });
+      } else {
+        setFormData({
+          ...formData,
+          selectedTracks: formData.selectedTracks.filter(track => track !== value)
+        });
+      }
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+    }
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log('Registration submitted:', formData);
+    setIsSubmitted(true);
+  };
+
+  const scheduleDay1 = [
+    { time: '4:00 - 5:00 PM', trackA: 'Opening Ceremony & Welcome Address - Conference Chair', trackB: 'All Attendees', trackC: 'All Attendees' },
+    { time: '5:00 - 7:00 PM', trackA: 'Session 1A: Advances in Aphasia Rehabilitation', trackB: 'Session 1B: Translating Research into Practice', trackC: 'Session 1C: Digital Tools in SLP Education' },
+    { time: '7:00 - 7:30 PM', trackA: 'Break / Networking / Exhibits', trackB: 'Break / Networking / Exhibits', trackC: 'Break / Networking / Exhibits' },
+    { time: '7:30 - 9:30 PM', trackA: 'Session 2A: Pediatric Speech Disorders', trackB: 'Session 2B: Motor Speech Disorders Symposium', trackC: 'Session 2C: Clinical Education Innovations' }
+  ];
+
+  const scheduleDay2 = [
+    { time: '4:00 - 6:00 PM', trackA: 'Session 3A: Leadership in SLP Practice', trackB: 'Session 3B: Voice and Fluency Disorders', trackC: 'Session 3C: Advocacy & Ethical Practice' },
+    { time: '6:00 - 6:30 PM', trackA: 'Break / Networking', trackB: 'Break / Networking', trackC: 'Break / Networking' },
+    { time: '6:30 - 8:30 PM', trackA: 'Session 4A: Excellence in Clinical Documentation', trackB: 'Session 4B: Best Practices in Research Forum', trackC: 'Session 4C: The Future of Public Health in Telepractice' },
+    { time: '8:30 PM', trackA: 'Closing Ceremony & Conference Summary', trackB: 'All Attendees', trackC: 'All Attendees' }
+  ];
+
+  const tracks = [
+    'Track A: Speech & Swallowing',
+    'Track B: Language Disorders',
+    'Track C: Audiology'
+  ];
+
+  const memberFee = 500;
+  const guestFee = 800;
+  const currentFee = formData.membershipType === 'member' ? memberFee : guestFee;
+
+  if (isSubmitted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 max-w-2xl w-full text-center">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-12 h-12 text-green-600" />
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Registration Successful!</h2>
+          <p className="text-gray-600 mb-6 leading-relaxed">
+            Thank you for registering for our conference! Our admin team will contact you shortly with Instapay payment details.
+          </p>
+          <div className="bg-teal-50 border-l-4 border-[#4C9A8F] p-4 mb-6">
+            <p className="text-sm text-gray-700">
+              <strong>Registration Fee:</strong> {currentFee} EGP<br />
+              <strong>Email:</strong> {formData.email}<br />
+              <strong>Membership Type:</strong> {formData.membershipType === 'member' ? 'Member' : 'Guest'}
+            </p>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-8 py-3 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200"
+          >
+            Back to Event Page
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div>
-<h1>upciming</h1>      
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Section */}
+      <div className="relative bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-20 overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: 'url(https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=80)',
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}></div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <div className="text-center">
+            <div className="inline-block bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-4">
+              <span className="text-sm font-semibold">LIVE EVENT</span>
+            </div>
+            <h1 className="text-4xl md:text-6xl font-bold mb-4">Conference Schedule</h1>
+            <p className="text-xl md:text-2xl text-teal-50 max-w-3xl mx-auto mb-6">
+              Advancing Practice and Research in Speech-Language Pathology: Bridging Science and Clinical Impact
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-4 text-teal-100">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-5 h-5" />
+                <span>Two Days Conference</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                <span>All Attendees Welcome</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Breadcrumb */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center text-sm text-gray-600">
+            <a href="#" className="hover:text-[#4C9A8F] transition-colors">Home</a>
+            <span className="mx-2">/</span>
+            <a href="#" className="hover:text-[#4C9A8F] transition-colors">Events</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">Conference Schedule</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content */}
+          <div className="lg:col-span-2">
+            {/* Event Overview */}
+            <div className="bg-white rounded-xl shadow-md p-8 mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Event Overview</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Clock className="w-5 h-5 text-[#4C9A8F]" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Duration</h3>
+                    <p className="text-sm text-gray-600">Two Full Days</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                    <Users className="w-5 h-5 text-[#4C9A8F]" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 mb-1">Tracks</h3>
+                    <p className="text-sm text-gray-600">3 Parallel Sessions</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Tracks */}
+            <div className="bg-white rounded-xl shadow-md p-8 mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Conference Tracks</h2>
+              <div className="space-y-3">
+                {tracks.map((track, index) => (
+                  <div key={index} className="flex items-center gap-3 p-3 bg-teal-50 rounded-lg">
+                    <div className="w-8 h-8 bg-[#4C9A8F] text-white rounded-full flex items-center justify-center font-bold text-sm">
+                      {String.fromCharCode(65 + index)}
+                    </div>
+                    <span className="font-medium text-gray-900">{track}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Schedule Day 1 */}
+            <div className="bg-white rounded-xl shadow-md p-8 mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Day One - Knowledge and Innovation</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-gray-200">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-900">Time</th>
+                      <th className="text-left py-3 px-2 font-semibold text-gray-900">Track A</th>
+                      <th className="text-left py-3 px-2 font-semibold text-gray-900">Track B</th>
+                      <th className="text-left py-3 px-2 font-semibold text-gray-900">Track C</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {scheduleDay1.map((slot, index) => (
+                      <tr key={index} className="border-b border-gray-100">
+                        <td className="py-3 px-2 font-medium text-[#4C9A8F]">{slot.time}</td>
+                        <td className="py-3 px-2 text-gray-700">{slot.trackA}</td>
+                        <td className="py-3 px-2 text-gray-700">{slot.trackB}</td>
+                        <td className="py-3 px-2 text-gray-700">{slot.trackC}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Schedule Day 2 */}
+            <div className="bg-white rounded-xl shadow-md p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Day Two - Collaboration and Future Directions</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-gray-200">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-900">Time</th>
+                      <th className="text-left py-3 px-2 font-semibold text-gray-900">Track A</th>
+                      <th className="text-left py-3 px-2 font-semibold text-gray-900">Track B</th>
+                      <th className="text-left py-3 px-2 font-semibold text-gray-900">Track C</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {scheduleDay2.map((slot, index) => (
+                      <tr key={index} className="border-b border-gray-100">
+                        <td className="py-3 px-2 font-medium text-[#4C9A8F]">{slot.time}</td>
+                        <td className="py-3 px-2 text-gray-700">{slot.trackA}</td>
+                        <td className="py-3 px-2 text-gray-700">{slot.trackB}</td>
+                        <td className="py-3 px-2 text-gray-700">{slot.trackC}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* Sidebar - Registration Form */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-md p-6 sticky top-4">
+              <h3 className="text-2xl font-bold text-gray-900 mb-6">Register Now</h3>
+              
+              {/* Pricing */}
+              <div className="mb-6 p-4 bg-gradient-to-r from-teal-50 to-teal-100 rounded-lg border border-teal-200">
+                <div className="flex items-center gap-2 mb-3">
+                  <DollarSign className="w-5 h-5 text-[#4C9A8F]" />
+                  <h4 className="font-semibold text-gray-900">Registration Fees</h4>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Members:</span>
+                    <span className="font-bold text-[#4C9A8F]">{memberFee} EGP</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Guests:</span>
+                    <span className="font-bold text-gray-700">{guestFee} EGP</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Full Name *
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="text"
+                      name="fullName"
+                      value={formData.fullName}
+                      onChange={handleChange}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent"
+                      placeholder="John Doe"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Email *
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent"
+                      placeholder="john@example.com"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone *
+                  </label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleChange}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent"
+                      placeholder="+20 XXX XXX XXXX"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Organization
+                  </label>
+                  <div className="relative">
+                    <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="text"
+                      name="organization"
+                      value={formData.organization}
+                      onChange={handleChange}
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent"
+                      placeholder="Your Organization"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Membership Type *
+                  </label>
+                  <select
+                    name="membershipType"
+                    value={formData.membershipType}
+                    onChange={handleChange}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent"
+                    required
+                  >
+                    <option value="member">EACSL Member ({memberFee} EGP)</option>
+                    <option value="guest">Guest ({guestFee} EGP)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Preferred Tracks
+                  </label>
+                  <div className="space-y-2">
+                    {tracks.map((track, index) => (
+                      <label key={index} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          value={track}
+                          checked={formData.selectedTracks.includes(track)}
+                          onChange={handleChange}
+                          className="w-4 h-4 text-[#4C9A8F] border-gray-300 rounded focus:ring-[#4C9A8F]"
+                        />
+                        <span className="text-sm text-gray-700">{track}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Special Requirements
+                  </label>
+                  <textarea
+                    name="specialRequirements"
+                    value={formData.specialRequirements}
+                    onChange={handleChange}
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent resize-none"
+                    placeholder="Any dietary restrictions or accessibility needs..."
+                  ></textarea>
+                </div>
+
+                <div className="pt-4 border-t border-gray-200">
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-sm font-medium text-gray-700">Total Fee:</span>
+                    <span className="text-2xl font-bold text-[#4C9A8F]">{currentFee} EGP</span>
+                  </div>
+                  <button
+                    onClick={handleSubmit}
+                    className="w-full py-3 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+                  >
+                    Register Now
+                  </button>
+                  <p className="text-xs text-gray-500 mt-3 text-center">
+                    Payment via Instapay. Our admin will contact you with payment details.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Footer CTA Section */}
+      <div className="bg-white border-t border-gray-200 py-12 mt-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] rounded-2xl p-8 md:p-12 text-center">
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+              Questions About the Event?
+            </h2>
+            <p className="text-teal-50 mb-6 max-w-2xl mx-auto">
+              Contact us for more information about the conference
+            </p>
+            <a className="bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg" href='/contact'>
+              Contact Us
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
-  )
-}
+  );
+};
+
+export default UpcomingEventsPage;
