@@ -4,7 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 // Pages
 import HomePage from "../pages/HomePage";
 import AboutPage from "../pages/AboutPage";
-import SLPIPPage from "../pages/SLPIPPage";
+import PastEvents from "../pages/PastEvents";
 import SpeakersPage from "../pages/SpeakersPage";
 import ScientificCommitteePage from "../pages/ScientificCommitteePage";
 import OrganizingCommitteePage from "../pages/OrganizingCommitteePage";
@@ -37,7 +37,7 @@ function AppRouter() {
         <Route element={<Layout />}> {/* Header/Footer wrap all pages */}
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/slpip" element={<SLPIPPage />} />
+          <Route path="/past-events" element={<PastEvents />} />
           <Route path="/speakers" element={<SpeakersPage />} />
           <Route path="/scientific-committee" element={<ScientificCommitteePage />} />
           <Route path="/organizing-committee" element={<OrganizingCommitteePage />} />

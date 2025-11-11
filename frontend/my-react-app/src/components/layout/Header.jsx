@@ -55,7 +55,14 @@ const Header = () => {
         { name: 'Articles', href: '/articles' },
       ],
     },
-    { name: 'Gallery', href: '/gallery' },
+    {
+      name: 'Services',
+      dropdown: [
+        { name: 'Therapy Programs', href: '/therapy-programs' },
+        { name: 'Reservation', href: '/reservation' },
+        { name: 'For Parents', href: '/for-parents' },
+      ],
+    },
     { name: 'Contact', href: '/contact' },
   ];
 

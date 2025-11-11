@@ -12,7 +12,7 @@ const EventCard = () => {
       {/* Image Section */}
       <div className="relative">
         <img
-          src={Booklet}
+          src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=2072"
           alt="Workspace"
           className="w-full h-[300px] object-center rounded-2xl"
         />
@@ -141,9 +141,9 @@ const HeroSection = () => {
             disorders rehabilitation
           </p>
 
-          <button className="text-sm md:text-base px-8 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] font-semibold rounded-md hover:bg-[#5A9B8E] hover:text-white transition-all duration-300 w-fit">
+          <a className="text-sm md:text-base px-8 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] font-semibold rounded-md hover:bg-[#5A9B8E] hover:text-white transition-all duration-300 w-fit" href="/live-events">
             Enroll Now
-          </button>
+          </a>
         </div>
 
         {/* RIGHT SIDE - 30% */}

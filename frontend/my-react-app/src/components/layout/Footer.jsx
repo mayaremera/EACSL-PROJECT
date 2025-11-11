@@ -51,7 +51,7 @@ const Footer = () => {
     },
     {
       title: 'Resources',
-      links: ['IOS & Android', 'Watch a Demo', 'Customers', 'API']
+      links: ['Gallery', 'IOS & Android', 'Watch a Demo', 'Customers', 'API']
     }
   ];
 
@@ -126,7 +126,7 @@ const Footer = () => {
               {footerSections[3].links.map((link, linkIndex) => (
                 <li key={linkIndex}>
                   <a 
-                    href="#" 
+                    href={link === 'Gallery' ? '/gallery' : '#'} 
                     className="text-white/80 text-base hover:text-white hover:translate-x-1 inline-block transition-all duration-300"
                   >
                     {link}
@@ -154,7 +154,7 @@ const Footer = () => {
                   {section.links.map((link, linkIndex) => (
                     <li key={linkIndex}>
                       <a 
-                        href="#" 
+                        href={link === 'Gallery' ? '/gallery' : '#'} 
                         className="text-white/80 text-base hover:text-white hover:translate-x-1 inline-block transition-all duration-300"
                       >
                         {link}
