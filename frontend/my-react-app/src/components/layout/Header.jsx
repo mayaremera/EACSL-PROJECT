@@ -33,9 +33,9 @@ const Header = () => {
     {
       name: 'Events',
       dropdown: [
+        { name: 'Upcoming Events', href: '/upcoming-events' },
         { name: 'Live Events', href: '/live-events' },
-        { name: 'Upcoming Events', href: '#' },
-        { name: 'Past Events', href: '#' },
+        { name: 'Past Events', href: '/past-events' },
       ],
     },
     {
@@ -49,10 +49,17 @@ const Header = () => {
     {
       name: 'Education',
       dropdown: [
-        { name: 'General Education', href: '/education' },
-        { name: 'Continuing Education', href: '#' },
+        { name: 'Continuing Education', href: '/continuing-education' },
         { name: 'Online Courses', href: '/online-courses' },
         { name: 'Articles', href: '/articles' },
+      ],
+    },
+    {
+      name: 'Services',
+      dropdown: [
+        { name: 'Reservation', href: '/reservation' },
+        { name: 'Therapy Programs', href: '/therapy-programs' },
+        { name: 'For Parents', href: '/for-parents' },
       ],
     },
     {
