@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { BookOpen, X, Clock, Users, Search, ChevronDown, Star, ArrowRight, Filter } from 'lucide-react';
+import { courses, getCategories, getLevels } from '../data/courses';
+import CourseCard from '../components/cards/CourseCard';
 
 const OnlineCoursesPage = () => {
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -26,161 +28,15 @@ const OnlineCoursesPage = () => {
     };
   }, [selectedCourse]);
 
-  const courses = [
-    {
-      id: 1,
-      title: "Fundamentals of Speech and Language Therapy",
-      category: "Speech Therapy",
-      level: "Beginner",
-      duration: "8 weeks",
-      lessons: 24,
-      students: 156,
-      rating: 4.8,
-      price: "2,500 EGP",
-      image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80",
-      instructor: "Dr. Sarah Ahmed",
-      instructorImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop",
-      description: "Comprehensive course covering speech and language therapy fundamentals for beginners"
-    },
-    {
-      id: 2,
-      title: "Autism Spectrum Disorders: Assessment & Intervention",
-      category: "Autism",
-      level: "Intermediate",
-      duration: "10 weeks",
-      lessons: 30,
-      students: 203,
-      rating: 4.9,
-      price: "3,200 EGP",
-      image: "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=600&q=80",
-      instructor: "Dr. Mohamed Hassan",
-      instructorImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop",
-      description: "Advanced course in autism spectrum disorder assessment and treatment"   
-    },
-    {
-      id: 3,
-      title: "Dysphagia Management",
-      category: "Dysphagia",
-      level: "Advanced",
-      duration: "6 weeks",
-      lessons: 18,
-      students: 89,
-      rating: 4.7,
-      price: "2,800 EGP",
-      image: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&q=80",
-      instructor: "Dr. Layla Ibrahim",
-      instructorImage: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
-      description: "Advanced techniques in dysphagia diagnosis and treatment"
-    },
-    {
-      id: 4,
-      title: "Fluency Disorders and Stuttering",
-      category: "Fluency Disorders",
-      level: "Intermediate",
-      duration: "8 weeks",
-      lessons: 22,
-      students: 134,
-      rating: 4.6,
-      price: "2,700 EGP",
-      image: "https://images.unsplash.com/photo-1581579186913-45ac3e6efe93?w=600&q=80",
-      instructor: "Dr. Ahmed Ali",
-      instructorImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop",
-      description: "Comprehensive course in fluency disorder assessment and treatment"
-    },
-    {
-      id: 5,
-      title: "Child Language Development",
-      category: "Language Development",
-      level: "Beginner",
-      duration: "6 weeks",
-      lessons: 20,
-      students: 245,
-      rating: 4.8,
-      price: "2,300 EGP",
-      image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&q=80",
-      instructor: "Dr. Fatima Khaled",
-      instructorImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop",
-      description: "Study of normal language development stages in children"
-    },
-    {
-      id: 6,
-      title: "Voice and Laryngeal Disorders",
-      category: "Voice Disorders",
-      level: "Advanced",
-      duration: "7 weeks",
-      lessons: 21,
-      students: 98,
-      rating: 4.7,
-      price: "3,000 EGP",
-      image: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&q=80",
-      instructor: "Dr. Karim Nasser",
-      instructorImage: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop",
-      description: "Diagnosis and treatment of voice and laryngeal disorders"
-    },
-    {
-      id: 7,
-      title: "Aphasia: Diagnosis and Rehabilitation",
-      category: "Aphasia",
-      level: "Intermediate",
-      duration: "9 weeks",
-      lessons: 27,
-      students: 167,
-      rating: 4.9,
-      price: "3,100 EGP",
-      image: "https://images.unsplash.com/photo-1559757175-5700dde675bc?w=600&q=80",
-      instructor: "Dr. Nour Hassan",
-      instructorImage: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
-      description: "Comprehensive program in aphasia diagnosis and rehabilitation"
-    },
-    {
-      id: 8,
-      title: "Augmentative and Alternative Communication",
-      category: "AAC",
-      level: "Intermediate",
-      duration: "7 weeks",
-      lessons: 19,
-      students: 112,
-      rating: 4.8,
-      price: "2,900 EGP",
-      image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&q=80",
-      instructor: "Dr. Maha Fathy",
-      instructorImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop",
-      description: "Using AAC techniques in therapy"
-    },
-    {
-      id: 9,
-      title: "Speech Therapy for Hearing Impaired Children",
-      category: "Hearing Impairment",
-      level: "Advanced",
-      duration: "10 weeks",
-      lessons: 28,
-      students: 145,
-      rating: 4.9,
-      price: "3,400 EGP",
-      image: "https://images.unsplash.com/photo-1531545514256-b1400bc00f31?w=600&q=80",
-      instructor: "Dr. Omar Saleh",
-      instructorImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop",
-      description: "Specialized speech therapy techniques for hearing impaired children"
-    }
-  ];
-
+  // Dynamic categories and levels from data
   const categories = [
     { value: 'all', label: 'All Courses' },
-    { value: 'Speech Therapy', label: 'Speech Therapy' },
-    { value: 'Autism', label: 'Autism' },
-    { value: 'Dysphagia', label: 'Dysphagia' },
-    { value: 'Fluency Disorders', label: 'Fluency' },
-    { value: 'Language Development', label: 'Language Dev' },
-    { value: 'Voice Disorders', label: 'Voice' },
-    { value: 'Aphasia', label: 'Aphasia' },
-    { value: 'AAC', label: 'AAC' }
+    ...getCategories()
   ];
 
   const levels = [
     { value: 'all', label: 'All Levels' },
-    { value: 'Beginner', label: 'Beginner' },
-    { value: 'Intermediate', label: 'Intermediate' },
-    { value: 'Advanced', label: 'Advanced' }
+    ...getLevels()
   ];
 
   const filteredCourses = courses.filter(course => {
@@ -279,69 +135,11 @@ const OnlineCoursesPage = () => {
         {/* Courses Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredCourses.map((course) => (
-            <div
+            <CourseCard
               key={course.id}
-              className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
+              course={course}
               onClick={() => setSelectedCourse(course)}
-            >
-              <div className="relative h-40 overflow-hidden">
-                <img
-                  src={course.image}
-                  alt={course.title}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute top-3 left-3">
-                  <span className="px-2.5 py-1 bg-[#4C9A8F] text-white text-xs font-semibold rounded">
-                    {course.category}
-                  </span>
-                </div>
-                <div className="absolute top-3 right-3">
-                  <span className="px-2.5 py-1 bg-white/90 text-gray-800 text-xs font-semibold rounded">
-                    {course.level}
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-4">
-                <h3 className="text-base font-bold text-gray-900 mb-1 line-clamp-2 leading-snug">
-                  {course.title}
-                </h3>
-
-                <div className="flex items-center gap-3 mb-3 text-xs text-gray-600">
-                  <div className="flex items-center gap-1">
-                    <BookOpen className="w-3.5 h-3.5 text-[#4C9A8F]" />
-                    <span>{course.lessons} lessons</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-[#4C9A8F]" />
-                    <span>{course.duration}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="flex items-center gap-1">
-                    <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
-                    <span className="text-xs font-semibold text-gray-900">{course.rating}</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-gray-600">
-                    <Users className="w-3.5 h-3.5" />
-                    <span>{course.students} students</span>
-                  </div>
-                </div>
-
-                <div className="border-t pt-3 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <img
-                      src={course.instructorImage}
-                      alt={course.instructor}
-                      className="w-7 h-7 rounded-full object-cover"
-                    />
-                    <span className="text-xs font-semibold text-gray-900">{course.instructor}</span>
-                  </div>
-                  <span className="text-sm font-bold text-[#4C9A8F]">{course.price}</span>
-                </div>
-              </div>
-            </div>
+            />
           ))}
         </div>
 
