@@ -1,17 +1,55 @@
 import React from 'react';
-import { BookOpen, Clock, Users, Star } from 'lucide-react';
+import { BookOpen, Clock, Users, Star, Edit, Trash2 } from 'lucide-react';
 
 const CourseCard = ({
   course,
-  onClick
+  onClick,
+  onEdit,
+  onDelete,
+  isDashboard = false
 }) => {
   if (!course) return null;
 
+  const handleCardClick = (e) => {
+    // Don't trigger onClick if clicking edit/delete buttons
+    if (e.target.closest('.dashboard-actions')) {
+      return;
+    }
+    if (onClick) onClick();
+  };
+
   return (
     <div
-      className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow cursor-pointer overflow-hidden"
-      onClick={onClick}
+      className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden relative"
+      onClick={handleCardClick}
+      style={{ cursor: onClick ? 'pointer' : 'default' }}
     >
+      {isDashboard && (
+        <div className="absolute top-2 right-2 z-10 dashboard-actions flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onEdit) onEdit(course);
+            }}
+            className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
+            title="Edit Course"
+          >
+            <Edit size={16} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (onDelete && window.confirm(`Are you sure you want to delete "${course.title}"?`)) {
+                onDelete(course.id);
+              }
+            }}
+            className="p-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors shadow-md"
+            title="Delete Course"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      )}
       <div className="relative h-40 overflow-hidden">
         <img
           src={course.image}

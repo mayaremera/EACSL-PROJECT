@@ -1,10 +1,29 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { getFeaturedCourses } from '../../data/courses';
+import { coursesManager } from '../../utils/dataManager';
 import CourseCard from '../cards/CourseCard';
 
 const CoursesSection = () => {
+    const [courses, setCourses] = useState([]);
+
+    useEffect(() => {
+        const loadCourses = () => {
+            const allCourses = coursesManager.getAll();
+            setCourses(allCourses);
+        };
+        
+        loadCourses();
+        window.addEventListener('coursesUpdated', (e) => {
+            setCourses(e.detail);
+        });
+
+        return () => {
+            window.removeEventListener('coursesUpdated', loadCourses);
+        };
+    }, []);
+
     // Get featured courses dynamically from data
-    const featuredCourses = getFeaturedCourses(6);
+    const featuredCourses = getFeaturedCourses(6, courses);
 
     return (
         <section className="bg-gray-50 py-16 px-8">
