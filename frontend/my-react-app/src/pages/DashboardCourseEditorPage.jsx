@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
     Home,
@@ -12,10 +12,15 @@ import {
     Award,
 } from "lucide-react";
 import CoursesSection from '../components/sections/CoursesSection';
+import { initializeData } from '../utils/dataManager';
 
 function DashboardCourseEditorPage() {
     const navigate = useNavigate();
     const [activeItem, setActiveItem] = useState("Courses");
+
+    useEffect(() => {
+        initializeData();
+    }, []);
 
     const menuItems = [
         { icon: Home, label: "Dashboard", path: "/dashboard" },

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { 
   BookOpen, 
   Clock, 
@@ -16,31 +17,100 @@ import {
   Mail,
   Phone,
   MapPin,
-  Edit2
+  Edit2,
+  Globe,
+  Linkedin
 } from 'lucide-react';
+import { membersManager, initializeData } from '../utils/dataManager';
 
 function ContinuingEducationMember() {
+  const { memberId } = useParams();
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('active');
+  const [member, setMember] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // User account data
-  const accountData = {
-    name: "Dr. Ahmed Hassan",
-    email: "ahmed.hassan@eacsl.net",
-    phone: "+20 123 456 7890",
-    location: "Cairo, Egypt",
-    memberSince: "January 2020",
-    specialty: "Cardiothoracic Surgery",
-    image: "https://images.unsplash.com/photo-1637059824899-a441006a6875?ixlib=rb-4.1.0&auto=format&fit=crop&q=60&w=600",
-    coursesEnrolled: 12,
-    coursesCompleted: 8,
-    activeCourses: 4,
-    totalHoursLearned: 245,
-    totalMoneySpent: "28,500 EGP",
-    certificatesEarned: 8,
-    ceUnitsLeft: 15
+  useEffect(() => {
+    initializeData();
+    const memberData = membersManager.getAll().find(m => m.id === parseInt(memberId));
+    if (memberData) {
+      setMember(memberData);
+    }
+    setLoading(false);
+
+    const handleMemberUpdate = () => {
+      const updatedMember = membersManager.getAll().find(m => m.id === parseInt(memberId));
+      if (updatedMember) {
+        setMember(updatedMember);
+      }
+    };
+
+    window.addEventListener('membersUpdated', handleMemberUpdate);
+    return () => {
+      window.removeEventListener('membersUpdated', handleMemberUpdate);
+    };
+  }, [memberId]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4C9A8F] mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading member profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!member) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Member Not Found</h1>
+          <p className="text-gray-600 mb-6">The member profile you're looking for doesn't exist.</p>
+          <button
+            onClick={() => navigate('/active-members')}
+            className="px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors"
+          >
+            Back to Members
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Map member data to profile format (same as MemberProfile)
+  const profile = {
+    name: member.name || '',
+    title: member.role || '',
+    image: member.image || '',
+    location: member.location || '',
+    email: member.email || '',
+    phone: member.phone || '',
+    website: member.website || '',
+    linkedin: member.linkedin || '',
+    activeTill: member.activeTill || '',
+    memberSince: member.membershipDate || '',
   };
 
-  // Active courses with progress
+  // Map member data to accountData format for stats
+  const accountData = {
+    name: member.name || '',
+    email: member.email || '',
+    phone: member.phone || '',
+    location: member.location || '',
+    memberSince: member.membershipDate || '',
+    specialty: member.role || '',
+    image: member.image || '',
+    coursesEnrolled: member.coursesEnrolled || 0,
+    coursesCompleted: member.coursesCompleted || 0,
+    activeCourses: member.activeCourses || 0,
+    totalHoursLearned: member.totalHoursLearned || 0,
+    totalMoneySpent: member.totalMoneySpent || "0 EGP",
+    certificatesEarned: member.certificates?.length || 0,
+    ceUnitsLeft: member.ceUnitsLeft || 0
+  };
+
   const activeCourses = [
     {
       id: 1,
@@ -49,12 +119,10 @@ function ContinuingEducationMember() {
       image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80",
       instructor: "Dr. Sarah Ahmed",
       instructorImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop",
-      progress: 65,
       lessonsCompleted: 16,
       totalLessons: 24,
       hoursCompleted: 12,
       totalHours: 18,
-      nextLesson: "Advanced Articulation Techniques",
       dueDate: "Dec 15, 2024",
       price: "2,500 EGP"
     },
@@ -65,50 +133,15 @@ function ContinuingEducationMember() {
       image: "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=600&q=80",
       instructor: "Dr. Mohamed Hassan",
       instructorImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop",
-      progress: 40,
       lessonsCompleted: 12,
       totalLessons: 30,
       hoursCompleted: 8,
       totalHours: 20,
-      nextLesson: "Behavioral Intervention Strategies",
       dueDate: "Jan 10, 2025",
       price: "3,200 EGP"
-    },
-    {
-      id: 3,
-      titleAr: "علاج اضطرابات البلع",
-      titleEn: "Dysphagia Management",
-      image: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&q=80",
-      instructor: "Dr. Layla Ibrahim",
-      instructorImage: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop",
-      progress: 80,
-      lessonsCompleted: 14,
-      totalLessons: 18,
-      hoursCompleted: 10,
-      totalHours: 12,
-      nextLesson: "Clinical Assessment Protocol",
-      dueDate: "Nov 30, 2024",
-      price: "2,800 EGP"
-    },
-    {
-      id: 4,
-      titleAr: "اضطرابات الطلاقة والتلعثم",
-      titleEn: "Fluency Disorders and Stuttering",
-      image: "https://images.unsplash.com/photo-1581579186913-45ac3e6efe93?w=600&q=80",
-      instructor: "Dr. Ahmed Ali",
-      instructorImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop",
-      progress: 25,
-      lessonsCompleted: 5,
-      totalLessons: 22,
-      hoursCompleted: 4,
-      totalHours: 16,
-      nextLesson: "Stuttering Modification Techniques",
-      dueDate: "Jan 25, 2025",
-      price: "2,700 EGP"
     }
   ];
 
-  // Completed courses
   const completedCourses = [
     {
       id: 5,
@@ -118,7 +151,6 @@ function ContinuingEducationMember() {
       instructor: "Dr. Fatima Khaled",
       completedDate: "Oct 15, 2024",
       totalHours: 12,
-      grade: "98%",
       certificate: true,
       price: "2,300 EGP"
     },
@@ -130,149 +162,110 @@ function ContinuingEducationMember() {
       instructor: "Dr. Karim Nasser",
       completedDate: "Sep 20, 2024",
       totalHours: 14,
-      grade: "95%",
       certificate: true,
       price: "3,000 EGP"
-    },
-    {
-      id: 7,
-      titleAr: "الحبسة الكلامية: التشخيص والتأهيل",
-      titleEn: "Aphasia: Diagnosis and Rehabilitation",
-      image: "https://images.unsplash.com/photo-1559757175-5700dde675bc?w=600&q=80",
-      instructor: "Dr. Nour Hassan",
-      completedDate: "Aug 10, 2024",
-      totalHours: 18,
-      grade: "97%",
-      certificate: true,
-      price: "3,100 EGP"
-    },
-    {
-      id: 8,
-      titleAr: "تقنيات التواصل البديل والمعزز",
-      titleEn: "Augmentative and Alternative Communication",
-      image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&q=80",
-      instructor: "Dr. Maha Fathy",
-      completedDate: "Jul 5, 2024",
-      totalHours: 14,
-      grade: "92%",
-      certificate: true,
-      price: "2,900 EGP"
     }
   ];
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Cover Section */}
-      <div className="relative h-48 bg-gradient-to-r from-[#4C9A8F] to-[#3d8178]">
-        <div className="absolute inset-0 bg-black/10"></div>
+      {/* Cover Image */}
+      <div className="relative h-64 bg-[#40867C]">
       </div>
 
       {/* Profile Header */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="relative -mt-20 mb-8">
           <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8">
-            <div className="flex flex-col md:flex-row gap-6 items-start">
+            <div className="flex flex-col md:flex-row gap-6">
               {/* Profile Picture */}
-              <div className="relative flex-shrink-0">
-                <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-white shadow-xl">
-                  <img 
-                    src={accountData.image} 
-                    alt={accountData.name}
+              <div className="flex-shrink-0">
+                <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-white shadow-xl mx-auto md:mx-0">
+                  <img
+                    src={profile.image}
+                    alt={profile.name}
                     className="w-full h-full object-cover object-top"
                   />
                 </div>
-                <button className="absolute bottom-2 right-2 w-10 h-10 bg-[#4C9A8F] text-white rounded-full flex items-center justify-center hover:bg-[#3d8178] transition-colors shadow-lg">
-                  <Edit2 className="w-4 h-4" />
-                </button>
               </div>
 
               {/* Profile Info */}
-              <div className="flex-1">
-                <div className="flex items-start justify-between flex-wrap gap-4 mb-4">
+              <div className="flex-1 text-center md:text-left">
+                <div className="flex items-start justify-between flex-wrap gap-4">
                   <div>
-                    <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                      {accountData.name}
-                    </h1>
-                    <p className="text-lg text-[#4C9A8F] font-semibold mb-3">
-                      {accountData.specialty}
+                    <div className="flex items-center gap-3 justify-center md:justify-start mb-2 flex-wrap">
+                      <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+                        {profile.name}
+                      </h1>
+                      {member.isActive !== false ? (
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5 bg-green-100 text-green-700 px-3 py-1 rounded-full">
+                            <CheckCircle className="w-4 h-4" />
+                            <span className="text-xs font-semibold whitespace-nowrap">Active</span>
+                          </div>
+                          {profile.activeTill && (
+                            <div className="flex items-center gap-1.5 bg-green-100 text-green-700 px-3 py-1 rounded-full">
+                              <Calendar className="w-4 h-4" />
+                              <span className="text-xs font-semibold whitespace-nowrap">Till {profile.activeTill}</span>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 bg-gray-100 text-gray-600 px-3 py-1 rounded-full">
+                          <CheckCircle className="w-4 h-4" />
+                          <span className="text-xs font-semibold whitespace-nowrap">Inactive</span>
+                        </div>
+                      )}
+                    </div>
+                    <p className="text-xl text-[#4C9A8F] font-semibold mb-4">
+                      {profile.title}
                     </p>
-                    <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin className="w-4 h-4 text-[#4C9A8F]" />
-                        <span>{accountData.location}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-4 h-4 text-[#4C9A8F]" />
-                        <span>Member Since {accountData.memberSince}</span>
-                      </div>
+
+                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 justify-center md:justify-start">
+                      {profile.location && (
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="w-4 h-4 text-[#4C9A8F]" />
+                          <span>{profile.location}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
+
+                  <button className="flex items-center gap-2 bg-[#4C9A8F] text-white px-6 py-3 rounded-lg hover:bg-[#3d8178] transition-colors duration-200 font-semibold shadow-md">
+                    <Download className="w-4 h-4" />
+                    Download CV
+                  </button>
                 </div>
 
                 {/* Contact Info */}
-                <div className="flex flex-wrap gap-4 mb-4">
-                  <a href={`mailto:${accountData.email}`} className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#4C9A8F] transition-colors">
-                    <Mail className="w-4 h-4" />
-                    <span>{accountData.email}</span>
-                  </a>
-                  <a href={`tel:${accountData.phone}`} className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#4C9A8F] transition-colors">
-                    <Phone className="w-4 h-4" />
-                    <span>{accountData.phone}</span>
-                  </a>
+                <div className="flex flex-wrap gap-4 mt-6 justify-center md:justify-start">
+                  {profile.email && (
+                    <a href={`mailto:${profile.email}`} className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#4C9A8F] transition-colors">
+                      <Mail className="w-4 h-4" />
+                      <span>{profile.email}</span>
+                    </a>
+                  )}
+                  {profile.phone && (
+                    <a href={`tel:${profile.phone}`} className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#4C9A8F] transition-colors">
+                      <Phone className="w-4 h-4" />
+                      <span>{profile.phone}</span>
+                    </a>
+                  )}
+                  {profile.website && (
+                    <a href={`https://${profile.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#4C9A8F] transition-colors">
+                      <Globe className="w-4 h-4" />
+                      <span>{profile.website}</span>
+                    </a>
+                  )}
+                  {profile.linkedin && (
+                    <a href={`https://${profile.linkedin}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#4C9A8F] transition-colors">
+                      <Linkedin className="w-4 h-4" />
+                      <span>LinkedIn</span>
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 mb-8">
-          <div className="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <BookOpen className="w-8 h-8 text-blue-500" />
-            </div>
-            <p className="text-2xl font-bold text-gray-900 mb-1">{accountData.coursesEnrolled}</p>
-            <p className="text-xs text-gray-600">Total Enrolled</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <CheckCircle className="w-8 h-8 text-green-500" />
-            </div>
-            <p className="text-2xl font-bold text-gray-900 mb-1">{accountData.coursesCompleted}</p>
-            <p className="text-xs text-gray-600">Completed</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <PlayCircle className="w-8 h-8 text-orange-500" />
-            </div>
-            <p className="text-2xl font-bold text-gray-900 mb-1">{accountData.activeCourses}</p>
-            <p className="text-xs text-gray-600">In Progress</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <Clock className="w-8 h-8 text-purple-500" />
-            </div>
-            <p className="text-2xl font-bold text-gray-900 mb-1">{accountData.totalHoursLearned}</p>
-            <p className="text-xs text-gray-600">Total Hours</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <Award className="w-8 h-8 text-yellow-500" />
-            </div>
-            <p className="text-2xl font-bold text-gray-900 mb-1">{accountData.certificatesEarned}</p>
-            <p className="text-xs text-gray-600">Certificates</p>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm p-5 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between mb-2">
-              <Target className="w-8 h-8 text-teal-500" />
-            </div>
-            <p className="text-2xl font-bold text-gray-900 mb-1">{accountData.ceUnitsLeft}</p>
-            <p className="text-xs text-gray-600">CE Units Left</p>
           </div>
         </div>
 
@@ -350,7 +343,6 @@ function ContinuingEducationMember() {
               {activeCourses.map((course) => (
                 <div key={course.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                   <div className="flex flex-col sm:flex-row gap-4 p-5">
-                    {/* Course Image */}
                     <div className="w-full sm:w-32 h-32 flex-shrink-0 rounded-lg overflow-hidden">
                       <img 
                         src={course.image} 
@@ -359,7 +351,6 @@ function ContinuingEducationMember() {
                       />
                     </div>
 
-                    {/* Course Details */}
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-1">
                         {course.titleAr}
@@ -368,21 +359,6 @@ function ContinuingEducationMember() {
                         {course.titleEn}
                       </p>
 
-                      {/* Progress Bar */}
-                      <div className="mb-3">
-                        <div className="flex items-center justify-between text-xs text-gray-600 mb-1">
-                          <span>Progress</span>
-                          <span className="font-semibold text-[#4C9A8F]">{course.progress}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-[#4C9A8F] h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${course.progress}%` }}
-                          ></div>
-                        </div>
-                      </div>
-
-                      {/* Course Stats */}
                       <div className="grid grid-cols-2 gap-3 mb-3">
                         <div className="flex items-center gap-2 text-xs text-gray-600">
                           <BookOpen className="w-4 h-4 text-[#4C9A8F]" />
@@ -394,13 +370,6 @@ function ContinuingEducationMember() {
                         </div>
                       </div>
 
-                      {/* Next Lesson */}
-                      <div className="bg-blue-50 rounded-lg p-2.5 mb-3">
-                        <p className="text-xs text-gray-600 mb-0.5">Next Lesson:</p>
-                        <p className="text-sm font-semibold text-gray-900 line-clamp-1">{course.nextLesson}</p>
-                      </div>
-
-                      {/* Footer */}
                       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
                         <div className="flex items-center gap-2">
                           <img 
@@ -410,9 +379,6 @@ function ContinuingEducationMember() {
                           />
                           <span className="text-xs text-gray-600">{course.instructor}</span>
                         </div>
-                        <button className="text-sm font-semibold text-[#4C9A8F] hover:text-[#3d8178] transition-colors">
-                          Continue →
-                        </button>
                       </div>
                     </div>
                   </div>
@@ -450,15 +416,9 @@ function ContinuingEducationMember() {
                       {course.titleEn}
                     </p>
 
-                    <div className="grid grid-cols-2 gap-3 mb-4">
-                      <div className="bg-blue-50 rounded-lg p-3 text-center">
-                        <p className="text-xs text-gray-600 mb-1">Grade</p>
-                        <p className="text-xl font-bold text-blue-600">{course.grade}</p>
-                      </div>
-                      <div className="bg-purple-50 rounded-lg p-3 text-center">
-                        <p className="text-xs text-gray-600 mb-1">Hours</p>
-                        <p className="text-xl font-bold text-purple-600">{course.totalHours}h</p>
-                      </div>
+                    <div className="bg-purple-50 rounded-lg p-3 text-center mb-4">
+                      <p className="text-xs text-gray-600 mb-1">Hours</p>
+                      <p className="text-xl font-bold text-purple-600">{course.totalHours}h</p>
                     </div>
 
                     <div className="flex items-center justify-between text-xs text-gray-600 mb-4">

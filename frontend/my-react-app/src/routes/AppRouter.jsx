@@ -63,8 +63,8 @@ function AppRouter() {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="*" element={<NotFoundPage />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/member-profile" element={<MemberProfile />} />
-          <Route path="/continuing-education" element={<ContinuingEducationMember />} />
+          <Route path="/member-profile/:memberId" element={<MemberProfile />} />
+          <Route path="/continuing-education/:memberId" element={<ContinuingEducationMember />} />
           <Route path="/upcoming-events" element={<UpcomingEventsPage />} />
           <Route path="/past-events" element={<PastEventsPage />} />
           <Route path="/course-details/:courseId" element={<CourseDetailsPage />} />

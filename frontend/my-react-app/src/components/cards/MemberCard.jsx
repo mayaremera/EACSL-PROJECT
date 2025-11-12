@@ -1,24 +1,28 @@
 import React, { useState } from 'react';
-import { Mail, Briefcase, X, Award, Calendar, Edit, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Mail, Briefcase, X, Award, Calendar, Edit, Trash2, CheckCircle } from 'lucide-react';
 
 const MemberCard = ({
     image,
     name,
     role,
-    nationality,
-    flagCode,
     description,
     fullDescription,
     email,
-    membershipDate,
     certificates,
     activeTill,
+    isActive,
+    phone,
+    location,
+    website,
+    linkedin,
     onClick,
     onEdit,
     onDelete,
     isDashboard = false,
     id
 }) => {
+    const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     const handleCardClick = (e) => {
@@ -26,7 +30,12 @@ const MemberCard = ({
         if (e.target.closest('.dashboard-actions')) {
             return;
         }
-        if (onClick) onClick();
+        if (onClick) {
+            onClick();
+        } else if (!isDashboard && id) {
+            // Navigate to member profile page
+            navigate(`/member-profile/${id}`);
+        }
     };
 
     return (
@@ -42,7 +51,25 @@ const MemberCard = ({
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
-                                if (onEdit) onEdit({ id, image, name, role, nationality, flagCode, description, fullDescription, email, membershipDate, certificates, activeTill });
+                                if (onEdit) {
+                                    // Pass all member properties including isActive
+                                    onEdit({ 
+                                        id, 
+                                        image, 
+                                        name, 
+                                        role, 
+                                        description, 
+                                        fullDescription, 
+                                        email, 
+                                        certificates, 
+                                        activeTill,
+                                        isActive,
+                                        phone,
+                                        location,
+                                        website,
+                                        linkedin
+                                    });
+                                }
                             }}
                             className="p-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md"
                             title="Edit Member"
@@ -74,11 +101,30 @@ const MemberCard = ({
 
                 {/* Card Content */}
                 <div className="p-4">
-                    {/* Role Tag */}
-                    <div className="mb-3">
+                    {/* Role Tag and Active Status */}
+                    <div className="mb-3 flex items-center gap-2 flex-wrap">
                         <span className="bg-[#5A9B8E] text-white px-3 py-1 text-xs font-semibold rounded inline-block">
                             {role}
                         </span>
+                        {isActive !== false ? (
+                            <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                                    <CheckCircle className="w-3 h-3" />
+                                    <span className="text-xs font-semibold whitespace-nowrap">Active</span>
+                                </div>
+                                {activeTill && (
+                                    <div className="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                                        <Calendar className="w-3 h-3" />
+                                        <span className="text-xs font-semibold whitespace-nowrap">Till {activeTill}</span>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div className="flex items-center gap-1 bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                                <CheckCircle className="w-3 h-3" />
+                                <span className="text-xs font-semibold whitespace-nowrap">Inactive</span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Name */}
@@ -88,14 +134,6 @@ const MemberCard = ({
                     
                     {/* Info */}
                     <div className="space-y-2 mb-3">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <img 
-                                src={`https://flagcdn.com/w40/${flagCode}.png`}
-                                alt={`${nationality} Flag`}
-                                className="w-6 h-4 object-cover rounded-sm shadow-sm"
-                            />
-                            <span>{nationality}</span>
-                        </div>
                         <div className="flex items-start gap-2 text-sm text-gray-600">
                             <Mail className="w-4 h-4 text-[#5A9B8E] flex-shrink-0 mt-0.5" />
                             <a href={`mailto:${email}`} className="hover:text-[#5A9B8E] transition-colors line-clamp-1">
@@ -114,6 +152,8 @@ const MemberCard = ({
                         onClick={() => {
                             if (onClick) {
                                 onClick();
+                            } else if (id) {
+                                navigate(`/member-profile/${id}`);
                             } else {
                                 setIsModalOpen(true);
                             }
@@ -172,18 +212,6 @@ const MemberCard = ({
                                     <p className="text-lg font-semibold text-[#5A9B8E] mb-4">{role}</p>
                                     
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                                            <img 
-                                                src={`https://flagcdn.com/w40/${flagCode}.png`}
-                                                alt={`${nationality} Flag`}
-                                                className="w-8 h-5 object-cover rounded-sm shadow-sm"
-                                            />
-                                            <span><strong>Nationality:</strong> {nationality}</span>
-                                        </div>
-                                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                                            <Calendar className="w-4 h-4 text-[#5A9B8E]" />
-                                            <span><strong>Member Since:</strong> {membershipDate}</span>
-                                        </div>
                                         <div className="flex items-center gap-2 text-sm text-gray-600 sm:col-span-2">
                                             <Mail className="w-4 h-4 text-[#5A9B8E]" />
                                             <a href={`mailto:${email}`} className="hover:text-[#5A9B8E] transition-colors">

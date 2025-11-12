@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { X, Save, Loader } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Save, Loader, Upload, Check } from 'lucide-react';
 
 const CourseEditForm = ({ course, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -9,7 +9,6 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
     duration: '',
     lessons: 0,
     students: 0,
-    rating: 0,
     price: '',
     image: '',
     instructor: '',
@@ -17,6 +16,23 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
     description: ''
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [dragActive, setDragActive] = useState({});
+  const [imagePreviews, setImagePreviews] = useState({});
+  const imagePreviewsRef = useRef(imagePreviews);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    imagePreviewsRef.current = imagePreviews;
+  }, [imagePreviews]);
+
+  // Cleanup object URLs on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(imagePreviewsRef.current).forEach(url => {
+        if (url) URL.revokeObjectURL(url);
+      });
+    };
+  }, []);
 
   useEffect(() => {
     if (course) {
@@ -35,17 +51,103 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'lessons' || name === 'students' || name === 'rating' 
-        ? parseFloat(value) || 0 
+      [name]: name === 'lessons' || name === 'students'
+        ? parseFloat(value) || 0
         : value
     }));
+  };
+
+  const handleFileChange = (field, file) => {
+    if (file) {
+      // Check if it's an image file by MIME type or extension
+      const isValidImage = file.type.startsWith('image/') || 
+                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(file.name);
+      
+      if (isValidImage) {
+        // Clean up old preview URL if it exists
+        setImagePreviews(prev => {
+          if (prev[field]) {
+            URL.revokeObjectURL(prev[field]);
+          }
+          // Create preview URL for the uploaded file
+          const previewUrl = URL.createObjectURL(file);
+          return { ...prev, [field]: previewUrl };
+        });
+        setFormData(prev => ({ ...prev, [field]: file }));
+      } else {
+        alert('Please upload only image files (JPG, PNG, GIF, etc.)');
+      }
+    }
+  };
+
+  const handleDrag = (e, field) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(prev => ({ ...prev, [field]: true }));
+    } else if (e.type === "dragleave") {
+      setDragActive(prev => ({ ...prev, [field]: false }));
+    }
+  };
+
+  const handleDrop = (e, field) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(prev => ({ ...prev, [field]: false }));
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      handleFileChange(field, file);
+    }
+  };
+
+  const removeFile = (field, e) => {
+    e.stopPropagation();
+    // Clean up object URL if it exists
+    if (imagePreviews[field]) {
+      URL.revokeObjectURL(imagePreviews[field]);
+      setImagePreviews(prev => {
+        const newPreviews = { ...prev };
+        delete newPreviews[field];
+        return newPreviews;
+      });
+    }
+    setFormData(prev => ({ ...prev, [field]: null }));
+  };
+
+  // Helper function to convert File to data URL
+  const fileToDataURL = (file) => {
+    return new Promise((resolve, reject) => {
+      if (!file || !(file instanceof File)) {
+        resolve(null);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await onSave(formData);
+      // Convert File objects to data URLs
+      const imageDataUrl = formData.image instanceof File 
+        ? await fileToDataURL(formData.image)
+        : (formData.image || '');
+      
+      const instructorImageDataUrl = formData.instructorImage instanceof File
+        ? await fileToDataURL(formData.instructorImage)
+        : (formData.instructorImage || '');
+
+      const dataToSave = {
+        ...formData,
+        image: imageDataUrl,
+        instructorImage: instructorImageDataUrl
+      };
+      await onSave(dataToSave);
     } finally {
       setIsLoading(false);
     }
@@ -166,23 +268,6 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
               />
             </div>
 
-            {/* Rating */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Rating
-              </label>
-              <input
-                type="number"
-                name="rating"
-                value={formData.rating}
-                onChange={handleChange}
-                min="0"
-                max="5"
-                step="0.1"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
-              />
-            </div>
-
             {/* Price */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -199,20 +284,93 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
               />
             </div>
 
-            {/* Image URL */}
+            {/* Course Image Upload */}
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Course Image URL *
+                Course Image <span className="text-red-500">*</span>
               </label>
-              <input
-                type="url"
-                name="image"
-                value={formData.image}
-                onChange={handleChange}
-                placeholder="https://..."
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
-              />
+              <div
+                onDragEnter={(e) => handleDrag(e, 'image')}
+                onDragLeave={(e) => handleDrag(e, 'image')}
+                onDragOver={(e) => handleDrag(e, 'image')}
+                onDrop={(e) => handleDrop(e, 'image')}
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 cursor-pointer ${
+                  dragActive['image'] 
+                    ? 'border-[#4C9A8F] bg-[#4C9A8F]/10 scale-[1.02]' 
+                    : 'border-gray-300 hover:border-[#4C9A8F] bg-gray-50 hover:bg-gray-100'
+                }`}
+                onClick={() => {
+                  document.getElementById('course-image').click();
+                }}
+              >
+                {(formData.image instanceof File || (typeof formData.image === 'string' && formData.image)) ? (
+                  <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm">
+                    <div className="flex items-center gap-3">
+                      {formData.image instanceof File ? (
+                        <>
+                          <img 
+                            src={imagePreviews['image'] || URL.createObjectURL(formData.image)} 
+                            alt="Preview" 
+                            className="w-16 h-16 object-cover rounded-lg"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                          <div className="text-left">
+                            <p className="text-sm text-gray-700 font-medium">{formData.image.name}</p>
+                            <p className="text-xs text-gray-500">{(formData.image.size / 1024).toFixed(2)} KB</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <img 
+                            src={formData.image} 
+                            alt="Preview" 
+                            className="w-16 h-16 object-cover rounded-lg"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                          <div className="text-left">
+                            <p className="text-sm text-gray-700 font-medium">Current Image</p>
+                            <p className="text-xs text-gray-500">Click to replace</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <button
+                      onClick={(e) => removeFile('image', e)}
+                      className="text-red-500 hover:text-red-700 transition-colors p-2 hover:bg-red-50 rounded-full"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
+                      dragActive['image'] ? 'bg-[#4C9A8F]/20' : 'bg-gray-200'
+                    }`}>
+                      <Upload className={`w-8 h-8 ${dragActive['image'] ? 'text-[#4C9A8F]' : 'text-gray-500'}`} />
+                    </div>
+                    <p className={`text-sm mb-1 font-medium ${dragActive['image'] ? 'text-[#4C9A8F]' : 'text-gray-700'}`}>
+                      {dragActive['image'] ? 'Drop your image here' : 'Drag and drop your image here'}
+                    </p>
+                    <p className="text-gray-500 text-xs mb-4">or</p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange('image', e.target.files?.[0])}
+                      className="hidden"
+                      id="course-image"
+                    />
+                    <div className="inline-block px-6 py-2 bg-[#4C9A8F] text-white text-sm rounded-lg hover:bg-[#3d8178] transition-colors font-medium">
+                      Browse Files
+                    </div>
+                    <p className="text-gray-400 text-xs mt-4">Accepts: Images only (JPG, PNG, GIF, etc.)</p>
+                    <p className="text-gray-400 text-xs">(Maximum file size: 2MB)</p>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Instructor */}
@@ -230,20 +388,93 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
               />
             </div>
 
-            {/* Instructor Image URL */}
+            {/* Instructor Image Upload */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Instructor Image URL *
+                Instructor Image <span className="text-red-500">*</span>
               </label>
-              <input
-                type="url"
-                name="instructorImage"
-                value={formData.instructorImage}
-                onChange={handleChange}
-                placeholder="https://..."
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
-              />
+              <div
+                onDragEnter={(e) => handleDrag(e, 'instructorImage')}
+                onDragLeave={(e) => handleDrag(e, 'instructorImage')}
+                onDragOver={(e) => handleDrag(e, 'instructorImage')}
+                onDrop={(e) => handleDrop(e, 'instructorImage')}
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 cursor-pointer ${
+                  dragActive['instructorImage'] 
+                    ? 'border-[#4C9A8F] bg-[#4C9A8F]/10 scale-[1.02]' 
+                    : 'border-gray-300 hover:border-[#4C9A8F] bg-gray-50 hover:bg-gray-100'
+                }`}
+                onClick={() => {
+                  document.getElementById('instructor-image').click();
+                }}
+              >
+                {(formData.instructorImage instanceof File || (typeof formData.instructorImage === 'string' && formData.instructorImage)) ? (
+                  <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm">
+                    <div className="flex items-center gap-3">
+                      {formData.instructorImage instanceof File ? (
+                        <>
+                          <img 
+                            src={imagePreviews['instructorImage'] || URL.createObjectURL(formData.instructorImage)} 
+                            alt="Preview" 
+                            className="w-16 h-16 object-cover rounded-lg"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                          <div className="text-left">
+                            <p className="text-sm text-gray-700 font-medium">{formData.instructorImage.name}</p>
+                            <p className="text-xs text-gray-500">{(formData.instructorImage.size / 1024).toFixed(2)} KB</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <img 
+                            src={formData.instructorImage} 
+                            alt="Preview" 
+                            className="w-16 h-16 object-cover rounded-lg"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                          <div className="text-left">
+                            <p className="text-sm text-gray-700 font-medium">Current Image</p>
+                            <p className="text-xs text-gray-500">Click to replace</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <button
+                      onClick={(e) => removeFile('instructorImage', e)}
+                      className="text-red-500 hover:text-red-700 transition-colors p-2 hover:bg-red-50 rounded-full"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
+                      dragActive['instructorImage'] ? 'bg-[#4C9A8F]/20' : 'bg-gray-200'
+                    }`}>
+                      <Upload className={`w-8 h-8 ${dragActive['instructorImage'] ? 'text-[#4C9A8F]' : 'text-gray-500'}`} />
+                    </div>
+                    <p className={`text-sm mb-1 font-medium ${dragActive['instructorImage'] ? 'text-[#4C9A8F]' : 'text-gray-700'}`}>
+                      {dragActive['instructorImage'] ? 'Drop your image here' : 'Drag and drop your image here'}
+                    </p>
+                    <p className="text-gray-500 text-xs mb-4">or</p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange('instructorImage', e.target.files?.[0])}
+                      className="hidden"
+                      id="instructor-image"
+                    />
+                    <div className="inline-block px-6 py-2 bg-[#4C9A8F] text-white text-sm rounded-lg hover:bg-[#3d8178] transition-colors font-medium">
+                      Browse Files
+                    </div>
+                    <p className="text-gray-400 text-xs mt-4">Accepts: Images only (JPG, PNG, GIF, etc.)</p>
+                    <p className="text-gray-400 text-xs">(Maximum file size: 2MB)</p>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Description */}
@@ -295,4 +526,3 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
 };
 
 export default CourseEditForm;
-

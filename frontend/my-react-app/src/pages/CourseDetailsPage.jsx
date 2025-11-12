@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { BookOpen, Clock, Users, Star, Calendar, Award, CheckCircle, PlayCircle, FileText, MessageCircle, Globe, Video } from 'lucide-react';
-import { courses } from '../data/courses';
+import { BookOpen, Clock, Users, Calendar, Award, CheckCircle, PlayCircle, FileText, Globe, Video } from 'lucide-react';
+import { coursesManager, initializeData } from '../utils/dataManager';
 
 const CourseDetailPage = () => {
     const { courseId } = useParams();
     const navigate = useNavigate();
-    const [activeTab, setActiveTab] = useState('overview');
+    const [activeTab, setActiveTab] = useState('details');
     const [courseData, setCourseData] = useState(null);
 
     // Helper function to generate default curriculum
@@ -38,73 +38,62 @@ const CourseDetailPage = () => {
         ];
     }, []);
 
-    // Helper function to generate default reviews
-    const generateDefaultReviews = useCallback(() => {
-        return [
-            {
-                name: "Ahmed Hassan",
-                rating: 5,
-                date: "2 weeks ago",
-                comment: "Excellent course! The instructor explains everything clearly and the content is very practical.",
-                avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop"
-            },
-            {
-                name: "Sarah Mohamed",
-                rating: 5,
-                date: "1 month ago",
-                comment: "Best course I've taken. The pace is perfect and the content is up-to-date.",
-                avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop"
-            },
-            {
-                name: "Omar Khaled",
-                rating: 4,
-                date: "1 month ago",
-                comment: "Great course with lots of hands-on practice. Would recommend to anyone starting out.",
-                avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop"
-            }
-        ];
-    }, []);
 
     useEffect(() => {
-        const course = courses.find(c => c.id === parseInt(courseId));
-        if (course) {
-            // Map course data to the expected structure with defaults for missing fields
-            setCourseData({
-                titleAr: course.titleAr || course.title,
-                titleEn: course.title,
-                category: course.category,
-                categoryAr: course.categoryAr || course.category,
-                level: course.level,
-                rating: course.rating,
-                lessons: course.lessons,
-                duration: course.duration,
-                students: course.students,
-                enrolled: course.enrolled || course.students,
-                lectures: course.lectures || course.lessons,
-                skillLevel: course.skillLevel || course.level,
-                language: course.language || "English",
-                classTime: course.classTime || "4:00 PM - 6:00 PM",
-                startDate: course.startDate || "Monday-Friday",
-                price: course.price,
-                moneyBackGuarantee: course.moneyBackGuarantee || "30-Day Money-Back Guarantee",
-                image: course.image,
-                instructor: course.instructor,
-                instructorImage: course.instructorImage,
-                instructorTitle: course.instructorTitle || `Expert in ${course.category}`,
-                instructorBio: course.instructorBio || `Experienced professional in ${course.category} with a passion for teaching and helping students succeed.`,
-                descriptionShort: course.descriptionShort || course.description,
-                description: course.description,
-                curriculum: course.curriculum || generateDefaultCurriculum(course.lessons),
-                learningOutcomes: course.learningOutcomes || generateDefaultLearningOutcomes(course),
-                requirements: course.requirements || [
-                    "A computer with internet connection",
-                    "Basic understanding of the subject area",
-                    "Willingness to learn and practice regularly"
-                ],
-                reviews: course.reviews || generateDefaultReviews()
-            });
-        }
-    }, [courseId, generateDefaultCurriculum, generateDefaultLearningOutcomes, generateDefaultReviews]);
+        // Initialize data and load course
+        initializeData();
+        
+        const loadCourse = () => {
+            const courses = coursesManager.getAll();
+            const course = courses.find(c => c.id === parseInt(courseId));
+            if (course) {
+                // Map course data to the expected structure with defaults for missing fields
+                setCourseData({
+                    titleAr: course.titleAr || course.title,
+                    titleEn: course.title,
+                    category: course.category,
+                    categoryAr: course.categoryAr || course.category,
+                    level: course.level,
+                    lessons: course.lessons,
+                    duration: course.duration,
+                    students: course.students,
+                    enrolled: course.enrolled || course.students,
+                    lectures: course.lectures || course.lessons,
+                    skillLevel: course.skillLevel || course.level,
+                    language: course.language || "English",
+                    classTime: course.classTime || "4:00 PM - 6:00 PM",
+                    startDate: course.startDate || "Monday-Friday",
+                    price: course.price,
+                    moneyBackGuarantee: course.moneyBackGuarantee || "30-Day Money-Back Guarantee",
+                    image: course.image,
+                    instructor: course.instructor,
+                    instructorImage: course.instructorImage,
+                    instructorTitle: course.instructorTitle || `Expert in ${course.category}`,
+                    instructorBio: course.instructorBio || `Experienced professional in ${course.category} with a passion for teaching and helping students succeed.`,
+                    descriptionShort: course.descriptionShort || course.description,
+                    description: course.description,
+                    curriculum: course.curriculum || generateDefaultCurriculum(course.lessons),
+                    learningOutcomes: course.learningOutcomes || generateDefaultLearningOutcomes(course),
+                    requirements: course.requirements || [
+                        "A computer with internet connection",
+                        "Basic understanding of the subject area",
+                        "Willingness to learn and practice regularly"
+                    ]
+                });
+            } else {
+                setCourseData(null);
+            }
+        };
+
+        loadCourse();
+
+        // Listen for course updates from dashboard
+        window.addEventListener('coursesUpdated', loadCourse);
+
+        return () => {
+            window.removeEventListener('coursesUpdated', loadCourse);
+        };
+    }, [courseId, generateDefaultCurriculum, generateDefaultLearningOutcomes]);
 
     // Show loading or not found state
     if (!courseData) {
@@ -125,14 +114,15 @@ const CourseDetailPage = () => {
     }
 
     const tabs = [
+        { id: 'details', label: 'Course Details', icon: BookOpen },
+        { id: 'learn', label: 'You\'ll Learn', icon: Award },
         { id: 'curriculum', label: 'Curriculum', icon: FileText },
-        { id: 'instructor', label: 'Instructor', icon: Users },
-        { id: 'reviews', label: 'Reviews', icon: MessageCircle }
+        { id: 'instructor', label: 'Instructor', icon: Users }
     ];
 
     const renderTabContent = () => {
         switch (activeTab) {
-            case 'overview':
+            case 'details':
                 return (
                     <div className="space-y-6">
                         <div>
@@ -146,7 +136,12 @@ const CourseDetailPage = () => {
                                 </p>
                             )}
                         </div>
+                    </div>
+                );
 
+            case 'learn':
+                return (
+                    <div className="space-y-6">
                         <div>
                             <h3 className="text-xl font-bold text-gray-900 mb-4">WHAT WILL I LEARN FROM THIS COURSE?</h3>
                             <div className="space-y-3">
@@ -166,21 +161,9 @@ const CourseDetailPage = () => {
                     <div className="space-y-4">
                         <h3 className="text-xl font-bold text-gray-900 mb-4">Course Curriculum</h3>
                         {courseData.curriculum.map((section, sectionIndex) => (
-                            <div key={sectionIndex} className="border border-gray-200 rounded-lg overflow-hidden">
-                                <div className="bg-gray-50 px-5 py-4 border-b border-gray-200">
+                            <div key={sectionIndex} className="border border-gray-200 rounded-lg">
+                                <div className="bg-gray-50 px-5 py-4">
                                     <h4 className="font-semibold text-gray-900">{section.title}</h4>
-                                    <p className="text-sm text-gray-600 mt-1">{section.lessons.length} lessons</p>
-                                </div>
-                                <div className="divide-y divide-gray-200">
-                                    {section.lessons.map((lesson, lessonIndex) => (
-                                        <div key={lessonIndex} className="px-5 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors">
-                                            <div className="flex items-center gap-3">
-                                                <PlayCircle className="w-4 h-4 text-[#4C9A8F]" />
-                                                <span className="text-gray-700">{lesson.name}</span>
-                                            </div>
-                                            <span className="text-sm text-gray-500">{lesson.duration}</span>
-                                        </div>
-                                    ))}
                                 </div>
                             </div>
                         ))}
@@ -202,10 +185,6 @@ const CourseDetailPage = () => {
                                 <p className="text-[#4C9A8F] font-semibold mb-3">{courseData.instructorTitle}</p>
                                 <div className="flex items-center gap-6 text-sm text-gray-600">
                                     <div className="flex items-center gap-2">
-                                        <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                                        <span>{courseData.rating} Rating</span>
-                                    </div>
-                                    <div className="flex items-center gap-2">
                                         <Users className="w-4 h-4" />
                                         <span>{courseData.students}+ Students</span>
                                     </div>
@@ -219,44 +198,6 @@ const CourseDetailPage = () => {
                         <p className="text-gray-700 leading-relaxed">
                             {courseData.instructorBio}
                         </p>
-                    </div>
-                );
-
-            case 'reviews':
-                return (
-                    <div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-6">Student Reviews</h3>
-                        <div className="space-y-6">
-                            {courseData.reviews.map((review, index) => (
-                                <div key={index} className="border-b border-gray-200 pb-6 last:border-0">
-                                    <div className="flex items-start gap-4">
-                                        <img
-                                            src={review.avatar}
-                                            alt={review.name}
-                                            className="w-12 h-12 rounded-full object-cover"
-                                        />
-                                        <div className="flex-1">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <h5 className="font-semibold text-gray-900">{review.name}</h5>
-                                                <span className="text-sm text-gray-500">{review.date}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1 mb-2">
-                                                {[...Array(5)].map((_, i) => (
-                                                    <Star
-                                                        key={i}
-                                                        className={`w-4 h-4 ${i < review.rating
-                                                                ? 'fill-yellow-400 text-yellow-400'
-                                                                : 'text-gray-300'
-                                                            }`}
-                                                    />
-                                                ))}
-                                            </div>
-                                            <p className="text-gray-700 leading-relaxed">{review.comment}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
                     </div>
                 );
 
@@ -295,12 +236,8 @@ const CourseDetailPage = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Main Content */}
                     <div className="lg:col-span-2">
-                        {/* Course Title and Rating */}
+                        {/* Course Title */}
                         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                            <div className="flex items-start gap-3 mb-3">
-                                <Star className="w-5 h-5 fill-yellow-400 text-yellow-400 flex-shrink-0 mt-0.5" />
-                                <span className="text-lg font-semibold text-gray-900">({courseData.rating})</span>
-                            </div>
                             <h2 className="text-3xl font-bold text-gray-900 mb-2">
                                 {courseData.titleEn}
                             </h2>
@@ -381,7 +318,7 @@ const CourseDetailPage = () => {
                                 <div className="flex items-center justify-between py-3 border-b border-gray-200">
                                     <span className="text-gray-600">Lectures</span>
                                     <span className="font-semibold text-gray-900">{courseData.lectures}</span>
-                                </div>
+                                </div>  
                                 <div className="flex items-center justify-between py-3 border-b border-gray-200">
                                     <span className="text-gray-600">Skill Level</span>
                                     <span className="font-semibold text-gray-900">{courseData.skillLevel}</span>

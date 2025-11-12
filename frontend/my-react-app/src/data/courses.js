@@ -8,7 +8,6 @@ export const courses = [
     duration: "8 weeks",
     lessons: 24,
     students: 156,
-    rating: 4.8,
     price: "2,500 EGP",
     image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80",
     instructor: "Dr. Sarah Ahmed",
@@ -23,7 +22,6 @@ export const courses = [
     duration: "10 weeks",
     lessons: 30,
     students: 203,
-    rating: 4.9,
     price: "3,200 EGP",
     image: "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=600&q=80",
     instructor: "Dr. Mohamed Hassan",
@@ -38,7 +36,6 @@ export const courses = [
     duration: "6 weeks",
     lessons: 18,
     students: 89,
-    rating: 4.7,
     price: "2,800 EGP",
     image: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&q=80",
     instructor: "Dr. Layla Ibrahim",
@@ -53,7 +50,6 @@ export const courses = [
     duration: "8 weeks",
     lessons: 22,
     students: 134,
-    rating: 4.6,
     price: "2,700 EGP",
     image: "https://images.unsplash.com/photo-1581579186913-45ac3e6efe93?w=600&q=80",
     instructor: "Dr. Ahmed Ali",
@@ -68,7 +64,6 @@ export const courses = [
     duration: "6 weeks",
     lessons: 20,
     students: 245,
-    rating: 4.8,
     price: "2,300 EGP",
     image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&q=80",
     instructor: "Dr. Fatima Khaled",
@@ -83,7 +78,6 @@ export const courses = [
     duration: "7 weeks",
     lessons: 21,
     students: 98,
-    rating: 4.7,
     price: "3,000 EGP",
     image: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&q=80",
     instructor: "Dr. Karim Nasser",
@@ -98,7 +92,6 @@ export const courses = [
     duration: "9 weeks",
     lessons: 27,
     students: 167,
-    rating: 4.9,
     price: "3,100 EGP",
     image: "https://images.unsplash.com/photo-1559757175-5700dde675bc?w=600&q=80",
     instructor: "Dr. Nour Hassan",
@@ -113,7 +106,6 @@ export const courses = [
     duration: "7 weeks",
     lessons: 19,
     students: 112,
-    rating: 4.8,
     price: "2,900 EGP",
     image: "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=600&q=80",
     instructor: "Dr. Maha Fathy",
@@ -128,7 +120,6 @@ export const courses = [
     duration: "10 weeks",
     lessons: 28,
     students: 145,
-    rating: 4.9,
     price: "3,400 EGP",
     image: "https://images.unsplash.com/photo-1531545514256-b1400bc00f31?w=600&q=80",
     instructor: "Dr. Omar Saleh",
@@ -172,12 +163,10 @@ export const getLevels = () => {
 export const getFeaturedCourses = (limit = 6, coursesList = null) => {
   // Use provided courses list or default to exported courses
   const coursesToUse = coursesList || courses;
-  // Sort by rating and students, then take top courses
+  // Sort by students, then take top courses
   return [...coursesToUse]
     .sort((a, b) => {
-      const scoreA = a.rating * 10 + a.students / 10;
-      const scoreB = b.rating * 10 + b.students / 10;
-      return scoreB - scoreA;
+      return b.students - a.students;
     })
     .slice(0, limit);
 };

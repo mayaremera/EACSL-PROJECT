@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, X, Clock, Users, Search, ChevronDown, Star, ArrowRight, Filter } from 'lucide-react';
+import { BookOpen, X, Clock, Users, Search, ChevronDown, ArrowRight, Filter } from 'lucide-react';
 import { getCategories, getLevels } from '../data/courses';
 import { coursesManager } from '../utils/dataManager';
 import CourseCard from '../components/cards/CourseCard';
@@ -197,10 +197,6 @@ const OnlineCoursesPage = () => {
                 <span className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">
                   {selectedCourse.level}
                 </span>
-                <div className="flex items-center gap-1 ml-auto">
-                  <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                  <span className="text-sm font-semibold">{selectedCourse.rating}</span>
-                </div>
               </div>
 
               <h2 className="text-2xl font-bold text-gray-900 mb-4">

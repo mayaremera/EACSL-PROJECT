@@ -64,7 +64,32 @@ export const membersManager = {
     if (typeof window === 'undefined') return defaultMembers;
     const stored = localStorage.getItem('eacsl_members');
     if (stored) {
-      return JSON.parse(stored);
+      const members = JSON.parse(stored);
+      // Ensure all members have isActive field (migrate old data)
+      // IMPORTANT: Preserve false values - only add isActive if it doesn't exist
+      const normalizedMembers = members.map(m => {
+        if (m.hasOwnProperty('isActive')) {
+          // Property exists, preserve its value (false stays false, true stays true)
+          return {
+            ...m,
+            isActive: Boolean(m.isActive)
+          };
+        } else {
+          // Property doesn't exist, default to true (migration for old data)
+          return {
+            ...m,
+            isActive: true
+          };
+        }
+      });
+      
+      // Check if any member was missing isActive and save normalized data back
+      const needsMigration = members.some(m => !m.hasOwnProperty('isActive'));
+      if (needsMigration) {
+        membersManager.saveAll(normalizedMembers);
+      }
+      
+      return normalizedMembers;
     }
     return defaultMembers;
   },
@@ -98,7 +123,34 @@ export const membersManager = {
     if (index === -1) return null;
     
     const updated = [...members];
-    updated[index] = { ...updatedMember, id };
+    // IMPORTANT: Preserve exact isActive value from updatedMember if provided
+    // If not provided, keep existing value (don't default to true)
+    const isActiveValue = updatedMember.hasOwnProperty('isActive')
+      ? Boolean(updatedMember.isActive) // Use the value from form (can be false or true)
+      : (members[index].hasOwnProperty('isActive') 
+          ? Boolean(members[index].isActive) 
+          : true); // Only default to true if never set
+    
+    // Explicitly set all fields to ensure nothing is lost
+    updated[index] = { 
+      id, // Preserve ID
+      name: updatedMember.name || '',
+      role: updatedMember.role || 'Member',
+      nationality: updatedMember.nationality || 'Egyptian',
+      flagCode: updatedMember.flagCode || 'eg',
+      description: updatedMember.description || '',
+      fullDescription: updatedMember.fullDescription || '',
+      email: updatedMember.email || '',
+      membershipDate: updatedMember.membershipDate || '',
+      isActive: isActiveValue, // Use the preserved value
+      activeTill: updatedMember.activeTill || '',
+      certificates: updatedMember.certificates || [],
+      phone: updatedMember.phone || '',
+      location: updatedMember.location || '',
+      website: updatedMember.website || '',
+      linkedin: updatedMember.linkedin || '',
+      image: updatedMember.image || ''
+    };
     membersManager.saveAll(updated);
     return updated[index];
   },

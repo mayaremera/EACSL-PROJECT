@@ -48,7 +48,7 @@ const Header = () => {
     {
       name: 'Education',
       dropdown: [
-        { name: 'Continuing Education', href: '/continuing-education' },
+        { name: 'Continuing Education', href: '/continuing-education/1' },
         { name: 'Online Courses', href: '/online-courses' },
         { name: 'Articles', href: '/articles' },
       ],

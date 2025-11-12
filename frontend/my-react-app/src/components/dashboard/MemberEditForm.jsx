@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Loader } from 'lucide-react';
+import { X, Save, Loader, Upload, Check } from 'lucide-react';
 
 const MemberEditForm = ({ member, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     name: '',
     role: 'Member',
-    nationality: 'Egyptian',
-    flagCode: 'eg',
     description: '',
     fullDescription: '',
     email: '',
-    membershipDate: '',
     isActive: true,
     activeTill: '',
     certificates: [],
@@ -22,28 +19,70 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
   });
   const [certificateInput, setCertificateInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [dragActive, setDragActive] = useState({});
+  const [imagePreview, setImagePreview] = useState(null);
+
+  // Cleanup object URLs on unmount
+  useEffect(() => {
+    return () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
 
   useEffect(() => {
     if (member) {
+      // Ensure all fields are properly initialized from member data
+      // IMPORTANT: Preserve exact isActive value (false should stay false, true should stay true)
+      // Check if isActive exists and convert to boolean properly
+      let memberIsActive = true; // Default to true
+      if (member.hasOwnProperty('isActive')) {
+        // Explicitly check for false (including string "false", 0, null, etc.)
+        if (member.isActive === false || member.isActive === 'false' || member.isActive === 0) {
+          memberIsActive = false;
+        } else if (member.isActive === true || member.isActive === 'true' || member.isActive === 1) {
+          memberIsActive = true;
+        } else {
+          // For any other truthy value, set to true
+          memberIsActive = Boolean(member.isActive);
+        }
+      }
+      
       setFormData({
-        ...member,
-        certificates: member.certificates || []
+        name: member.name || '',
+        role: member.role || 'Member',
+        description: member.description || '',
+        fullDescription: member.fullDescription || '',
+        email: member.email || '',
+        isActive: memberIsActive, // Use the preserved value
+        activeTill: member.activeTill || '',
+        certificates: member.certificates || [],
+        phone: member.phone || '',
+        location: member.location || '',
+        website: member.website || '',
+        linkedin: member.linkedin || '',
+        image: member.image || ''
+      });
+    } else {
+      // Reset to defaults when adding new member
+      setFormData({
+        name: '',
+        role: 'Member',
+        description: '',
+        fullDescription: '',
+        email: '',
+        isActive: true,
+        activeTill: '',
+        certificates: [],
+        phone: '',
+        location: '',
+        website: '',
+        linkedin: '',
+        image: ''
       });
     }
   }, [member]);
-
-  const nationalities = [
-    { value: 'Egyptian', flag: 'eg' },
-    { value: 'Saudi', flag: 'sa' },
-    { value: 'Emirati', flag: 'ae' },
-    { value: 'Kuwaiti', flag: 'kw' },
-    { value: 'Jordanian', flag: 'jo' },
-    { value: 'Lebanese', flag: 'lb' },
-    { value: 'Palestinian', flag: 'ps' },
-    { value: 'American', flag: 'us' },
-    { value: 'Japanese', flag: 'jp' },
-    { value: 'Brazilian', flag: 'br' }
-  ];
 
   const roles = ['Board Member', 'Vice President', 'Secretary General', 'Treasurer', 'Research Director', 'Member'];
 
@@ -53,14 +92,6 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-
-    // Auto-update flag code when nationality changes
-    if (name === 'nationality') {
-      const selected = nationalities.find(n => n.value === value);
-      if (selected) {
-        setFormData(prev => ({ ...prev, flagCode: selected.flag }));
-      }
-    }
   };
 
   const handleAddCertificate = () => {
@@ -80,11 +111,98 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
     }));
   };
 
+  const handleFileChange = (field, file) => {
+    if (file) {
+      // Check if it's an image file by MIME type or extension
+      const isValidImage = file.type.startsWith('image/') || 
+                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(file.name);
+      
+      if (isValidImage) {
+        // Clean up old preview URL if it exists
+        if (imagePreview) {
+          URL.revokeObjectURL(imagePreview);
+        }
+        setFormData(prev => ({ ...prev, [field]: file }));
+        // Create preview URL for the uploaded file
+        const previewUrl = URL.createObjectURL(file);
+        setImagePreview(previewUrl);
+      } else {
+        alert('Please upload only image files (JPG, PNG, GIF, etc.)');
+      }
+    }
+  };
+
+  const handleDrag = (e, field) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(prev => ({ ...prev, [field]: true }));
+    } else if (e.type === "dragleave") {
+      setDragActive(prev => ({ ...prev, [field]: false }));
+    }
+  };
+
+  const handleDrop = (e, field) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(prev => ({ ...prev, [field]: false }));
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      handleFileChange(field, file);
+    }
+  };
+
+  const removeFile = (field, e) => {
+    e.stopPropagation();
+    // Clean up object URL if it exists
+    if (imagePreview) {
+      URL.revokeObjectURL(imagePreview);
+      setImagePreview(null);
+    }
+    setFormData(prev => ({ ...prev, [field]: null }));
+  };
+
+  // Helper function to convert File to data URL
+  const fileToDataURL = (file) => {
+    return new Promise((resolve, reject) => {
+      if (!file || !(file instanceof File)) {
+        resolve(null);
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await onSave(formData);
+      // Convert File object to data URL
+      const imageDataUrl = formData.image instanceof File
+        ? await fileToDataURL(formData.image)
+        : (formData.image || '');
+
+      // Ensure all fields are properly saved, especially isActive as boolean
+      const dataToSave = {
+        name: formData.name || '',
+        role: formData.role || 'Member',
+        description: formData.description || '',
+        fullDescription: formData.fullDescription || '',
+        email: formData.email || '',
+        isActive: Boolean(formData.isActive), // Always convert to boolean
+        activeTill: formData.activeTill || '',
+        certificates: formData.certificates || [],
+        phone: formData.phone || '',
+        location: formData.location || '',
+        website: formData.website || '',
+        linkedin: formData.linkedin || '',
+        image: imageDataUrl
+      };
+      await onSave(dataToSave);
     } finally {
       setIsLoading(false);
     }
@@ -140,24 +258,6 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               </select>
             </div>
 
-            {/* Nationality */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Nationality *
-              </label>
-              <select
-                name="nationality"
-                value={formData.nationality}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
-              >
-                {nationalities.map(nat => (
-                  <option key={nat.value} value={nat.value}>{nat.value}</option>
-                ))}
-              </select>
-            </div>
-
             {/* Email */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -201,22 +301,6 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               />
             </div>
 
-            {/* Membership Date */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Membership Date *
-              </label>
-              <input
-                type="text"
-                name="membershipDate"
-                value={formData.membershipDate}
-                onChange={handleChange}
-                placeholder="e.g., January 2020"
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
-              />
-            </div>
-
             {/* Active Till */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -232,34 +316,133 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               />
             </div>
 
-            {/* Is Active */}
-            <div className="md:col-span-2">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  name="isActive"
-                  checked={formData.isActive}
-                  onChange={handleChange}
-                  className="w-4 h-4 text-[#4C9A8F] border-gray-300 rounded focus:ring-[#4C9A8F]"
-                />
-                <span className="text-sm font-semibold text-gray-700">Active Member</span>
+            {/* Active Status */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Active Status *
               </label>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData(prev => ({ ...prev, isActive: true }));
+                  }}
+                  className={`flex-1 px-4 py-2.5 rounded-lg font-semibold transition-all duration-200 ${
+                    Boolean(formData.isActive) === true
+                      ? 'bg-green-500 text-white shadow-md ring-2 ring-green-300'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  ✓ Active
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData(prev => ({ ...prev, isActive: false }));
+                  }}
+                  className={`flex-1 px-4 py-2.5 rounded-lg font-semibold transition-all duration-200 ${
+                    Boolean(formData.isActive) === false
+                      ? 'bg-red-500 text-white shadow-md ring-2 ring-red-300'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
+                >
+                  ✗ Inactive
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Current status: <span className={`font-semibold ${Boolean(formData.isActive) ? 'text-green-600' : 'text-red-600'}`}>
+                  {Boolean(formData.isActive) ? 'Active' : 'Inactive'}
+                </span>
+              </p>
             </div>
 
-            {/* Image URL */}
+            {/* Image Upload */}
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Member Image URL *
+                Member Image <span className="text-red-500">*</span>
               </label>
-              <input
-                type="url"
-                name="image"
-                value={formData.image}
-                onChange={handleChange}
-                placeholder="https://..."
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
-              />
+              <div
+                onDragEnter={(e) => handleDrag(e, 'image')}
+                onDragLeave={(e) => handleDrag(e, 'image')}
+                onDragOver={(e) => handleDrag(e, 'image')}
+                onDrop={(e) => handleDrop(e, 'image')}
+                className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 cursor-pointer ${
+                  dragActive['image'] 
+                    ? 'border-[#4C9A8F] bg-[#4C9A8F]/10 scale-[1.02]' 
+                    : 'border-gray-300 hover:border-[#4C9A8F] bg-gray-50 hover:bg-gray-100'
+                }`}
+                onClick={() => {
+                  document.getElementById('member-image').click();
+                }}
+              >
+                {(formData.image instanceof File || (typeof formData.image === 'string' && formData.image)) ? (
+                  <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm">
+                    <div className="flex items-center gap-3">
+                      {formData.image instanceof File ? (
+                        <>
+                          <img 
+                            src={imagePreview || URL.createObjectURL(formData.image)} 
+                            alt="Preview" 
+                            className="w-16 h-16 object-cover rounded-lg"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                          <div className="text-left">
+                            <p className="text-sm text-gray-700 font-medium">{formData.image.name}</p>
+                            <p className="text-xs text-gray-500">{(formData.image.size / 1024).toFixed(2)} KB</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <img 
+                            src={formData.image} 
+                            alt="Preview" 
+                            className="w-16 h-16 object-cover rounded-lg"
+                            onError={(e) => {
+                              e.target.style.display = 'none';
+                            }}
+                          />
+                          <div className="text-left">
+                            <p className="text-sm text-gray-700 font-medium">Current Image</p>
+                            <p className="text-xs text-gray-500">Click to replace</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                    <button
+                      onClick={(e) => removeFile('image', e)}
+                      className="text-red-500 hover:text-red-700 transition-colors p-2 hover:bg-red-50 rounded-full"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
+                      dragActive['image'] ? 'bg-[#4C9A8F]/20' : 'bg-gray-200'
+                    }`}>
+                      <Upload className={`w-8 h-8 ${dragActive['image'] ? 'text-[#4C9A8F]' : 'text-gray-500'}`} />
+                    </div>
+                    <p className={`text-sm mb-1 font-medium ${dragActive['image'] ? 'text-[#4C9A8F]' : 'text-gray-700'}`}>
+                      {dragActive['image'] ? 'Drop your image here' : 'Drag and drop your image here'}
+                    </p>
+                    <p className="text-gray-500 text-xs mb-4">or</p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleFileChange('image', e.target.files?.[0])}
+                      className="hidden"
+                      id="member-image"
+                    />
+                    <div className="inline-block px-6 py-2 bg-[#4C9A8F] text-white text-sm rounded-lg hover:bg-[#3d8178] transition-colors font-medium">
+                      Browse Files
+                    </div>
+                    <p className="text-gray-400 text-xs mt-4">Accepts: Images only (JPG, PNG, GIF, etc.)</p>
+                    <p className="text-gray-400 text-xs">(Maximum file size: 2MB)</p>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Website */}

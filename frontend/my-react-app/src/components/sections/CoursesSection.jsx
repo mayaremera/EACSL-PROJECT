@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { getFeaturedCourses } from '../../data/courses';
 import { coursesManager } from '../../utils/dataManager';
 import CourseCard from '../cards/CourseCard';
 
 const CoursesSection = () => {
     const [courses, setCourses] = useState([]);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const loadCourses = () => {
