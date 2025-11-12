@@ -1,19 +1,34 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Save, Loader, Upload, Check } from 'lucide-react';
+import { X, Save, Loader, Upload, Check, Plus, Trash2, FileText } from 'lucide-react';
 
 const CourseEditForm = ({ course, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     title: '',
+    titleEn: '',
+    titleAr: '',
     category: 'Speech Therapy',
+    categoryAr: '',
     level: 'Beginner',
+    skillLevel: 'Beginner',
     duration: '',
     lessons: 0,
+    lectures: 0,
     students: 0,
+    enrolled: 0,
     price: '',
+    moneyBackGuarantee: '30-Day Money-Back Guarantee',
     image: '',
     instructor: '',
     instructorImage: '',
-    description: ''
+    instructorTitle: '',
+    instructorBio: '',
+    description: '',
+    descriptionShort: '',
+    language: 'English',
+    classTime: '4:00 PM - 6:00 PM',
+    startDate: 'Monday-Friday',
+    learningOutcomes: [],
+    curriculum: []
   });
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState({});
@@ -36,7 +51,44 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
 
   useEffect(() => {
     if (course) {
-      setFormData(course);
+      // Ensure arrays are properly initialized and are actual arrays
+      const learningOutcomes = Array.isArray(course.learningOutcomes) ? course.learningOutcomes : [];
+      // Ensure curriculum sections have proper structure with lessons arrays
+      const curriculum = Array.isArray(course.curriculum) 
+        ? course.curriculum.map(section => ({
+            ...section,
+            lessons: Array.isArray(section.lessons) ? section.lessons : []
+          }))
+        : [];
+      
+      setFormData({
+        title: course.title || '',
+        titleEn: course.titleEn || course.title || '',
+        titleAr: course.titleAr || course.title || '',
+        category: course.category || 'Speech Therapy',
+        categoryAr: course.categoryAr || course.category || '',
+        level: course.level || 'Beginner',
+        skillLevel: course.skillLevel || course.level || 'Beginner',
+        duration: course.duration || '',
+        lessons: course.lessons || 0,
+        lectures: course.lectures || course.lessons || 0,
+        students: course.students || 0,
+        enrolled: course.enrolled || course.students || 0,
+        price: course.price || '',
+        moneyBackGuarantee: course.moneyBackGuarantee || '30-Day Money-Back Guarantee',
+        image: course.image || '',
+        instructor: course.instructor || '',
+        instructorImage: course.instructorImage || '',
+        instructorTitle: course.instructorTitle || '',
+        instructorBio: course.instructorBio || '',
+        description: course.description || '',
+        descriptionShort: course.descriptionShort || course.description || '',
+        language: course.language || 'English',
+        classTime: course.classTime || '4:00 PM - 6:00 PM',
+        startDate: course.startDate || 'Monday-Friday',
+        learningOutcomes: learningOutcomes,
+        curriculum: curriculum
+      });
     }
   }, [course]);
 
@@ -51,10 +103,97 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'lessons' || name === 'students'
+      [name]: name === 'lessons' || name === 'students' || name === 'lectures' || name === 'enrolled'
         ? parseFloat(value) || 0
         : value
     }));
+  };
+
+  const handleArrayChange = (field, index, value) => {
+    setFormData(prev => {
+      const newArray = [...(prev[field] || [])];
+      newArray[index] = value;
+      return { ...prev, [field]: newArray };
+    });
+  };
+
+  const addArrayItem = (field, defaultValue = '') => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: [...(prev[field] || []), defaultValue]
+    }));
+  };
+
+  const removeArrayItem = (field, index) => {
+    setFormData(prev => {
+      const newArray = [...(prev[field] || [])];
+      newArray.splice(index, 1);
+      return { ...prev, [field]: newArray };
+    });
+  };
+
+  const handleCurriculumSectionChange = (sectionIndex, field, value) => {
+    setFormData(prev => {
+      const newCurriculum = [...(prev.curriculum || [])];
+      if (!newCurriculum[sectionIndex]) {
+        newCurriculum[sectionIndex] = { title: '', lessons: [] };
+      }
+      newCurriculum[sectionIndex][field] = value;
+      return { ...prev, curriculum: newCurriculum };
+    });
+  };
+
+  const handleCurriculumLessonChange = (sectionIndex, lessonIndex, field, value) => {
+    setFormData(prev => {
+      const newCurriculum = [...(prev.curriculum || [])];
+      if (!newCurriculum[sectionIndex]) {
+        newCurriculum[sectionIndex] = { title: '', lessons: [] };
+      }
+      if (!newCurriculum[sectionIndex].lessons[lessonIndex]) {
+        newCurriculum[sectionIndex].lessons[lessonIndex] = { name: '', duration: '', type: 'video' };
+      }
+      newCurriculum[sectionIndex].lessons[lessonIndex][field] = value;
+      return { ...prev, curriculum: newCurriculum };
+    });
+  };
+
+  const addCurriculumSection = () => {
+    setFormData(prev => ({
+      ...prev,
+      curriculum: [...(prev.curriculum || []), { title: '', lessons: [] }]
+    }));
+  };
+
+  const removeCurriculumSection = (sectionIndex) => {
+    setFormData(prev => {
+      const newCurriculum = [...(prev.curriculum || [])];
+      newCurriculum.splice(sectionIndex, 1);
+      return { ...prev, curriculum: newCurriculum };
+    });
+  };
+
+  const addCurriculumLesson = (sectionIndex) => {
+    setFormData(prev => {
+      const newCurriculum = [...(prev.curriculum || [])];
+      if (!newCurriculum[sectionIndex]) {
+        newCurriculum[sectionIndex] = { title: '', lessons: [] };
+      }
+      newCurriculum[sectionIndex].lessons = [
+        ...(newCurriculum[sectionIndex].lessons || []),
+        { name: '', duration: '', type: 'video' }
+      ];
+      return { ...prev, curriculum: newCurriculum };
+    });
+  };
+
+  const removeCurriculumLesson = (sectionIndex, lessonIndex) => {
+    setFormData(prev => {
+      const newCurriculum = [...(prev.curriculum || [])];
+      if (newCurriculum[sectionIndex] && newCurriculum[sectionIndex].lessons) {
+        newCurriculum[sectionIndex].lessons.splice(lessonIndex, 1);
+      }
+      return { ...prev, curriculum: newCurriculum };
+    });
   };
 
   const handleFileChange = (field, file) => {
@@ -490,6 +629,317 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                 rows="4"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
               />
+            </div>
+          </div>
+
+          {/* Course Details Page Section */}
+          <div className="border-t-2 border-[#4C9A8F] pt-6 mt-6">
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-[#4C9A8F] mb-2 flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Course Details Page Information
+              </h3>
+              <p className="text-sm text-gray-600">Edit all information displayed on the course details page</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Title English */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Title (English)
+                </label>
+                <input
+                  type="text"
+                  name="titleEn"
+                  value={formData.titleEn}
+                  onChange={handleChange}
+                  placeholder="English title"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                />
+              </div>
+
+              {/* Title Arabic */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Title (Arabic)
+                </label>
+                <input
+                  type="text"
+                  name="titleAr"
+                  value={formData.titleAr}
+                  onChange={handleChange}
+                  placeholder="Arabic title"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                />
+              </div>
+
+              {/* Category Arabic */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Category (Arabic)
+                </label>
+                <input
+                  type="text"
+                  name="categoryAr"
+                  value={formData.categoryAr}
+                  onChange={handleChange}
+                  placeholder="Arabic category"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                />
+              </div>
+
+              {/* Skill Level */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Skill Level
+                </label>
+                <select
+                  name="skillLevel"
+                  value={formData.skillLevel}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                >
+                  {levels.map(level => (
+                    <option key={level} value={level}>{level}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Lectures */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Number of Lectures
+                </label>
+                <input
+                  type="number"
+                  name="lectures"
+                  value={formData.lectures}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                />
+              </div>
+
+              {/* Enrolled */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Enrolled Students
+                </label>
+                <input
+                  type="number"
+                  name="enrolled"
+                  value={formData.enrolled}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                />
+              </div>
+
+              {/* Money Back Guarantee */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Money Back Guarantee
+                </label>
+                <input
+                  type="text"
+                  name="moneyBackGuarantee"
+                  value={formData.moneyBackGuarantee}
+                  onChange={handleChange}
+                  placeholder="e.g., 30-Day Money-Back Guarantee"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                />
+              </div>
+
+              {/* Language */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Language
+                </label>
+                <input
+                  type="text"
+                  name="language"
+                  value={formData.language}
+                  onChange={handleChange}
+                  placeholder="e.g., English"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                />
+              </div>
+
+              {/* Class Time */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Class Time
+                </label>
+                <input
+                  type="text"
+                  name="classTime"
+                  value={formData.classTime}
+                  onChange={handleChange}
+                  placeholder="e.g., 4:00 PM - 6:00 PM"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                />
+              </div>
+
+              {/* Start Date */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Start Date / Class Day
+                </label>
+                <input
+                  type="text"
+                  name="startDate"
+                  value={formData.startDate}
+                  onChange={handleChange}
+                  placeholder="e.g., Monday-Friday"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                />
+              </div>
+
+              {/* Instructor Bio */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Instructor Bio
+                </label>
+                <textarea
+                  name="instructorBio"
+                  value={formData.instructorBio}
+                  onChange={handleChange}
+                  rows="3"
+                  placeholder="Instructor biography"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                />
+              </div>
+
+              {/* Description Short */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Short Description
+                </label>
+                <textarea
+                  name="descriptionShort"
+                  value={formData.descriptionShort}
+                  onChange={handleChange}
+                  rows="3"
+                  placeholder="Brief description for course details page"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                />
+              </div>
+
+              {/* Learning Outcomes */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Learning Outcomes
+                </label>
+                <div className="space-y-2">
+                  {formData.learningOutcomes && formData.learningOutcomes.map((outcome, index) => (
+                    <div key={index} className="flex gap-2">
+                      <input
+                        type="text"
+                        value={outcome}
+                        onChange={(e) => handleArrayChange('learningOutcomes', index, e.target.value)}
+                        placeholder={`Learning outcome ${index + 1}`}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeArrayItem('learningOutcomes', index)}
+                        className="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => addArrayItem('learningOutcomes', '')}
+                    className="flex items-center gap-2 px-4 py-2 text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors border border-[#4C9A8F]"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Learning Outcome
+                  </button>
+                </div>
+              </div>
+
+              {/* Curriculum */}
+              <div className="md:col-span-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Course Curriculum
+                </label>
+                <div className="space-y-4">
+                  {formData.curriculum && formData.curriculum.map((section, sectionIndex) => (
+                    <div key={sectionIndex} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                      <div className="flex gap-2 mb-3">
+                        <input
+                          type="text"
+                          value={section.title || ''}
+                          onChange={(e) => handleCurriculumSectionChange(sectionIndex, 'title', e.target.value)}
+                          placeholder={`Section ${sectionIndex + 1} Title`}
+                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none bg-white"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeCurriculumSection(sectionIndex)}
+                          className="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                      <div className="space-y-2 ml-4">
+                        {Array.isArray(section.lessons) && section.lessons.length > 0 && section.lessons.map((lesson, lessonIndex) => (
+                          <div key={lessonIndex} className="flex gap-2">
+                            <input
+                              type="text"
+                              value={lesson.name || ''}
+                              onChange={(e) => handleCurriculumLessonChange(sectionIndex, lessonIndex, 'name', e.target.value)}
+                              placeholder="Lesson name"
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none bg-white text-sm"
+                            />
+                            <input
+                              type="text"
+                              value={lesson.duration || ''}
+                              onChange={(e) => handleCurriculumLessonChange(sectionIndex, lessonIndex, 'duration', e.target.value)}
+                              placeholder="Duration"
+                              className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none bg-white text-sm"
+                            />
+                            <select
+                              value={lesson.type || 'video'}
+                              onChange={(e) => handleCurriculumLessonChange(sectionIndex, lessonIndex, 'type', e.target.value)}
+                              className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none bg-white text-sm"
+                            >
+                              <option value="video">Video</option>
+                              <option value="text">Text</option>
+                              <option value="quiz">Quiz</option>
+                            </select>
+                            <button
+                              type="button"
+                              onClick={() => removeCurriculumLesson(sectionIndex, lessonIndex)}
+                              className="px-2 py-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => addCurriculumLesson(sectionIndex)}
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors border border-[#4C9A8F]"
+                        >
+                          <Plus className="w-3 h-3" />
+                          Add Lesson
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={addCurriculumSection}
+                    className="flex items-center gap-2 px-4 py-2 text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors border border-[#4C9A8F]"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Add Curriculum Section
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 

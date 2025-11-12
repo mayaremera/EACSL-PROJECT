@@ -160,11 +160,31 @@ const CourseDetailPage = () => {
                 return (
                     <div className="space-y-4">
                         <h3 className="text-xl font-bold text-gray-900 mb-4">Course Curriculum</h3>
-                        {courseData.curriculum.map((section, sectionIndex) => (
-                            <div key={sectionIndex} className="border border-gray-200 rounded-lg">
+                        {courseData.curriculum && courseData.curriculum.map((section, sectionIndex) => (
+                            <div key={sectionIndex} className="border border-gray-200 rounded-lg overflow-hidden">
                                 <div className="bg-gray-50 px-5 py-4">
                                     <h4 className="font-semibold text-gray-900">{section.title}</h4>
                                 </div>
+                                {section.lessons && section.lessons.length > 0 && (
+                                    <div className="px-5 py-4 space-y-3">
+                                        {section.lessons.map((lesson, lessonIndex) => (
+                                            <div key={lessonIndex} className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-b-0">
+                                                {lesson.type === 'video' && <Video className="w-5 h-5 text-[#4C9A8F] flex-shrink-0" />}
+                                                {lesson.type === 'text' && <FileText className="w-5 h-5 text-[#4C9A8F] flex-shrink-0" />}
+                                                {lesson.type === 'quiz' && <Award className="w-5 h-5 text-[#4C9A8F] flex-shrink-0" />}
+                                                <div className="flex-1">
+                                                    <p className="text-gray-900 font-medium">{lesson.name}</p>
+                                                    {lesson.duration && (
+                                                        <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                                                            <Clock className="w-3 h-3" />
+                                                            {lesson.duration}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -181,8 +201,7 @@ const CourseDetailPage = () => {
                                 className="w-24 h-24 rounded-full object-cover"
                             />
                             <div className="flex-1">
-                                <h4 className="text-2xl font-bold text-gray-900 mb-1">{courseData.instructor}</h4>
-                                <p className="text-[#4C9A8F] font-semibold mb-3">{courseData.instructorTitle}</p>
+                                <h4 className="text-2xl font-bold text-gray-900 mb-3">{courseData.instructor}</h4>
                                 <div className="flex items-center gap-6 text-sm text-gray-600">
                                     <div className="flex items-center gap-2">
                                         <Users className="w-4 h-4" />
