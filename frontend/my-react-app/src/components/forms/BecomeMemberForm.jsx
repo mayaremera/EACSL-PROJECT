@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Upload, Eye, EyeOff, Mail, Lock, AlertCircle, X, Check } from 'lucide-react';
+import { Upload, Eye, EyeOff, Mail, Lock, AlertCircle, X, Check, CheckCircle } from 'lucide-react';
+import logo from '../../assets/logo.png';
 
 const BecomeMemberForm = ({ onSubmit }) => {
     const [showPassword, setShowPassword] = useState(false);
@@ -7,6 +8,7 @@ const BecomeMemberForm = ({ onSubmit }) => {
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
     const [dragActive, setDragActive] = useState({});
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [formData, setFormData] = useState({
         profileImage: null,
         idImage: null,
@@ -67,12 +69,22 @@ const BecomeMemberForm = ({ onSubmit }) => {
     };
 
     const handleFileChange = (field, file) => {
-        if (file && file.type.startsWith('image/')) {
+        if (!file) return;
+        
+        // CV field accepts PDFs, other fields accept images
+        const isValidFile = field === 'cv' 
+            ? file.type === 'application/pdf'
+            : file.type.startsWith('image/');
+        
+        if (isValidFile) {
             setFormData(prev => ({ ...prev, [field]: file }));
             setTouched(prev => ({ ...prev, [field]: true }));
             setErrors(prev => ({ ...prev, [field]: '' }));
-        } else if (file) {
-            alert('Please upload only image files (JPG, PNG, etc.)');
+        } else {
+            const errorMsg = field === 'cv' 
+                ? 'Please upload only PDF files'
+                : 'Please upload only image files (JPG, PNG, etc.)';
+            alert(errorMsg);
         }
     };
 
@@ -103,7 +115,7 @@ const BecomeMemberForm = ({ onSubmit }) => {
         setErrors(prev => ({ ...prev, [field]: validateField(field, null) }));
     };
 
-    const handleSubmit = () => {
+    const handleSubmit = async () => {
         const newErrors = {};
         const newTouched = {};
         
@@ -117,7 +129,19 @@ const BecomeMemberForm = ({ onSubmit }) => {
         setErrors(newErrors);
 
         if (Object.keys(newErrors).length === 0) {
-            if (onSubmit) onSubmit(formData);
+            try {
+                // Call onSubmit and wait for it to complete (it's async now)
+                if (onSubmit) {
+                    await onSubmit(formData);
+                }
+                // Show success modal after submission completes
+                setShowSuccessModal(true);
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                // Display the specific error message if available
+                const errorMessage = error.message || 'An error occurred while submitting the form. Please try again.';
+                alert(errorMessage);
+            }
         }
     };
 
@@ -170,7 +194,9 @@ const BecomeMemberForm = ({ onSubmit }) => {
                                 <Upload className={`w-8 h-8 ${hasError ? 'text-red-500' : dragActive[field] ? 'text-[#5A9B8E]' : 'text-gray-500'}`} />
                             </div>
                             <p className={`text-sm mb-1 font-medium ${hasError ? 'text-red-600' : dragActive[field] ? 'text-[#5A9B8E]' : 'text-gray-700'}`}>
-                                {dragActive[field] ? 'Drop your image here' : 'Drag and drop your image here'}
+                                {dragActive[field] 
+                                    ? `Drop your ${acceptTypes === "application/pdf" ? "PDF" : "image"} here` 
+                                    : `Drag and drop your ${acceptTypes === "application/pdf" ? "PDF" : "image"} here`}
                             </p>
                             <p className="text-gray-500 text-xs mb-4">or</p>
                             <input
@@ -184,7 +210,9 @@ const BecomeMemberForm = ({ onSubmit }) => {
                             <div className="inline-block px-6 py-2 bg-[#5A9B8E] text-white text-sm rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium">
                                 Browse Files
                             </div>
-                            <p className="text-gray-400 text-xs mt-4">Accepts: Images only (JPG, PNG, GIF, etc.)</p>
+                            <p className="text-gray-400 text-xs mt-4">
+                                Accepts: {acceptTypes === "application/pdf" ? "PDF files only" : "Images only (JPG, PNG, GIF, etc.)"}
+                            </p>
                             <p className="text-gray-400 text-xs">(Maximum file size: 2MB)</p>
                         </>
                     )}
@@ -401,6 +429,7 @@ const BecomeMemberForm = ({ onSubmit }) => {
             <FileUploadBox 
                 field="cv" 
                 label="Upload your CV"
+                acceptTypes="application/pdf"
             />
 
             {/* Submit Button */}
@@ -410,6 +439,59 @@ const BecomeMemberForm = ({ onSubmit }) => {
             >
                 Become A Member
             </button>
+
+            {/* Success Modal */}
+            {showSuccessModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative animate-in fade-in zoom-in duration-300">
+                        {/* Close Button */}
+                        <button
+                            onClick={() => setShowSuccessModal(false)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                            <X size={24} />
+                        </button>
+
+                        {/* Content */}
+                        <div className="text-center">
+                            {/* Success Icon */}
+                            <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
+                                <CheckCircle className="w-12 h-12 text-green-600" />
+                            </div>
+
+                            {/* Logo */}
+                            <div className="mb-6 flex justify-center">
+                                <img 
+                                    src={logo} 
+                                    alt="EACSL Logo" 
+                                    className="h-16 w-auto"
+                                />
+                            </div>
+
+                            {/* Success Message */}
+                            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+                                Application Submitted Successfully!
+                            </h2>
+                            
+                            <p className="text-gray-600 mb-2 leading-relaxed">
+                                Thank you for applying to EACSL!
+                            </p>
+                            
+                            <p className="text-gray-600 mb-6 leading-relaxed">
+                                You will receive an email within a week regarding the result of your application.
+                            </p>
+
+                            {/* Close Button */}
+                            <button
+                                onClick={() => setShowSuccessModal(false)}
+                                className="w-full py-3 bg-[#5A9B8E] text-white font-semibold rounded-lg hover:bg-[#4A8B7E] transition-colors"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

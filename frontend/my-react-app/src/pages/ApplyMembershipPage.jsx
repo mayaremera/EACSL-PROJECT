@@ -1,12 +1,100 @@
 import React from 'react';
-import { Search } from 'lucide-react';
 import Header from '../components/layout/Header'
 import BecomeMemberForm from '../components/forms/BecomeMemberForm';
 
 const ApplyMembershipPage = () => {
-  const handleFormSubmit = (data) => {
-    console.log('Form submitted:', data);
-    // Handle form submission logic here
+
+  // Helper function to convert File to base64
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  const handleFormSubmit = async (data) => {
+    try {
+      // Convert File objects to base64 for storage
+      const convertFile = async (file) => {
+        if (!file) return null;
+        try {
+          const base64 = await fileToBase64(file);
+          return {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            data: base64 // Store base64 data for downloading
+          };
+        } catch (error) {
+          console.error('Error converting file to base64:', error);
+          throw new Error(`Failed to process ${file.name}. Please try again.`);
+        }
+      };
+
+      // Convert all files to base64
+      const [profileImage, idImage, graduationCert, cv] = await Promise.all([
+        convertFile(data.profileImage),
+        convertFile(data.idImage),
+        convertFile(data.graduationCert),
+        convertFile(data.cv)
+      ]);
+
+      const formSubmission = {
+        id: Date.now().toString(), // Generate unique ID
+        username: data.username,
+        email: data.email,
+        specialty: data.specialty,
+        previousWork: data.previousWork,
+        submittedAt: new Date().toISOString(),
+        status: 'pending', // All new submissions start as pending
+        profileImage,
+        idImage,
+        graduationCert,
+        cv
+      };
+
+      // Get existing forms from localStorage
+      let existingForms = [];
+      try {
+        const stored = localStorage.getItem('memberForms');
+        existingForms = stored ? JSON.parse(stored) : [];
+      } catch (error) {
+        console.error('Error reading from localStorage:', error);
+        existingForms = [];
+      }
+      
+      // Add new submission
+      existingForms.push(formSubmission);
+      
+      // Save back to localStorage with error handling
+      try {
+        const dataToStore = JSON.stringify(existingForms);
+        // Check approximate size (base64 is ~33% larger than original)
+        const estimatedSize = new Blob([dataToStore]).size;
+        if (estimatedSize > 4 * 1024 * 1024) { // 4MB warning
+          console.warn('Large data size detected:', estimatedSize);
+        }
+        
+        localStorage.setItem('memberForms', dataToStore);
+      } catch (error) {
+        if (error.name === 'QuotaExceededError' || error.code === 22) {
+          throw new Error('Storage limit exceeded. The files you uploaded are too large. Please reduce file sizes and try again.');
+        } else {
+          throw new Error('Failed to save form submission. Please try again.');
+        }
+      }
+      
+      // Dispatch event to notify dashboard
+      window.dispatchEvent(new CustomEvent('formsUpdated', { detail: existingForms }));
+      
+      // Success modal is shown by the form component itself
+    } catch (error) {
+      console.error('Form submission error:', error);
+      // Re-throw the error so the form component can handle it
+      throw error;
+    }
   };
 
   return (
