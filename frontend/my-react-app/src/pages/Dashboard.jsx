@@ -152,6 +152,49 @@ const contactFormsManager = {
     }
 };
 
+// Reservations manager
+const reservationsManager = {
+    data: [],
+    
+    getAll() {
+        const stored = localStorage.getItem('reservations');
+        if (stored) {
+            try {
+                this.data = JSON.parse(stored);
+                if (!Array.isArray(this.data)) {
+                    this.data = [];
+                }
+            } catch (e) {
+                console.error('Error parsing stored reservations:', e);
+                this.data = [];
+            }
+        } else {
+            this.data = [];
+        }
+        return this.data;
+    },
+    
+    save() {
+        localStorage.setItem('reservations', JSON.stringify(this.data));
+        window.dispatchEvent(new CustomEvent('reservationsUpdated', { detail: this.data }));
+    },
+    
+    updateStatus(id, status, notes = '') {
+        const reservation = this.data.find(r => r.id === id);
+        if (reservation) {
+            reservation.status = status;
+            reservation.reviewNotes = notes;
+            reservation.reviewedAt = new Date().toISOString();
+            this.save();
+        }
+    },
+    
+    delete(id) {
+        this.data = this.data.filter(r => r.id !== id);
+        this.save();
+    }
+};
+
 // Form Details Modal Component
 const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
     const [reviewNotes, setReviewNotes] = useState(form.reviewNotes || '');
@@ -674,6 +717,147 @@ const ContactFormModal = ({ form, onClose, onApprove, onReject }) => {
     );
 };
 
+// Reservation Details Modal Component
+const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
+    const [reviewNotes, setReviewNotes] = useState(reservation.reviewNotes || '');
+
+    const handleApprove = () => {
+        onApprove(reservation.id, reviewNotes);
+        onClose();
+    };
+
+    const handleReject = () => {
+        onReject(reservation.id, reviewNotes);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                {/* Header */}
+                <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900">Reservation Details</h2>
+                        <p className="text-sm text-gray-500 mt-1">
+                            Submitted on {new Date(reservation.submittedAt).toLocaleDateString()}
+                        </p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 space-y-6">
+                    {/* Status Badge */}
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold text-gray-700">Status:</span>
+                        <span className={`px-4 py-2 rounded-full text-sm font-medium ${
+                            reservation.status === 'approved' ? 'bg-green-100 text-green-700' :
+                            reservation.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                            'bg-yellow-100 text-yellow-700'
+                        }`}>
+                            {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                        </span>
+                    </div>
+
+                    {/* Contact Information */}
+                    <div className="bg-gray-50 rounded-lg p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Child's Name</p>
+                                <p className="text-gray-900 font-medium">{reservation.kidsName}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Parent/Guardian Name</p>
+                                <p className="text-gray-900 font-medium">{reservation.yourName}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Phone Number</p>
+                                <p className="text-gray-900 font-medium">{reservation.phoneNumber}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Requested Assessments */}
+                    {reservation.selectedAssessments && reservation.selectedAssessments.length > 0 && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Requested Assessments</h3>
+                            <div className="flex flex-wrap gap-2">
+                                {reservation.selectedAssessments.map((assessment, index) => (
+                                    <span key={index} className="px-4 py-2 bg-[#5A9B8E] text-white rounded-full text-sm">
+                                        {assessment}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Concern/Description */}
+                    {reservation.concern && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Child's Condition Description</h3>
+                            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{reservation.concern}</p>
+                        </div>
+                    )}
+
+                    {/* Review Notes */}
+                    {reservation.status !== 'pending' && reservation.reviewNotes && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Review Notes</h3>
+                            <p className="text-gray-700 leading-relaxed">{reservation.reviewNotes}</p>
+                            <p className="text-sm text-gray-500 mt-3">
+                                Reviewed on {new Date(reservation.reviewedAt).toLocaleDateString()}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Action Section (only for pending) */}
+                    {reservation.status === 'pending' && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Review & Action</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Review Notes (Optional)
+                                    </label>
+                                    <textarea
+                                        value={reviewNotes}
+                                        onChange={(e) => setReviewNotes(e.target.value)}
+                                        placeholder="Add notes about your decision..."
+                                        rows="4"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none resize-none"
+                                    />
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={handleApprove}
+                                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                                    >
+                                        <CheckCircle size={20} />
+                                        Approve Reservation
+                                    </button>
+                                    <button
+                                        onClick={handleReject}
+                                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                                    >
+                                        <XCircle size={20} />
+                                        Reject Reservation
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
     const Dashboard = () => {
     const [activeTab, setActiveTab] = useState("courses");
     const [courses, setCourses] = useState([]);
@@ -681,13 +865,16 @@ const ContactFormModal = ({ form, onClose, onApprove, onReject }) => {
     const [forms, setForms] = useState([]);
     const [eventRegistrations, setEventRegistrations] = useState([]);
     const [contactForms, setContactForms] = useState([]);
+    const [reservations, setReservations] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [formSearchTerm, setFormSearchTerm] = useState("");
     const [eventSearchTerm, setEventSearchTerm] = useState("");
     const [contactSearchTerm, setContactSearchTerm] = useState("");
+    const [reservationSearchTerm, setReservationSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [eventStatusFilter, setEventStatusFilter] = useState("all");
     const [contactStatusFilter, setContactStatusFilter] = useState("all");
+    const [reservationStatusFilter, setReservationStatusFilter] = useState("all");
     const [editingCourse, setEditingCourse] = useState(null);
     const [editingMember, setEditingMember] = useState(null);
     const [isAddingCourse, setIsAddingCourse] = useState(false);
@@ -695,6 +882,7 @@ const ContactFormModal = ({ form, onClose, onApprove, onReject }) => {
     const [selectedForm, setSelectedForm] = useState(null);
     const [selectedEventRegistration, setSelectedEventRegistration] = useState(null);
     const [selectedContactForm, setSelectedContactForm] = useState(null);
+    const [selectedReservation, setSelectedReservation] = useState(null);
 
     // Initialize data and load
     useEffect(() => {
@@ -704,6 +892,7 @@ const ContactFormModal = ({ form, onClose, onApprove, onReject }) => {
         loadForms();
         loadEventRegistrations();
         loadContactForms();
+        loadReservations();
 
         // Listen for updates
         window.addEventListener('coursesUpdated', handleCoursesUpdate);
@@ -711,6 +900,7 @@ const ContactFormModal = ({ form, onClose, onApprove, onReject }) => {
         window.addEventListener('formsUpdated', handleFormsUpdate);
         window.addEventListener('eventRegistrationsUpdated', handleEventRegistrationsUpdate);
         window.addEventListener('contactFormsUpdated', handleContactFormsUpdate);
+        window.addEventListener('reservationsUpdated', handleReservationsUpdate);
 
         return () => {
             window.removeEventListener('coursesUpdated', handleCoursesUpdate);
@@ -718,6 +908,7 @@ const ContactFormModal = ({ form, onClose, onApprove, onReject }) => {
             window.removeEventListener('formsUpdated', handleFormsUpdate);
             window.removeEventListener('eventRegistrationsUpdated', handleEventRegistrationsUpdate);
             window.removeEventListener('contactFormsUpdated', handleContactFormsUpdate);
+            window.removeEventListener('reservationsUpdated', handleReservationsUpdate);
         };
     }, []);
 
@@ -739,6 +930,10 @@ const ContactFormModal = ({ form, onClose, onApprove, onReject }) => {
 
     const handleContactFormsUpdate = (e) => {
         setContactForms(e.detail);
+    };
+
+    const handleReservationsUpdate = (e) => {
+        setReservations(e.detail);
     };
 
     const loadCourses = () => {
@@ -764,6 +959,11 @@ const ContactFormModal = ({ form, onClose, onApprove, onReject }) => {
     const loadContactForms = () => {
         const allContactForms = contactFormsManager.getAll();
         setContactForms(allContactForms);
+    };
+
+    const loadReservations = () => {
+        const allReservations = reservationsManager.getAll();
+        setReservations(allReservations);
     };
 
     const handleApproveForm = (id, notes) => {
@@ -814,6 +1014,23 @@ const ContactFormModal = ({ form, onClose, onApprove, onReject }) => {
         if (window.confirm('Are you sure you want to delete this contact message?')) {
             contactFormsManager.delete(id);
             loadContactForms();
+        }
+    };
+
+    const handleApproveReservation = (id, notes) => {
+        reservationsManager.updateStatus(id, 'approved', notes);
+        loadReservations();
+    };
+
+    const handleRejectReservation = (id, notes) => {
+        reservationsManager.updateStatus(id, 'rejected', notes);
+        loadReservations();
+    };
+
+    const handleDeleteReservation = (id) => {
+        if (window.confirm('Are you sure you want to delete this reservation?')) {
+            reservationsManager.delete(id);
+            loadReservations();
         }
     };
 
@@ -892,6 +1109,18 @@ const ContactFormModal = ({ form, onClose, onApprove, onReject }) => {
             form.message.toLowerCase().includes(contactSearchTerm.toLowerCase());
         
         const matchesStatus = contactStatusFilter === 'all' || form.status === contactStatusFilter;
+        
+        return matchesSearch && matchesStatus;
+    });
+
+    const filteredReservations = reservations.filter(reservation => {
+        const matchesSearch = 
+            reservation.kidsName.toLowerCase().includes(reservationSearchTerm.toLowerCase()) ||
+            reservation.yourName.toLowerCase().includes(reservationSearchTerm.toLowerCase()) ||
+            reservation.phoneNumber.toLowerCase().includes(reservationSearchTerm.toLowerCase()) ||
+            (reservation.concern && reservation.concern.toLowerCase().includes(reservationSearchTerm.toLowerCase()));
+        
+        const matchesStatus = reservationStatusFilter === 'all' || reservation.status === reservationStatusFilter;
         
         return matchesSearch && matchesStatus;
     });
@@ -1119,9 +1348,19 @@ const ContactFormModal = ({ form, onClose, onApprove, onReject }) => {
                             <div>
                                 <div className="flex items-center justify-between mb-4">
                                     <h2 className="text-2xl font-bold text-gray-900">Member Applications</h2>
-                                    <div className="flex gap-2 text-sm">
-                                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {forms.length}</span>
-                                        <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {forms.filter(f => f.status === 'pending').length}</span>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex gap-2 text-sm">
+                                            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {forms.length}</span>
+                                            <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {forms.filter(f => f.status === 'pending').length}</span>
+                                        </div>
+                                        <button
+                                            onClick={loadForms}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
+                                            title="Refresh Member Applications"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh
+                                        </button>
                                     </div>
                                 </div>
 
@@ -1241,9 +1480,19 @@ const ContactFormModal = ({ form, onClose, onApprove, onReject }) => {
                             <div>
                                 <div className="flex items-center justify-between mb-4">
                                     <h2 className="text-2xl font-bold text-gray-900">Event Registrations</h2>
-                                    <div className="flex gap-2 text-sm">
-                                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {eventRegistrations.length}</span>
-                                        <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {eventRegistrations.filter(r => r.status === 'pending').length}</span>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex gap-2 text-sm">
+                                            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {eventRegistrations.length}</span>
+                                            <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {eventRegistrations.filter(r => r.status === 'pending').length}</span>
+                                        </div>
+                                        <button
+                                            onClick={loadEventRegistrations}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
+                                            title="Refresh Event Registrations"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh
+                                        </button>
                                     </div>
                                 </div>
 
@@ -1361,9 +1610,19 @@ const ContactFormModal = ({ form, onClose, onApprove, onReject }) => {
                             <div>
                                 <div className="flex items-center justify-between mb-4">
                                     <h2 className="text-2xl font-bold text-gray-900">Contact Messages</h2>
-                                    <div className="flex gap-2 text-sm">
-                                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {contactForms.length}</span>
-                                        <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {contactForms.filter(f => f.status === 'pending').length}</span>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex gap-2 text-sm">
+                                            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {contactForms.length}</span>
+                                            <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {contactForms.filter(f => f.status === 'pending').length}</span>
+                                        </div>
+                                        <button
+                                            onClick={loadContactForms}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
+                                            title="Refresh Contact Messages"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh
+                                        </button>
                                     </div>
                                 </div>
 
@@ -1472,6 +1731,149 @@ const ContactFormModal = ({ form, onClose, onApprove, onReject }) => {
                                     )}
                                 </div>
                             </div>
+
+                            {/* Section 4: Reservations */}
+                            <div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-2xl font-bold text-gray-900">Assessment Reservations</h2>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex gap-2 text-sm">
+                                            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {reservations.length}</span>
+                                            <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {reservations.filter(r => r.status === 'pending').length}</span>
+                                        </div>
+                                        <button
+                                            onClick={loadReservations}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
+                                            title="Refresh Reservations"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Filters */}
+                                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search by child's name, parent name, phone, or concern..."
+                                                value={reservationSearchTerm}
+                                                onChange={(e) => setReservationSearchTerm(e.target.value)}
+                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {['all', 'pending', 'approved', 'rejected'].map(status => (
+                                                <button
+                                                    key={status}
+                                                    onClick={() => setReservationStatusFilter(status)}
+                                                    className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
+                                                        reservationStatusFilter === status
+                                                            ? 'bg-[#4C9A8F] text-white'
+                                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                    }`}
+                                                >
+                                                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Reservations Table */}
+                                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead className="bg-gray-50 border-b border-gray-200">
+                                                <tr>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Child's Name</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Parent/Guardian</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Phone</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assessments</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Submitted</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200">
+                                                {filteredReservations.map((reservation) => (
+                                                    <tr key={reservation.id} className="hover:bg-gray-50 transition-colors">
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="font-medium text-gray-900">{reservation.kidsName}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">{reservation.yourName}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">{reservation.phoneNumber}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {reservation.selectedAssessments && reservation.selectedAssessments.length > 0 ? (
+                                                                    reservation.selectedAssessments.slice(0, 2).map((assessment, idx) => (
+                                                                        <span key={idx} className="px-2 py-1 bg-[#5A9B8E]/10 text-[#5A9B8E] text-xs rounded-full">
+                                                                            {assessment.substring(0, 15)}...
+                                                                        </span>
+                                                                    ))
+                                                                ) : (
+                                                                    <span className="text-xs text-gray-400">None</span>
+                                                                )}
+                                                                {reservation.selectedAssessments && reservation.selectedAssessments.length > 2 && (
+                                                                    <span className="text-xs text-gray-500">+{reservation.selectedAssessments.length - 2} more</span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">
+                                                                {new Date(reservation.submittedAt).toLocaleDateString()}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                                                                reservation.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                                                reservation.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                                'bg-yellow-100 text-yellow-700'
+                                                            }`}>
+                                                                {reservation.status === 'approved' && <CheckCircle size={14} />}
+                                                                {reservation.status === 'rejected' && <XCircle size={14} />}
+                                                                {reservation.status === 'pending' && <Clock size={14} />}
+                                                                {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="flex items-center gap-2">
+                                                                <button
+                                                                    onClick={() => setSelectedReservation(reservation)}
+                                                                    className="p-2 text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors"
+                                                                    title="View Details"
+                                                                >
+                                                                    <Eye size={18} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteReservation(reservation.id)}
+                                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                                    title="Delete"
+                                                                >
+                                                                    <XCircle size={18} />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {filteredReservations.length === 0 && (
+                                        <div className="text-center py-12">
+                                            <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                            <p className="text-gray-500">No reservations found</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     )}
 
@@ -1545,6 +1947,16 @@ const ContactFormModal = ({ form, onClose, onApprove, onReject }) => {
                     onClose={() => setSelectedContactForm(null)}
                     onApprove={handleApproveContactForm}
                     onReject={handleRejectContactForm}
+                />
+            )}
+
+            {/* Reservation Details Modal */}
+            {selectedReservation && (
+                <ReservationModal
+                    reservation={selectedReservation}
+                    onClose={() => setSelectedReservation(null)}
+                    onApprove={handleApproveReservation}
+                    onReject={handleRejectReservation}
                 />
             )}
         </div>
