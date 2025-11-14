@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Upload, Eye, EyeOff, Mail, Lock, AlertCircle, X, Check, CheckCircle } from 'lucide-react';
-import logo from '../../assets/logo.png';
 
 const BecomeMemberForm = ({ onSubmit }) => {
     const [showPassword, setShowPassword] = useState(false);
@@ -8,7 +7,7 @@ const BecomeMemberForm = ({ onSubmit }) => {
     const [errors, setErrors] = useState({});
     const [touched, setTouched] = useState({});
     const [dragActive, setDragActive] = useState({});
-    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [isSubmitted, setIsSubmitted] = useState(false);
     const [formData, setFormData] = useState({
         profileImage: null,
         idImage: null,
@@ -134,8 +133,8 @@ const BecomeMemberForm = ({ onSubmit }) => {
                 if (onSubmit) {
                     await onSubmit(formData);
                 }
-                // Show success modal after submission completes
-                setShowSuccessModal(true);
+                // Show success page after submission completes
+                setIsSubmitted(true);
             } catch (error) {
                 console.error('Error submitting form:', error);
                 // Display the specific error message if available
@@ -226,6 +225,35 @@ const BecomeMemberForm = ({ onSubmit }) => {
             </div>
         );
     };
+
+    if (isSubmitted) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+                <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 max-w-2xl w-full text-center">
+                    <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <CheckCircle className="w-12 h-12 text-green-600" />
+                    </div>
+                    <h2 className="text-3xl font-bold text-gray-900 mb-4">Application Submitted Successfully!</h2>
+                    <p className="text-gray-600 mb-6 leading-relaxed">
+                        Thank you for applying to EACSL! You will receive an email within a week regarding the result of your application.
+                    </p>
+                    <div className="bg-teal-50 border-l-4 border-[#4C9A8F] p-4 mb-6">
+                        <p className="text-sm text-gray-700">
+                            <strong>Username:</strong> {formData.username}<br />
+                            <strong>Email:</strong> {formData.email}<br />
+                            <strong>Specialty:</strong> {formData.specialty.join(', ')}
+                        </p>
+                    </div>
+                    <button
+                        onClick={() => window.location.reload()}
+                        className="px-8 py-3 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200"
+                    >
+                        Back to Application Page
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full max-w-2xl mx-auto bg-white/70 backdrop-blur-md rounded-2xl p-8 shadow-2xl border border-gray-200">
@@ -439,59 +467,6 @@ const BecomeMemberForm = ({ onSubmit }) => {
             >
                 Become A Member
             </button>
-
-            {/* Success Modal */}
-            {showSuccessModal && (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 relative animate-in fade-in zoom-in duration-300">
-                        {/* Close Button */}
-                        <button
-                            onClick={() => setShowSuccessModal(false)}
-                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
-                        >
-                            <X size={24} />
-                        </button>
-
-                        {/* Content */}
-                        <div className="text-center">
-                            {/* Success Icon */}
-                            <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-6">
-                                <CheckCircle className="w-12 h-12 text-green-600" />
-                            </div>
-
-                            {/* Logo */}
-                            <div className="mb-6 flex justify-center">
-                                <img 
-                                    src={logo} 
-                                    alt="EACSL Logo" 
-                                    className="h-16 w-auto"
-                                />
-                            </div>
-
-                            {/* Success Message */}
-                            <h2 className="text-2xl font-bold text-gray-900 mb-4">
-                                Application Submitted Successfully!
-                            </h2>
-                            
-                            <p className="text-gray-600 mb-2 leading-relaxed">
-                                Thank you for applying to EACSL!
-                            </p>
-                            
-                            <p className="text-gray-600 mb-6 leading-relaxed">
-                                You will receive an email within a week regarding the result of your application.
-                            </p>
-
-                            {/* Close Button */}
-                            <button
-                                onClick={() => setShowSuccessModal(false)}
-                                className="w-full py-3 bg-[#5A9B8E] text-white font-semibold rounded-lg hover:bg-[#4A8B7E] transition-colors"
-                            >
-                                Close
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

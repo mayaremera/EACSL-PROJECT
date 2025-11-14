@@ -66,6 +66,92 @@ const formsManager = {
     }
 };
 
+// Event registrations manager
+const eventRegistrationsManager = {
+    data: [],
+    
+    getAll() {
+        const stored = localStorage.getItem('eventRegistrations');
+        if (stored) {
+            try {
+                this.data = JSON.parse(stored);
+                if (!Array.isArray(this.data)) {
+                    this.data = [];
+                }
+            } catch (e) {
+                console.error('Error parsing stored event registrations:', e);
+                this.data = [];
+            }
+        } else {
+            this.data = [];
+        }
+        return this.data;
+    },
+    
+    save() {
+        localStorage.setItem('eventRegistrations', JSON.stringify(this.data));
+        window.dispatchEvent(new CustomEvent('eventRegistrationsUpdated', { detail: this.data }));
+    },
+    
+    updateStatus(id, status, notes = '') {
+        const registration = this.data.find(r => r.id === id);
+        if (registration) {
+            registration.status = status;
+            registration.reviewNotes = notes;
+            registration.reviewedAt = new Date().toISOString();
+            this.save();
+        }
+    },
+    
+    delete(id) {
+        this.data = this.data.filter(r => r.id !== id);
+        this.save();
+    }
+};
+
+// Contact forms manager
+const contactFormsManager = {
+    data: [],
+    
+    getAll() {
+        const stored = localStorage.getItem('contactForms');
+        if (stored) {
+            try {
+                this.data = JSON.parse(stored);
+                if (!Array.isArray(this.data)) {
+                    this.data = [];
+                }
+            } catch (e) {
+                console.error('Error parsing stored contact forms:', e);
+                this.data = [];
+            }
+        } else {
+            this.data = [];
+        }
+        return this.data;
+    },
+    
+    save() {
+        localStorage.setItem('contactForms', JSON.stringify(this.data));
+        window.dispatchEvent(new CustomEvent('contactFormsUpdated', { detail: this.data }));
+    },
+    
+    updateStatus(id, status, notes = '') {
+        const form = this.data.find(f => f.id === id);
+        if (form) {
+            form.status = status;
+            form.reviewNotes = notes;
+            form.reviewedAt = new Date().toISOString();
+            this.save();
+        }
+    },
+    
+    delete(id) {
+        this.data = this.data.filter(f => f.id !== id);
+        this.save();
+    }
+};
+
 // Form Details Modal Component
 const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
     const [reviewNotes, setReviewNotes] = useState(form.reviewNotes || '');
@@ -290,19 +376,325 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
     );
 };
 
+// Event Registration Details Modal Component
+const EventRegistrationModal = ({ registration, onClose, onApprove, onReject }) => {
+    const [reviewNotes, setReviewNotes] = useState(registration.reviewNotes || '');
+
+    const handleApprove = () => {
+        onApprove(registration.id, reviewNotes);
+        onClose();
+    };
+
+    const handleReject = () => {
+        onReject(registration.id, reviewNotes);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                {/* Header */}
+                <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900">Event Registration Details</h2>
+                        <p className="text-sm text-gray-500 mt-1">
+                            Submitted on {new Date(registration.submittedAt).toLocaleDateString()}
+                        </p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 space-y-6">
+                    {/* Status Badge */}
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold text-gray-700">Status:</span>
+                        <span className={`px-4 py-2 rounded-full text-sm font-medium ${
+                            registration.status === 'approved' ? 'bg-green-100 text-green-700' :
+                            registration.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                            'bg-yellow-100 text-yellow-700'
+                        }`}>
+                            {registration.status.charAt(0).toUpperCase() + registration.status.slice(1)}
+                        </span>
+                    </div>
+
+                    {/* Personal Information */}
+                    <div className="bg-gray-50 rounded-lg p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Full Name</p>
+                                <p className="text-gray-900 font-medium">{registration.fullName}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Email</p>
+                                <p className="text-gray-900 font-medium">{registration.email}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Phone</p>
+                                <p className="text-gray-900 font-medium">{registration.phone}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Organization</p>
+                                <p className="text-gray-900 font-medium">{registration.organization || 'N/A'}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Registration Details */}
+                    <div className="bg-gray-50 rounded-lg p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Registration Details</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Membership Type</p>
+                                <p className="text-gray-900 font-medium">
+                                    {registration.membershipType === 'member' ? 'EACSL Member' : 'Guest'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Registration Fee</p>
+                                <p className="text-gray-900 font-medium">{registration.registrationFee} EGP</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Selected Tracks */}
+                    {registration.selectedTracks && registration.selectedTracks.length > 0 && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Preferred Tracks</h3>
+                            <div className="flex flex-wrap gap-2">
+                                {registration.selectedTracks.map((track, index) => (
+                                    <span key={index} className="px-4 py-2 bg-[#5A9B8E] text-white rounded-full text-sm">
+                                        {track}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Special Requirements */}
+                    {registration.specialRequirements && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Special Requirements</h3>
+                            <p className="text-gray-700 leading-relaxed">{registration.specialRequirements}</p>
+                        </div>
+                    )}
+
+                    {/* Review Notes */}
+                    {registration.status !== 'pending' && registration.reviewNotes && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Review Notes</h3>
+                            <p className="text-gray-700 leading-relaxed">{registration.reviewNotes}</p>
+                            <p className="text-sm text-gray-500 mt-3">
+                                Reviewed on {new Date(registration.reviewedAt).toLocaleDateString()}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Action Section (only for pending) */}
+                    {registration.status === 'pending' && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Review & Action</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Review Notes (Optional)
+                                    </label>
+                                    <textarea
+                                        value={reviewNotes}
+                                        onChange={(e) => setReviewNotes(e.target.value)}
+                                        placeholder="Add notes about your decision..."
+                                        rows="4"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none resize-none"
+                                    />
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={handleApprove}
+                                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                                    >
+                                        <CheckCircle size={20} />
+                                        Approve Registration
+                                    </button>
+                                    <button
+                                        onClick={handleReject}
+                                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                                    >
+                                        <XCircle size={20} />
+                                        Reject Registration
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Contact Form Details Modal Component
+const ContactFormModal = ({ form, onClose, onApprove, onReject }) => {
+    const [reviewNotes, setReviewNotes] = useState(form.reviewNotes || '');
+
+    const handleApprove = () => {
+        onApprove(form.id, reviewNotes);
+        onClose();
+    };
+
+    const handleReject = () => {
+        onReject(form.id, reviewNotes);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                {/* Header */}
+                <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900">Contact Message Details</h2>
+                        <p className="text-sm text-gray-500 mt-1">
+                            Submitted on {new Date(form.submittedAt).toLocaleDateString()}
+                        </p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 space-y-6">
+                    {/* Status Badge */}
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold text-gray-700">Status:</span>
+                        <span className={`px-4 py-2 rounded-full text-sm font-medium ${
+                            form.status === 'approved' ? 'bg-green-100 text-green-700' :
+                            form.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                            'bg-yellow-100 text-yellow-700'
+                        }`}>
+                            {form.status.charAt(0).toUpperCase() + form.status.slice(1)}
+                        </span>
+                    </div>
+
+                    {/* Contact Information */}
+                    <div className="bg-gray-50 rounded-lg p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Name</p>
+                                <p className="text-gray-900 font-medium">{form.name}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Email</p>
+                                <p className="text-gray-900 font-medium">{form.email}</p>
+                            </div>
+                            {form.phone && (
+                                <div>
+                                    <p className="text-sm text-gray-600 mb-1">Phone</p>
+                                    <p className="text-gray-900 font-medium">{form.phone}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Message Details */}
+                    <div className="bg-gray-50 rounded-lg p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Message</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Subject</p>
+                                <p className="text-gray-900 font-medium">{form.subject}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Message</p>
+                                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{form.message}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Review Notes */}
+                    {form.status !== 'pending' && form.reviewNotes && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Review Notes</h3>
+                            <p className="text-gray-700 leading-relaxed">{form.reviewNotes}</p>
+                            <p className="text-sm text-gray-500 mt-3">
+                                Reviewed on {new Date(form.reviewedAt).toLocaleDateString()}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Action Section (only for pending) */}
+                    {form.status === 'pending' && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Review & Action</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Review Notes (Optional)
+                                    </label>
+                                    <textarea
+                                        value={reviewNotes}
+                                        onChange={(e) => setReviewNotes(e.target.value)}
+                                        placeholder="Add notes about your decision..."
+                                        rows="4"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none resize-none"
+                                    />
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={handleApprove}
+                                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                                    >
+                                        <CheckCircle size={20} />
+                                        Mark as Resolved
+                                    </button>
+                                    <button
+                                        onClick={handleReject}
+                                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                                    >
+                                        <XCircle size={20} />
+                                        Reject
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
     const Dashboard = () => {
     const [activeTab, setActiveTab] = useState("courses");
     const [courses, setCourses] = useState([]);
     const [members, setMembers] = useState([]);
     const [forms, setForms] = useState([]);
+    const [eventRegistrations, setEventRegistrations] = useState([]);
+    const [contactForms, setContactForms] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [formSearchTerm, setFormSearchTerm] = useState("");
+    const [eventSearchTerm, setEventSearchTerm] = useState("");
+    const [contactSearchTerm, setContactSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
+    const [eventStatusFilter, setEventStatusFilter] = useState("all");
+    const [contactStatusFilter, setContactStatusFilter] = useState("all");
     const [editingCourse, setEditingCourse] = useState(null);
     const [editingMember, setEditingMember] = useState(null);
     const [isAddingCourse, setIsAddingCourse] = useState(false);
     const [isAddingMember, setIsAddingMember] = useState(false);
     const [selectedForm, setSelectedForm] = useState(null);
+    const [selectedEventRegistration, setSelectedEventRegistration] = useState(null);
+    const [selectedContactForm, setSelectedContactForm] = useState(null);
 
     // Initialize data and load
     useEffect(() => {
@@ -310,16 +702,22 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
         loadCourses();
         loadMembers();
         loadForms();
+        loadEventRegistrations();
+        loadContactForms();
 
         // Listen for updates
         window.addEventListener('coursesUpdated', handleCoursesUpdate);
         window.addEventListener('membersUpdated', handleMembersUpdate);
         window.addEventListener('formsUpdated', handleFormsUpdate);
+        window.addEventListener('eventRegistrationsUpdated', handleEventRegistrationsUpdate);
+        window.addEventListener('contactFormsUpdated', handleContactFormsUpdate);
 
         return () => {
             window.removeEventListener('coursesUpdated', handleCoursesUpdate);
             window.removeEventListener('membersUpdated', handleMembersUpdate);
             window.removeEventListener('formsUpdated', handleFormsUpdate);
+            window.removeEventListener('eventRegistrationsUpdated', handleEventRegistrationsUpdate);
+            window.removeEventListener('contactFormsUpdated', handleContactFormsUpdate);
         };
     }, []);
 
@@ -333,6 +731,14 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
 
     const handleFormsUpdate = (e) => {
         setForms(e.detail);
+    };
+
+    const handleEventRegistrationsUpdate = (e) => {
+        setEventRegistrations(e.detail);
+    };
+
+    const handleContactFormsUpdate = (e) => {
+        setContactForms(e.detail);
     };
 
     const loadCourses = () => {
@@ -350,6 +756,16 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
         setForms(allForms);
     };
 
+    const loadEventRegistrations = () => {
+        const allRegistrations = eventRegistrationsManager.getAll();
+        setEventRegistrations(allRegistrations);
+    };
+
+    const loadContactForms = () => {
+        const allContactForms = contactFormsManager.getAll();
+        setContactForms(allContactForms);
+    };
+
     const handleApproveForm = (id, notes) => {
         formsManager.updateStatus(id, 'approved', notes);
         loadForms();
@@ -364,6 +780,40 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
         if (window.confirm('Are you sure you want to delete this application?')) {
             formsManager.delete(id);
             loadForms();
+        }
+    };
+
+    const handleApproveEventRegistration = (id, notes) => {
+        eventRegistrationsManager.updateStatus(id, 'approved', notes);
+        loadEventRegistrations();
+    };
+
+    const handleRejectEventRegistration = (id, notes) => {
+        eventRegistrationsManager.updateStatus(id, 'rejected', notes);
+        loadEventRegistrations();
+    };
+
+    const handleDeleteEventRegistration = (id) => {
+        if (window.confirm('Are you sure you want to delete this event registration?')) {
+            eventRegistrationsManager.delete(id);
+            loadEventRegistrations();
+        }
+    };
+
+    const handleApproveContactForm = (id, notes) => {
+        contactFormsManager.updateStatus(id, 'approved', notes);
+        loadContactForms();
+    };
+
+    const handleRejectContactForm = (id, notes) => {
+        contactFormsManager.updateStatus(id, 'rejected', notes);
+        loadContactForms();
+    };
+
+    const handleDeleteContactForm = (id) => {
+        if (window.confirm('Are you sure you want to delete this contact message?')) {
+            contactFormsManager.delete(id);
+            loadContactForms();
         }
     };
 
@@ -422,12 +872,29 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
         return matchesSearch && matchesStatus;
     });
 
-    const formStats = {
-        total: forms.length,
-        pending: forms.filter(f => f.status === 'pending').length,
-        approved: forms.filter(f => f.status === 'approved').length,
-        rejected: forms.filter(f => f.status === 'rejected').length
-    };
+    const filteredEventRegistrations = eventRegistrations.filter(registration => {
+        const matchesSearch = 
+            registration.fullName.toLowerCase().includes(eventSearchTerm.toLowerCase()) ||
+            registration.email.toLowerCase().includes(eventSearchTerm.toLowerCase()) ||
+            registration.phone.toLowerCase().includes(eventSearchTerm.toLowerCase()) ||
+            (registration.organization && registration.organization.toLowerCase().includes(eventSearchTerm.toLowerCase()));
+        
+        const matchesStatus = eventStatusFilter === 'all' || registration.status === eventStatusFilter;
+        
+        return matchesSearch && matchesStatus;
+    });
+
+    const filteredContactForms = contactForms.filter(form => {
+        const matchesSearch = 
+            form.name.toLowerCase().includes(contactSearchTerm.toLowerCase()) ||
+            form.email.toLowerCase().includes(contactSearchTerm.toLowerCase()) ||
+            form.subject.toLowerCase().includes(contactSearchTerm.toLowerCase()) ||
+            form.message.toLowerCase().includes(contactSearchTerm.toLowerCase());
+        
+        const matchesStatus = contactStatusFilter === 'all' || form.status === contactStatusFilter;
+        
+        return matchesSearch && matchesStatus;
+    });
 
     const menuItems = [
         { icon: BookOpen, label: "Courses", tab: "courses" },
@@ -497,13 +964,13 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
                             <h1 className="text-3xl font-bold text-gray-800 mb-2">
                                 {activeTab === 'courses' ? 'Courses Management' :
                                     activeTab === 'members' ? 'Members Management' :
-                                    activeTab === 'applications' ? 'Member Applications' :
+                                    activeTab === 'applications' ? 'All Applications' :
                                         'Settings'}
                             </h1>
                             <p className="text-gray-600">
                                 {activeTab === 'courses' ? 'Manage all courses on the website' :
                                     activeTab === 'members' ? 'Manage all members on the website' :
-                                    activeTab === 'applications' ? 'Review and manage membership applications' :
+                                    activeTab === 'applications' ? 'Review and manage all form submissions' :
                                         'Dashboard settings and configuration'}
                             </p>
                         </div>
@@ -647,152 +1114,363 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
 
                     {/* Applications Tab */}
                     {activeTab === 'applications' && (
-                        <div>
-                            {/* Stats Cards */}
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                                <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-blue-500">
-                                    <p className="text-sm text-gray-600 mb-1">Total Applications</p>
-                                    <p className="text-3xl font-bold text-gray-900">{formStats.total}</p>
-                                </div>
-                                <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-yellow-500">
-                                    <p className="text-sm text-gray-600 mb-1">Pending Review</p>
-                                    <p className="text-3xl font-bold text-yellow-600">{formStats.pending}</p>
-                                </div>
-                                <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-green-500">
-                                    <p className="text-sm text-gray-600 mb-1">Approved</p>
-                                    <p className="text-3xl font-bold text-green-600">{formStats.approved}</p>
-                                </div>
-                                <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-red-500">
-                                    <p className="text-sm text-gray-600 mb-1">Rejected</p>
-                                    <p className="text-3xl font-bold text-red-600">{formStats.rejected}</p>
-                                </div>
-                            </div>
-
-                            {/* Filters */}
-                            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {/* Search */}
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                        <input
-                                            type="text"
-                                            placeholder="Search by name, email, or specialty..."
-                                            value={formSearchTerm}
-                                            onChange={(e) => setFormSearchTerm(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
-                                        />
-                                    </div>
-
-                                    {/* Status Filter */}
-                                    <div className="flex gap-2">
-                                        {['all', 'pending', 'approved', 'rejected'].map(status => (
-                                            <button
-                                                key={status}
-                                                onClick={() => setStatusFilter(status)}
-                                                className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
-                                                    statusFilter === status
-                                                        ? 'bg-[#4C9A8F] text-white'
-                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                                }`}
-                                            >
-                                                {status.charAt(0).toUpperCase() + status.slice(1)}
-                                            </button>
-                                        ))}
+                        <div className="space-y-8">
+                            {/* Section 1: Member Applications */}
+                            <div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-2xl font-bold text-gray-900">Member Applications</h2>
+                                    <div className="flex gap-2 text-sm">
+                                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {forms.length}</span>
+                                        <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {forms.filter(f => f.status === 'pending').length}</span>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Applications Table */}
-                            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead className="bg-gray-50 border-b border-gray-200">
-                                            <tr>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                                    Applicant
-                                                </th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                                    Email
-                                                </th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                                    Specialty
-                                                </th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                                    Submitted
-                                                </th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                                    Status
-                                                </th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                                    Actions
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-200">
-                                            {filteredForms.map((form) => (
-                                                <tr key={form.id} className="hover:bg-gray-50 transition-colors">
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="font-medium text-gray-900">{form.username}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-sm text-gray-600">{form.email}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {form.specialty.map((spec, idx) => (
-                                                                <span key={idx} className="px-2 py-1 bg-[#5A9B8E]/10 text-[#5A9B8E] text-xs rounded-full">
-                                                                    {spec.split(' ')[0]}...
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-sm text-gray-600">
-                                                            {new Date(form.submittedAt).toLocaleDateString()}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
-                                                            form.status === 'approved' ? 'bg-green-100 text-green-700' :
-                                                            form.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                                                            'bg-yellow-100 text-yellow-700'
-                                                        }`}>
-                                                            {form.status === 'approved' && <CheckCircle size={14} />}
-                                                            {form.status === 'rejected' && <XCircle size={14} />}
-                                                            {form.status === 'pending' && <Clock size={14} />}
-                                                            {form.status.charAt(0).toUpperCase() + form.status.slice(1)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="flex items-center gap-2">
-                                                            <button
-                                                                onClick={() => setSelectedForm(form)}
-                                                                className="p-2 text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors"
-                                                                title="View Details"
-                                                            >
-                                                                <Eye size={18} />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeleteForm(form.id)}
-                                                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                                title="Delete"
-                                                            >
-                                                                <XCircle size={18} />
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
+                                {/* Filters */}
+                                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search by name, email, or specialty..."
+                                                value={formSearchTerm}
+                                                onChange={(e) => setFormSearchTerm(e.target.value)}
+                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {['all', 'pending', 'approved', 'rejected'].map(status => (
+                                                <button
+                                                    key={status}
+                                                    onClick={() => setStatusFilter(status)}
+                                                    className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
+                                                        statusFilter === status
+                                                            ? 'bg-[#4C9A8F] text-white'
+                                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                    }`}
+                                                >
+                                                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                                                </button>
                                             ))}
-                                        </tbody>
-                                    </table>
+                                        </div>
+                                    </div>
                                 </div>
 
-                                {filteredForms.length === 0 && (
-                                    <div className="text-center py-12">
-                                        <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                        <p className="text-gray-500">No applications found</p>
+                                {/* Applications Table */}
+                                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead className="bg-gray-50 border-b border-gray-200">
+                                                <tr>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Applicant</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Specialty</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Submitted</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200">
+                                                {filteredForms.map((form) => (
+                                                    <tr key={form.id} className="hover:bg-gray-50 transition-colors">
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="font-medium text-gray-900">{form.username}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">{form.email}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {form.specialty.map((spec, idx) => (
+                                                                    <span key={idx} className="px-2 py-1 bg-[#5A9B8E]/10 text-[#5A9B8E] text-xs rounded-full">
+                                                                        {spec.split(' ')[0]}...
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">
+                                                                {new Date(form.submittedAt).toLocaleDateString()}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                                                                form.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                                                form.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                                'bg-yellow-100 text-yellow-700'
+                                                            }`}>
+                                                                {form.status === 'approved' && <CheckCircle size={14} />}
+                                                                {form.status === 'rejected' && <XCircle size={14} />}
+                                                                {form.status === 'pending' && <Clock size={14} />}
+                                                                {form.status.charAt(0).toUpperCase() + form.status.slice(1)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="flex items-center gap-2">
+                                                                <button
+                                                                    onClick={() => setSelectedForm(form)}
+                                                                    className="p-2 text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors"
+                                                                    title="View Details"
+                                                                >
+                                                                    <Eye size={18} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteForm(form.id)}
+                                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                                    title="Delete"
+                                                                >
+                                                                    <XCircle size={18} />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
-                                )}
+                                    {filteredForms.length === 0 && (
+                                        <div className="text-center py-12">
+                                            <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                            <p className="text-gray-500">No member applications found</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Section 2: Event Registrations */}
+                            <div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-2xl font-bold text-gray-900">Event Registrations</h2>
+                                    <div className="flex gap-2 text-sm">
+                                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {eventRegistrations.length}</span>
+                                        <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {eventRegistrations.filter(r => r.status === 'pending').length}</span>
+                                    </div>
+                                </div>
+
+                                {/* Filters */}
+                                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search by name, email, phone, or organization..."
+                                                value={eventSearchTerm}
+                                                onChange={(e) => setEventSearchTerm(e.target.value)}
+                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {['all', 'pending', 'approved', 'rejected'].map(status => (
+                                                <button
+                                                    key={status}
+                                                    onClick={() => setEventStatusFilter(status)}
+                                                    className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
+                                                        eventStatusFilter === status
+                                                            ? 'bg-[#4C9A8F] text-white'
+                                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                    }`}
+                                                >
+                                                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Event Registrations Table */}
+                                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead className="bg-gray-50 border-b border-gray-200">
+                                                <tr>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Phone</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Membership Type</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Fee</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200">
+                                                {filteredEventRegistrations.map((registration) => (
+                                                    <tr key={registration.id} className="hover:bg-gray-50 transition-colors">
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="font-medium text-gray-900">{registration.fullName}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">{registration.email}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">{registration.phone}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">
+                                                                {registration.membershipType === 'member' ? 'Member' : 'Guest'}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm font-medium text-gray-900">{registration.registrationFee} EGP</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                                                                registration.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                                                registration.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                                'bg-yellow-100 text-yellow-700'
+                                                            }`}>
+                                                                {registration.status === 'approved' && <CheckCircle size={14} />}
+                                                                {registration.status === 'rejected' && <XCircle size={14} />}
+                                                                {registration.status === 'pending' && <Clock size={14} />}
+                                                                {registration.status.charAt(0).toUpperCase() + registration.status.slice(1)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="flex items-center gap-2">
+                                                                <button
+                                                                    onClick={() => setSelectedEventRegistration(registration)}
+                                                                    className="p-2 text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors"
+                                                                    title="View Details"
+                                                                >
+                                                                    <Eye size={18} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteEventRegistration(registration.id)}
+                                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                                    title="Delete"
+                                                                >
+                                                                    <XCircle size={18} />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {filteredEventRegistrations.length === 0 && (
+                                        <div className="text-center py-12">
+                                            <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                            <p className="text-gray-500">No event registrations found</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Section 3: Contact Forms */}
+                            <div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-2xl font-bold text-gray-900">Contact Messages</h2>
+                                    <div className="flex gap-2 text-sm">
+                                        <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {contactForms.length}</span>
+                                        <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {contactForms.filter(f => f.status === 'pending').length}</span>
+                                    </div>
+                                </div>
+
+                                {/* Filters */}
+                                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search by name, email, subject, or message..."
+                                                value={contactSearchTerm}
+                                                onChange={(e) => setContactSearchTerm(e.target.value)}
+                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {['all', 'pending', 'approved', 'rejected'].map(status => (
+                                                <button
+                                                    key={status}
+                                                    onClick={() => setContactStatusFilter(status)}
+                                                    className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
+                                                        contactStatusFilter === status
+                                                            ? 'bg-[#4C9A8F] text-white'
+                                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                    }`}
+                                                >
+                                                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Contact Forms Table */}
+                                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead className="bg-gray-50 border-b border-gray-200">
+                                                <tr>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Subject</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Submitted</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200">
+                                                {filteredContactForms.map((form) => (
+                                                    <tr key={form.id} className="hover:bg-gray-50 transition-colors">
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="font-medium text-gray-900">{form.name}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">{form.email}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="text-sm text-gray-900 max-w-xs truncate">{form.subject}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">
+                                                                {new Date(form.submittedAt).toLocaleDateString()}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                                                                form.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                                                form.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                                'bg-yellow-100 text-yellow-700'
+                                                            }`}>
+                                                                {form.status === 'approved' && <CheckCircle size={14} />}
+                                                                {form.status === 'rejected' && <XCircle size={14} />}
+                                                                {form.status === 'pending' && <Clock size={14} />}
+                                                                {form.status.charAt(0).toUpperCase() + form.status.slice(1)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="flex items-center gap-2">
+                                                                <button
+                                                                    onClick={() => setSelectedContactForm(form)}
+                                                                    className="p-2 text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors"
+                                                                    title="View Details"
+                                                                >
+                                                                    <Eye size={18} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteContactForm(form.id)}
+                                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                                    title="Delete"
+                                                                >
+                                                                    <XCircle size={18} />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {filteredContactForms.length === 0 && (
+                                        <div className="text-center py-12">
+                                            <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                            <p className="text-gray-500">No contact messages found</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
@@ -847,6 +1525,26 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
                     onClose={() => setSelectedForm(null)}
                     onApprove={handleApproveForm}
                     onReject={handleRejectForm}
+                />
+            )}
+
+            {/* Event Registration Details Modal */}
+            {selectedEventRegistration && (
+                <EventRegistrationModal
+                    registration={selectedEventRegistration}
+                    onClose={() => setSelectedEventRegistration(null)}
+                    onApprove={handleApproveEventRegistration}
+                    onReject={handleRejectEventRegistration}
+                />
+            )}
+
+            {/* Contact Form Details Modal */}
+            {selectedContactForm && (
+                <ContactFormModal
+                    form={selectedContactForm}
+                    onClose={() => setSelectedContactForm(null)}
+                    onApprove={handleApproveContactForm}
+                    onReject={handleRejectContactForm}
                 />
             )}
         </div>

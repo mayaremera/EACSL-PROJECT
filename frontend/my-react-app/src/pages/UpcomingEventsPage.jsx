@@ -39,6 +39,47 @@ const UpcomingEventsPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Create form submission object
+    const formSubmission = {
+      id: Date.now().toString(),
+      type: 'eventRegistration',
+      fullName: formData.fullName,
+      email: formData.email,
+      phone: formData.phone,
+      organization: formData.organization,
+      membershipType: formData.membershipType,
+      selectedTracks: formData.selectedTracks,
+      specialRequirements: formData.specialRequirements,
+      registrationFee: currentFee,
+      submittedAt: new Date().toISOString(),
+      status: 'pending'
+    };
+
+    // Get existing registrations from localStorage
+    let existingRegistrations = [];
+    try {
+      const stored = localStorage.getItem('eventRegistrations');
+      existingRegistrations = stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error('Error reading from localStorage:', error);
+      existingRegistrations = [];
+    }
+    
+    // Add new submission
+    existingRegistrations.push(formSubmission);
+    
+    // Save back to localStorage
+    try {
+      localStorage.setItem('eventRegistrations', JSON.stringify(existingRegistrations));
+      // Dispatch event to notify dashboard
+      window.dispatchEvent(new CustomEvent('eventRegistrationsUpdated', { detail: existingRegistrations }));
+    } catch (error) {
+      console.error('Error saving registration:', error);
+      alert('Failed to save registration. Please try again.');
+      return;
+    }
+    
     console.log('Registration submitted:', formData);
     setIsSubmitted(true);
   };
