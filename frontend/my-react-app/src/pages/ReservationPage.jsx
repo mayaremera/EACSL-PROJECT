@@ -16,7 +16,7 @@ const ReservationPage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log('Reservation submitted:', formData);
-    alert('Thank you for your reservation! We will contact you soon to confirm your appointment.');
+    alert('شكراً لك! سنتواصل معك قريباً لتأكيد موعدك.');
     setFormData({
       kidsName: '',
       yourName: '',
@@ -68,30 +68,26 @@ const ReservationPage = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Book an Assessment</h1>
-            <p className="text-lg md:text-xl text-teal-50 max-w-2xl mx-auto">
-              Schedule your appointment with our professional team
-            </p>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Book an Assessment</h1>
+          <p className="text-lg md:text-xl text-teal-50 max-w-2xl mx-auto">
+            Schedule your appointment with our professional team
+          </p>
         </div>
       </div>
 
       {/* Breadcrumb */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center text-sm text-gray-600">
-              <a href="#" className="hover:text-[#4C9A8F] transition-colors">Home</a>
-              <span className="mx-2">/</span>
-              <span className="text-gray-900 font-medium">Reservation</span>
-            </div>
-            <button className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] font-semibold transition-colors">
-              <ArrowLeft size={16} />
-              Back to Services
-            </button>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center text-sm text-gray-600">
+            <a href="#" className="hover:text-[#4C9A8F] transition-colors">Home</a>
+            <span className="mx-2">/</span>
+            <span className="text-gray-900 font-medium">Reservation</span>
           </div>
+          <button className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] font-semibold transition-colors">
+            <ArrowLeft size={16} />
+            Back to Services
+          </button>
         </div>
       </div>
 
@@ -108,9 +104,7 @@ const ReservationPage = () => {
                 <div className="inline-flex items-center justify-center w-14 h-14 bg-teal-50 rounded-full mb-4">
                   <Icon className="text-[#4C9A8F]" size={28} />
                 </div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                  {info.title}
-                </h3>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">{info.title}</h3>
                 {info.link ? (
                   <a
                     href={info.link}
@@ -121,138 +115,15 @@ const ReservationPage = () => {
                     {info.content}
                   </a>
                 ) : (
-                  <p className="text-gray-600 text-sm leading-relaxed">
-                    {info.content}
-                  </p>
+                  <p className="text-gray-600 text-sm leading-relaxed">{info.content}</p>
                 )}
               </div>
             );
           })}
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Reservation Form */}
-          <div className="bg-white rounded-lg shadow-md p-8">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Book an Assessment</h2>
-            <div className="space-y-5">
-              <div>
-                <label htmlFor="kidsName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Kid's Name *
-                </label>
-                <input
-                  type="text"
-                  id="kidsName"
-                  name="kidsName"
-                  value={formData.kidsName}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
-                  placeholder="Your name"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="yourName" className="block text-sm font-medium text-gray-700 mb-2">
-                  Your Name *
-                </label>
-                <input
-                  type="text"
-                  id="yourName"
-                  name="yourName"
-                  value={formData.yourName}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
-                  placeholder="Your last name"
-                />
-              </div>
-
-              <div>
-                <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-2">
-                  Phone No. *
-                </label>
-                <input
-                  type="tel"
-                  id="phoneNumber"
-                  name="phoneNumber"
-                  value={formData.phoneNumber}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
-                  placeholder="Your email address"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">
-                  Assessments Needed
-                </label>
-                <div className="space-y-3">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="speechAssessment"
-                      checked={formData.speechAssessment}
-                      onChange={handleChange}
-                      className="w-4 h-4 text-[#4C9A8F] border-gray-300 rounded focus:ring-[#4C9A8F]"
-                    />
-                    <span className="text-sm text-gray-700">Speech assessment</span>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="skillsAssessment"
-                      checked={formData.skillsAssessment}
-                      onChange={handleChange}
-                      className="w-4 h-4 text-[#4C9A8F] border-gray-300 rounded focus:ring-[#4C9A8F]"
-                    />
-                    <span className="text-sm text-gray-700">Skills assessment</span>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="academicAssessment"
-                      checked={formData.academicAssessment}
-                      onChange={handleChange}
-                      className="w-4 h-4 text-[#4C9A8F] border-gray-300 rounded focus:ring-[#4C9A8F]"
-                    />
-                    <span className="text-sm text-gray-700">Academic assessment</span>
-                  </label>
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="iqTests"
-                      checked={formData.iqTests}
-                      onChange={handleChange}
-                      className="w-4 h-4 text-[#4C9A8F] border-gray-300 rounded focus:ring-[#4C9A8F]"
-                    />
-                    <span className="text-sm text-gray-700">IQ or other tests</span>
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label htmlFor="concern" className="block text-sm font-medium text-gray-700 mb-2">
-                  Describe Your Concern *
-                </label>
-                <textarea
-                  id="concern"
-                  name="concern"
-                  rows={5}
-                  value={formData.concern}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors resize-none"
-                  placeholder="Enter your message"
-                ></textarea>
-              </div>
-
-              <button
-                onClick={handleSubmit}
-                className="w-full bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
-              >
-                Submit
-              </button>
-            </div>
-          </div>
-
+        {/* Main Content Grid (Map on the Left, Form on the Right) */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
           {/* Map */}
           <div className="bg-white rounded-lg shadow-md overflow-hidden h-full min-h-[600px]">
             <iframe
@@ -266,6 +137,102 @@ const ReservationPage = () => {
               title="EACSL Office Location"
             ></iframe>
           </div>
+
+          {/* Reservation Form */}
+          <div className="bg-white rounded-lg shadow-md p-8" dir="rtl">
+            <h2 className="text-2xl font-bold text-gray-900 mb-6">احجز تقييماً</h2>
+            <div className="space-y-5">
+              <div>
+                <label htmlFor="kidsName" className="block text-sm font-medium text-gray-700 mb-2">
+                  اسم الطفل *
+                </label>
+                <input
+                  type="text"
+                  id="kidsName"
+                  name="kidsName"
+                  value={formData.kidsName}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
+                  placeholder="أدخل اسم الطفل"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="yourName" className="block text-sm font-medium text-gray-700 mb-2">
+                  اسمك *
+                </label>
+                <input
+                  type="text"
+                  id="yourName"
+                  name="yourName"
+                  value={formData.yourName}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
+                  placeholder="أدخل اسمك الكامل"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                  رقم الهاتف *
+                </label>
+                <input
+                  type="tel"
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  value={formData.phoneNumber}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
+                  placeholder="+20 XXX XXX XXXX"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">التقييمات المطلوبة</label>
+                <div className="space-y-3">
+                  {[
+                    { name: 'speechAssessment', label: 'تقييم النطق' },
+                    { name: 'skillsAssessment', label: 'تقييم المهارات' },
+                    { name: 'academicAssessment', label: 'التقييم الأكاديمي' },
+                    { name: 'iqTests', label: 'اختبار الذكاء أو اختبارات أخرى' }
+                  ].map((item, i) => (
+                    <label key={i} className="flex items-center gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        name={item.name}
+                        checked={formData[item.name]}
+                        onChange={handleChange}
+                        className="w-4 h-4 text-[#4C9A8F] border-gray-300 rounded focus:ring-[#4C9A8F]"
+                      />
+                      <span className="text-sm text-gray-700">{item.label}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="concern" className="block text-sm font-medium text-gray-700 mb-2">
+                  وصف حالة الطفل *
+                </label>
+                <textarea
+                  id="concern"
+                  name="concern"
+                  rows={5}
+                  value={formData.concern}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors resize-none"
+                  placeholder="اكتب تفاصيل حالة الطفل أو أي استفسار..."
+                ></textarea>
+              </div>
+
+              <button
+                onClick={handleSubmit}
+                className="w-full bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+              >
+                إرسال الطلب
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -273,9 +240,7 @@ const ReservationPage = () => {
       <div className="bg-white border-t border-gray-200 py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] rounded-2xl p-8 md:p-12 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
-              Join Our Community
-            </h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">Join Our Community</h2>
             <p className="text-teal-50 mb-6 max-w-2xl mx-auto">
               Become a member and be part of our growing professional community
             </p>
