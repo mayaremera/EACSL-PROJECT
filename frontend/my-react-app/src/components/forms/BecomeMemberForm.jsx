@@ -70,6 +70,16 @@ const BecomeMemberForm = ({ onSubmit }) => {
     const handleFileChange = (field, file) => {
         if (!file) return;
         
+        // Maximum file size: 5MB (5 * 1024 * 1024 bytes)
+        const maxFileSize = 5 * 1024 * 1024; // 5MB in bytes
+        
+        // Check file size
+        if (file.size > maxFileSize) {
+            const fileSizeMB = (file.size / (1024 * 1024)).toFixed(2);
+            alert(`File size (${fileSizeMB} MB) exceeds the maximum allowed size of 5 MB. Please choose a smaller file.`);
+            return;
+        }
+        
         // CV field accepts PDFs, other fields accept images
         const isValidFile = field === 'cv' 
             ? file.type === 'application/pdf'
@@ -114,33 +124,57 @@ const BecomeMemberForm = ({ onSubmit }) => {
         setErrors(prev => ({ ...prev, [field]: validateField(field, null) }));
     };
 
-    const handleSubmit = async () => {
+    const handleSubmit = async (e) => {
+        // Prevent default form submission if called from button
+        if (e) {
+            e.preventDefault();
+        }
+        
+        console.log('Form submission started', formData);
+        
         const newErrors = {};
         const newTouched = {};
         
         Object.keys(formData).forEach(key => {
             newTouched[key] = true;
             const error = validateField(key, formData[key]);
-            if (error) newErrors[key] = error;
+            if (error) {
+                newErrors[key] = error;
+                console.log(`Validation error for ${key}:`, error);
+            }
         });
 
         setTouched(newTouched);
         setErrors(newErrors);
 
         if (Object.keys(newErrors).length === 0) {
+            console.log('Form validation passed, submitting...');
             try {
                 // Call onSubmit and wait for it to complete (it's async now)
                 if (onSubmit) {
+                    console.log('Calling onSubmit handler...');
                     await onSubmit(formData);
+                    console.log('onSubmit completed successfully');
+                    // Show success page after submission completes successfully
+                    setIsSubmitted(true);
+                    console.log('Success state set to true');
+                } else {
+                    console.warn('No onSubmit handler provided');
+                    // If no onSubmit handler, just show success
+                    setIsSubmitted(true);
                 }
-                // Show success page after submission completes
-                setIsSubmitted(true);
             } catch (error) {
                 console.error('Error submitting form:', error);
                 // Display the specific error message if available
                 const errorMessage = error.message || 'An error occurred while submitting the form. Please try again.';
-                alert(errorMessage);
+                alert(`❌ Submission Failed\n\n${errorMessage}`);
+                // Don't set isSubmitted to true on error
             }
+        } else {
+            // Show validation errors
+            console.log('Form validation failed:', newErrors);
+            const errorMessages = Object.entries(newErrors).map(([field, error]) => `${field}: ${error}`).join('\n');
+            alert(`⚠️ Please fix the following errors:\n\n${errorMessages}`);
         }
     };
 
@@ -175,7 +209,11 @@ const BecomeMemberForm = ({ onSubmit }) => {
                                 </div>
                                 <div className="text-left">
                                     <p className="text-sm text-gray-700 font-medium">{hasFile.name}</p>
-                                    <p className="text-xs text-gray-500">{(hasFile.size / 1024).toFixed(2)} KB</p>
+                                    <p className="text-xs text-gray-500">
+                                        {hasFile.size >= 1024 * 1024 
+                                            ? `${(hasFile.size / (1024 * 1024)).toFixed(2)} MB`
+                                            : `${(hasFile.size / 1024).toFixed(2)} KB`}
+                                    </p>
                                 </div>
                             </div>
                             <button
@@ -212,7 +250,7 @@ const BecomeMemberForm = ({ onSubmit }) => {
                             <p className="text-gray-400 text-xs mt-4">
                                 Accepts: {acceptTypes === "application/pdf" ? "PDF files only" : "Images only (JPG, PNG, GIF, etc.)"}
                             </p>
-                            <p className="text-gray-400 text-xs">(Maximum file size: 2MB)</p>
+                            <p className="text-gray-400 text-xs">(Maximum file size: 5MB)</p>
                         </>
                     )}
                 </div>
@@ -462,6 +500,7 @@ const BecomeMemberForm = ({ onSubmit }) => {
 
             {/* Submit Button */}
             <button
+                type="button"
                 onClick={handleSubmit}
                 className="w-full py-4 bg-[#5A9B8E] text-white font-bold rounded-lg hover:bg-[#4A8B7E] transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.02]"
             >

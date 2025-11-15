@@ -3,11 +3,13 @@ import { Search, Globe } from 'lucide-react';
 import { filterMembers, getNationalities } from '../data/members';
 import { membersManager } from '../utils/dataManager';
 import MemberCard from '../components/cards/MemberCard';
+import { useActiveMembersCount } from '../hooks/useActiveMembersCount';
 
 function ActiveMembersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedNationality, setSelectedNationality] = useState('all');
   const [members, setMembers] = useState([]);
+  const { count: activeMembersCount } = useActiveMembersCount();
 
   useEffect(() => {
     const loadMembers = () => {
@@ -44,9 +46,12 @@ function ActiveMembersPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-4">Active Members</h1>
-            <p className="text-lg md:text-xl text-teal-50 max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-teal-50 max-w-2xl mx-auto mb-4">
               Meet our active members who are making a difference in the field
             </p>
+            <div className="text-3xl md:text-4xl font-bold text-white">
+              {activeMembersCount} Active Members
+            </div>
           </div>
         </div>
       </div>

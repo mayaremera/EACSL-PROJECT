@@ -22,24 +22,119 @@ import {
   Linkedin
 } from 'lucide-react';
 import { membersManager, initializeData } from '../utils/dataManager';
+import { useAuth } from '../contexts/AuthContext';
 
 function ContinuingEducationMember() {
   const { memberId } = useParams();
   const navigate = useNavigate();
+  const { user, getMemberByUserId } = useAuth();
   const [activeTab, setActiveTab] = useState('active');
   const [member, setMember] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    initializeData();
-    const memberData = membersManager.getAll().find(m => m.id === parseInt(memberId));
-    if (memberData) {
-      setMember(memberData);
-    }
-    setLoading(false);
+    const loadMember = async () => {
+      await initializeData();
+      
+      // Import membersManager at the start
+      const { membersManager } = await import('../utils/dataManager');
+      
+      // If user is logged in and no memberId provided, use logged-in user's member data
+      if (user && !memberId) {
+        // First, try to sync from Supabase to ensure we have the latest data
+        try {
+          await membersManager.syncFromSupabase();
+        } catch (error) {
+          console.warn('Could not sync from Supabase:', error);
+        }
+        
+        // Get member by Supabase user ID
+        let memberData = getMemberByUserId(user.id);
+        if (memberData) {
+          setMember(memberData);
+          setLoading(false);
+          return;
+        }
+        
+        // If member doesn't exist, try to find by email
+        const allMembers = membersManager.getAll();
+        memberData = allMembers.find(m => m.email === user.email);
+        if (memberData) {
+          setMember(memberData);
+          setLoading(false);
+          return;
+        }
+        
+        // If still not found, try to fetch directly from Supabase
+        try {
+          const { membersService } = await import('../services/membersService');
+          const { data: supabaseMember } = await membersService.getByUserId(user.id);
+          if (supabaseMember) {
+            const mappedMember = membersService.mapSupabaseToLocal(supabaseMember);
+            setMember(mappedMember);
+            setLoading(false);
+            return;
+          }
+        } catch (error) {
+          console.warn('Could not fetch member from Supabase:', error);
+        }
+        
+        // If still not found, create temporary member for logged-in users immediately
+        const tempMember = {
+          id: null,
+          supabaseUserId: user.id,
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Member',
+          email: user.email || '',
+          role: 'Member',
+          nationality: 'Egyptian',
+          flagCode: 'eg',
+          description: 'Member profile is being set up.',
+          fullDescription: 'Your member profile is being created. Please check back in a moment.',
+          membershipDate: new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long' }),
+          isActive: false,
+          activeTill: new Date().getFullYear().toString(),
+          certificates: [],
+          phone: '',
+          location: '',
+          website: '',
+          linkedin: '',
+          image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.1.0&auto=format&fit=crop&q=60&w=600',
+          coursesEnrolled: 0,
+          coursesCompleted: 0,
+          activeCourses: 0,
+          totalHoursLearned: 0,
+          totalMoneySpent: "0 EGP",
+          ceUnitsLeft: 0
+        };
+        setMember(tempMember);
+        setLoading(false);
+        return;
+      } else if (memberId) {
+        // Use memberId from URL
+        const memberData = membersManager.getAll().find(m => m.id === parseInt(memberId));
+        if (memberData) {
+          setMember(memberData);
+        }
+        setLoading(false);
+      } else {
+        // No user and no memberId - redirect or show error
+        setLoading(false);
+      }
+    };
+    
+    loadMember();
 
     const handleMemberUpdate = () => {
-      const updatedMember = membersManager.getAll().find(m => m.id === parseInt(memberId));
+      let updatedMember = null;
+      if (user && !memberId) {
+        updatedMember = getMemberByUserId(user.id);
+        if (!updatedMember) {
+          const allMembers = membersManager.getAll();
+          updatedMember = allMembers.find(m => m.email === user.email);
+        }
+      } else if (memberId) {
+        updatedMember = membersManager.getAll().find(m => m.id === parseInt(memberId));
+      }
       if (updatedMember) {
         setMember(updatedMember);
       }
@@ -49,7 +144,7 @@ function ContinuingEducationMember() {
     return () => {
       window.removeEventListener('membersUpdated', handleMemberUpdate);
     };
-  }, [memberId]);
+  }, [memberId, user, getMemberByUserId]);
 
   if (loading) {
     return (
@@ -62,22 +157,38 @@ function ContinuingEducationMember() {
     );
   }
 
+
   if (!member) {
+    if (!user) {
+      return (
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Please Sign In</h1>
+            <p className="text-gray-600 mb-6">You need to be signed in to view your continuing education profile.</p>
+            <button
+              onClick={() => navigate('/')}
+              className="px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors"
+            >
+              Go to Home
+            </button>
+          </div>
+        </div>
+      );
+    }
+    
+    // Still loading or creating temp member
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Member Not Found</h1>
-          <p className="text-gray-600 mb-6">The member profile you're looking for doesn't exist.</p>
-          <button
-            onClick={() => navigate('/active-members')}
-            className="px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors"
-          >
-            Back to Members
-          </button>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4C9A8F] mx-auto mb-4"></div>
+          <p className="text-gray-600">Setting up your profile...</p>
         </div>
       </div>
     );
   }
+
+  // Show warning banner if member is temporary (no ID)
+  const isTemporaryMember = member && member.id === null;
 
   // Map member data to profile format (same as MemberProfile)
   const profile = {
@@ -169,6 +280,28 @@ function ContinuingEducationMember() {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Show warning banner if temporary member */}
+      {isTemporaryMember && (
+        <div className="bg-yellow-50 border-b border-yellow-200 p-4">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-sm font-semibold text-yellow-800">Member Profile Setup</h2>
+                <p className="text-xs text-yellow-700 mt-1">
+                  Your member profile is being created. Some features may be limited until your profile is fully set up.
+                </p>
+              </div>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-yellow-100 hover:bg-yellow-200 text-yellow-800 rounded-lg text-sm font-medium transition-colors"
+              >
+                Refresh
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Cover Image */}
       <div className="relative h-64 bg-[#40867C]">
       </div>

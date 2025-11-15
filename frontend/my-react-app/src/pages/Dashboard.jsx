@@ -209,44 +209,80 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
         onClose();
     };
 
-    // Function to download file from base64 data
-    const handleDownload = (file, label) => {
+    // Function to download file from base64 data or Supabase Storage
+    const handleDownload = async (file, label) => {
         if (!file) {
             alert('File not available for download');
             return;
         }
 
-        // Check if file has base64 data (new format) or just metadata (old format)
-        if (!file.data) {
-            alert('File data not available. This file was submitted before the download feature was added.');
-            return;
-        }
-
         try {
-            // Convert base64 to blob
-            const base64Data = file.data;
-            // Handle both formats: with or without data URL prefix
-            const base64String = base64Data.includes(',') 
-                ? base64Data.split(',')[1] 
-                : base64Data;
-            
-            const byteCharacters = atob(base64String);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            // If file is in Supabase Storage, download from URL
+            if (file.uploaded && file.url) {
+                // Open in new tab or download
+                const link = document.createElement('a');
+                link.href = file.url;
+                link.download = file.name;
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                return;
             }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: file.type || 'application/octet-stream' });
 
-            // Create download link
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = file.name;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
+            // If file has base64 data, convert and download
+            if (file.data) {
+                // Convert base64 to blob
+                const base64Data = file.data;
+                // Handle both formats: with or without data URL prefix
+                const base64String = base64Data.includes(',') 
+                    ? base64Data.split(',')[1] 
+                    : base64Data;
+                
+                const byteCharacters = atob(base64String);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: file.type || 'application/octet-stream' });
+
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = file.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+                return;
+            }
+
+            // If file has storage path but no URL, try to get signed URL
+            if (file.storagePath) {
+                const { supabase } = await import('../lib/supabase');
+                const { data, error } = await supabase.storage
+                    .from('MemberBucket')
+                    .createSignedUrl(file.storagePath, 3600); // 1 hour expiry
+
+                if (error) {
+                    throw error;
+                }
+
+                if (data?.signedUrl) {
+                    const link = document.createElement('a');
+                    link.href = data.signedUrl;
+                    link.download = file.name;
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    return;
+                }
+            }
+
+            alert('File data not available. This file was submitted before the download feature was added.');
         } catch (error) {
             console.error('Error downloading file:', error);
             alert('Error downloading file. Please try again.');
@@ -892,6 +928,19 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         loadForms();
         loadEventRegistrations();
         loadContactForms();
+        
+        // Sync members from Supabase on initial load (silently fail if table doesn't exist)
+        membersManager.syncFromSupabase().then((result) => {
+            if (result.synced) {
+                loadMembers();
+            } else if (result.error?.code === 'TABLE_NOT_FOUND') {
+                // Table doesn't exist yet - this is okay, just log a warning
+                console.info('Supabase members table not found. Members will be stored locally only until the table is created.');
+            }
+        }).catch(err => {
+            // Silently handle errors on initial load
+            console.warn('Could not sync members on initial load:', err);
+        });
         loadReservations();
 
         // Listen for updates
@@ -966,9 +1015,75 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         setReservations(allReservations);
     };
 
-    const handleApproveForm = (id, notes) => {
-        formsManager.updateStatus(id, 'approved', notes);
-        loadForms();
+    const handleApproveForm = async (id, notes) => {
+        // Get the form data
+        const form = formsManager.getAll().find(f => f.id === id);
+        if (!form) {
+            alert('Form not found');
+            return;
+        }
+
+        // Validate email before proceeding
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!form.email || !emailRegex.test(form.email)) {
+            alert('Invalid email address in the application. Please check the email before approving.');
+            return;
+        }
+
+        // Confirm approval
+        const confirmApprove = window.confirm(
+            `Approve this application?\n\n` +
+            `This will create TWO accounts:\n\n` +
+            `1. Authentication Account:\n` +
+            `   - For login capability\n` +
+            `   - Regular member (not admin)\n` +
+            `   - Appears in Authentication tab\n` +
+            `   - Confirmation email sent automatically\n\n` +
+            `2. Member Account:\n` +
+            `   - Profile information\n` +
+            `   - Linked to auth account\n` +
+            `   - Appears in Members tab\n` +
+            `   - Status: PENDING until email confirmed\n\n` +
+            `After email confirmation:\n` +
+            `- Member can log in to view their profile\n` +
+            `- Member status becomes ACTIVE\n\n` +
+            `Continue?`
+        );
+
+        if (!confirmApprove) {
+            return;
+        }
+
+        try {
+            // Import the approval service
+            const { memberApprovalService } = await import('../services/memberApprovalService');
+            
+            // Approve the application (creates account and member)
+            const result = await memberApprovalService.approveApplication(form);
+
+            if (result.success) {
+                // Update form status
+                formsManager.updateStatus(id, 'approved', notes);
+                loadForms();
+                loadMembers(); // Refresh members list
+
+                // Show detailed message from service (includes member ID and status)
+                alert(result.message || 
+                    `✅ Application Approved Successfully!\n\n` +
+                    `Member: ${form.username} (${form.email})\n` +
+                    `Member ID: ${result.memberId || 'N/A'}\n\n` +
+                    `✅ Member added to Members table\n` +
+                    `✅ Authentication account created (for login)\n` +
+                    `✅ Confirmation email sent\n\n` +
+                    `The member can now log in and access their profile.`
+                );
+            } else {
+                alert(`❌ Failed to approve application:\n\n${result.error}\n\nPlease try again or contact support.`);
+            }
+        } catch (error) {
+            console.error('Error approving application:', error);
+            alert(`❌ Error approving application:\n\n${error.message}\n\nPlease try again.`);
+        }
     };
 
     const handleRejectForm = (id, notes) => {
@@ -1052,18 +1167,53 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
 
     const handleSaveMember = async (memberData) => {
         if (editingMember) {
-            membersManager.update(editingMember.id, memberData);
+            await membersManager.update(editingMember.id, memberData);
         } else {
-            membersManager.add(memberData);
+            await membersManager.add(memberData);
         }
         loadMembers();
         setEditingMember(null);
         setIsAddingMember(false);
     };
 
-    const handleDeleteMember = (id) => {
-        membersManager.delete(id);
-        loadMembers();
+    const handleDeleteMember = async (id) => {
+        if (window.confirm('Are you sure you want to delete this member? This will also remove them from Supabase.')) {
+            await membersManager.delete(id);
+            loadMembers();
+        }
+    };
+
+    const handleSyncMembers = async () => {
+        // First, try to sync from Supabase (download)
+        const result = await membersManager.syncFromSupabase();
+        if (result.synced) {
+            loadMembers();
+            if (result.count > 0) {
+                alert(`Successfully synced ${result.count} members from Supabase!`);
+            } else {
+                // If no members in Supabase, offer to push local members
+                const localMembers = membersManager.getAll();
+                if (localMembers.length > 0) {
+                    const pushToSupabase = window.confirm(
+                        `No members found in Supabase. Would you like to upload ${localMembers.length} local member(s) to Supabase?`
+                    );
+                    if (pushToSupabase) {
+                        const pushResult = await membersManager.syncToSupabase();
+                        if (pushResult.synced) {
+                            loadMembers();
+                            alert(`Successfully uploaded ${pushResult.syncedCount} member(s) to Supabase!`);
+                        } else {
+                            alert(`Failed to upload members: ${pushResult.error?.message || 'Unknown error'}`);
+                        }
+                    }
+                } else {
+                    alert('No members found in Supabase or locally.');
+                }
+            }
+        } else {
+            const errorMessage = result.error?.userMessage || result.error?.message || 'Failed to sync members from Supabase.';
+            alert(`${errorMessage}\n\nCheck SUPABASE_SETUP.md for instructions on creating the members table.`);
+        }
     };
 
     const filteredCourses = courses.filter(course =>
@@ -1310,13 +1460,23 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                     <p className="text-2xl font-bold text-gray-900">{filteredMembers.length}</p>
                                 </div>
                                 <div className="bg-white p-4 rounded-lg shadow-sm">
-                                    <button
-                                        onClick={loadMembers}
-                                        className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178]"
-                                    >
-                                        <RefreshCw size={16} />
-                                        Refresh Data
-                                    </button>
+                                    <p className="text-sm text-gray-600 mb-2">Actions</p>
+                                    <div className="flex flex-col gap-2">
+                                        <button
+                                            onClick={handleSyncMembers}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178]"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Sync from Supabase
+                                        </button>
+                                        <button
+                                            onClick={loadMembers}
+                                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh Local
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
