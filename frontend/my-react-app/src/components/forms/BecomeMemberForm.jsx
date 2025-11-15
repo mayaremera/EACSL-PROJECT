@@ -608,6 +608,7 @@
 
 import React, { useState, useRef } from 'react';
 import { Upload, Eye, EyeOff, Mail, Lock, AlertCircle, X, Check, CheckCircle, Loader2 } from 'lucide-react';
+import { membersManager } from '../../utils/dataManager';
 
 const BecomeMemberForm = ({ onSubmit }) => {
     const [showPassword, setShowPassword] = useState(false);
@@ -617,6 +618,7 @@ const BecomeMemberForm = ({ onSubmit }) => {
     const [dragActive, setDragActive] = useState({});
     const [isSubmitted, setIsSubmitted] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [emailExistsError, setEmailExistsError] = useState(null); // null, 'member', or 'pending'
     const isSubmittingRef = useRef(false);
     const [formData, setFormData] = useState({
         profileImage: null,
@@ -771,8 +773,50 @@ const BecomeMemberForm = ({ onSubmit }) => {
             return;
         }
 
-        // Validation passed, submit the form
-        console.log('Validation passed, calling onSubmit...');
+        // Check if email already exists before submitting
+        console.log('Validation passed, checking if email exists...');
+        setEmailExistsError(null); // Reset error state
+        
+        // Check in existing members
+        const existingMembers = membersManager.getAll();
+        const existingMember = existingMembers.find(m => 
+            m.email && m.email.toLowerCase() === formData.email.toLowerCase()
+        );
+        
+        if (existingMember) {
+            console.log('Email already exists in members:', existingMember);
+            setIsSubmitting(false);
+            isSubmittingRef.current = false;
+            setEmailExistsError('member');
+            return;
+        }
+        
+        // Check in pending applications (localStorage)
+        try {
+            const stored = localStorage.getItem('memberForms');
+            if (stored) {
+                const existingForms = JSON.parse(stored);
+                const pendingApplication = existingForms.find(
+                    form => form.email && 
+                    form.email.toLowerCase() === formData.email.toLowerCase() && 
+                    form.status === 'pending'
+                );
+                
+                if (pendingApplication) {
+                    console.log('Email already has pending application:', pendingApplication);
+                    setIsSubmitting(false);
+                    isSubmittingRef.current = false;
+                    setEmailExistsError('pending');
+                    return;
+                }
+            }
+        } catch (error) {
+            console.warn('Error checking pending applications:', error);
+            // Continue with submission if we can't check
+        }
+        
+        // Validation passed and email doesn't exist, submit the form
+        console.log('Email check passed, calling onSubmit...');
         try {
             if (onSubmit) {
                 await onSubmit(formData);
@@ -975,13 +1019,23 @@ const BecomeMemberForm = ({ onSubmit }) => {
                         type="email"
                         placeholder="example@example.com"
                         value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                        onChange={(e) => {
+                            setFormData({ ...formData, email: e.target.value });
+                            // Clear email exists error when user types
+                            if (emailExistsError) {
+                                setEmailExistsError(null);
+                            }
+                        }}
                         onBlur={() => handleBlur('email')}
                         disabled={isSubmitting}
                         className={`w-full pl-12 pr-4 py-3 bg-white border rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none transition-all ${
                             isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
                         } ${
-                            touched.email && errors.email ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-[#5A9B8E]'
+                            emailExistsError 
+                                ? 'border-amber-500 focus:border-amber-500' 
+                                : touched.email && errors.email 
+                                ? 'border-red-500 focus:border-red-500' 
+                                : 'border-gray-300 focus:border-[#5A9B8E]'
                         }`}
                     />
                 </div>
@@ -989,6 +1043,33 @@ const BecomeMemberForm = ({ onSubmit }) => {
                     <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
                         <AlertCircle className="w-4 h-4" />
                         <span>{errors.email}</span>
+                    </div>
+                )}
+                {emailExistsError && (
+                    <div className={`mt-3 p-4 border-l-4 rounded-lg flex items-start gap-3 ${
+                        emailExistsError === 'member' 
+                            ? 'bg-amber-50 border-amber-500' 
+                            : 'bg-blue-50 border-blue-500'
+                    }`}>
+                        <AlertCircle className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
+                            emailExistsError === 'member' ? 'text-amber-600' : 'text-blue-600'
+                        }`} />
+                        <div className="flex-1">
+                            <p className={`font-medium text-sm ${
+                                emailExistsError === 'member' ? 'text-amber-800' : 'text-blue-800'
+                            }`}>
+                                {emailExistsError === 'member' 
+                                    ? 'Email Already Exists' 
+                                    : 'Pending Application Exists'}
+                            </p>
+                            <p className={`text-sm mt-1 ${
+                                emailExistsError === 'member' ? 'text-amber-700' : 'text-blue-700'
+                            }`}>
+                                {emailExistsError === 'member' 
+                                    ? `An account with email ${formData.email} already exists in our system. If you already have an account, please sign in instead. If you believe this is an error, please contact support.`
+                                    : `You already have a pending application with email ${formData.email}. Please wait for your current application to be reviewed before submitting again.`}
+                            </p>
+                        </div>
                     </div>
                 )}
             </div>

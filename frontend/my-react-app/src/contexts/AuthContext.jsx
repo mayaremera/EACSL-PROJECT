@@ -189,16 +189,18 @@ export const AuthProvider = ({ children }) => {
     // Check if error indicates user already exists
     if (error) {
       const errorMsg = error.message?.toLowerCase() || '';
-      const errorCode = error.code || '';
+      const errorCode = error.status || error.code || '';
       
       // Supabase returns various error messages for existing users
       // Common ones: "User already registered", "Email already registered", etc.
       if (errorMsg.includes('already') || 
           errorMsg.includes('registered') ||
           errorMsg.includes('exists') ||
+          errorMsg.includes('duplicate') ||
           errorCode === 'user_already_registered' ||
           errorCode === 'email_already_registered' ||
-          errorCode === 'signup_disabled') {
+          errorCode === 'signup_disabled' ||
+          error.status === 400) {
         return { 
           data: null, 
           error: { 
@@ -222,6 +224,37 @@ export const AuthProvider = ({ children }) => {
           code: 'USER_ALREADY_EXISTS'
         }
       };
+    }
+    
+    // Additional check: If user exists but email is already confirmed, it's an existing user
+    // New signups typically have email_confirmed_at as null
+    if (data?.user && data.user.email_confirmed_at && !data.session) {
+      // This is suspicious - user exists with confirmed email but no session
+      // This usually means the user already exists
+      return {
+        data: null,
+        error: {
+          message: 'An account with this email already exists. Please sign in instead.',
+          code: 'USER_ALREADY_EXISTS'
+        }
+      };
+    }
+    
+    // Check if user was created recently (within last 5 seconds) - if not, it's likely an existing user
+    if (data?.user && !data.session) {
+      const userCreatedAt = data.user.created_at ? new Date(data.user.created_at) : null;
+      const now = new Date();
+      if (userCreatedAt && (now - userCreatedAt) > 5000) {
+        // User was created more than 5 seconds ago - likely an existing user
+        // This handles cases where Supabase returns an existing user without an error
+        return {
+          data: null,
+          error: {
+            message: 'An account with this email already exists. Please sign in instead.',
+            code: 'USER_ALREADY_EXISTS'
+          }
+        };
+      }
     }
 
     // If signup successful, create member record IMMEDIATELY
