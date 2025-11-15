@@ -6,9 +6,18 @@
 [build.environment]
   NODE_VERSION = "20"
 
+# Serve static assets directly (JS, CSS, images, etc.)
+[[redirects]]
+  from = "/assets/*"
+  to = "/assets/:splat"
+  status = 200
+  force = false
+
+# SPA fallback - redirect all other routes to index.html
+# This will only match routes that don't correspond to actual files
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  force = true
+  force = false
 
