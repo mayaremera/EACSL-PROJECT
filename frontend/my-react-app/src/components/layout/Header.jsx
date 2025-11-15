@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, Menu, X, ChevronDown, LogOut, User, Calendar, UserCircle, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.png';
@@ -68,41 +68,52 @@ const Header = () => {
     setUserDropdownOpen(false);
   };
 
-  const navLinks = [
-    { name: 'Home', href: '/' },
-    {
-      name: 'Events',
-      dropdown: [
-        { name: 'Upcoming Events', href: '/upcoming-events' },
-        { name: 'Past Events', href: '/past-events' },
-      ],
-    },
-    {
-      name: 'Members',
-      dropdown: [
-        { name: 'Active Members', href: '/members-overview' },
-        { name: 'Become a Member', href: '/apply-membership' },
-        { name: 'Member Login', href: '/' },
-      ],
-    },
-    {
-      name: 'Education',
-      dropdown: [
-        { name: 'Continuing Education', href: `/continuing-education/${memberData?.id}` },
-        { name: 'Online Courses', href: '/online-courses' },
-        { name: 'Articles', href: '/articles' },
-      ],
-    },
-    {
-      name: 'Services',
-      dropdown: [
-        { name: 'Therapy Programs', href: '/therapy-programs' },
-        { name: 'Reservation', href: '/reservation' },
-        { name: 'For Parents', href: '/for-parents' },
-      ],
-    },
-    { name: 'Contact', href: '/contact' },
-  ];
+  // Build navigation links based on user login status
+  const navLinks = useMemo(() => {
+    const educationDropdown = [
+      { name: 'Online Courses', href: '/online-courses' },
+      { name: 'Articles', href: '/articles' },
+    ];
+    
+    // Only show Continuing Education for logged-in users
+    if (user && memberData) {
+      educationDropdown.unshift({
+        name: 'Continuing Education',
+        href: `/continuing-education/${memberData.id}`,
+      });
+    }
+
+    return [
+      { name: 'Home', href: '/' },
+      {
+        name: 'Events',
+        dropdown: [
+          { name: 'Upcoming Events', href: '/upcoming-events' },
+          { name: 'Past Events', href: '/past-events' },
+        ],
+      },
+      {
+        name: 'Members',
+        dropdown: [
+          { name: 'Active Members', href: '/members-overview' },
+          { name: 'Become a Member', href: '/apply-membership' },
+        ],
+      },
+      {
+        name: 'Education',
+        dropdown: educationDropdown,
+      },
+      {
+        name: 'Services',
+        dropdown: [
+          { name: 'Therapy Programs', href: '/therapy-programs' },
+          { name: 'Reservation', href: '/reservation' },
+          { name: 'For Parents', href: '/for-parents' },
+        ],
+      },
+      { name: 'Contact', href: '/contact' },
+    ];
+  }, [user, memberData]);
 
   return (
     <header className="bg-white shadow-sm relative z-50">
@@ -248,7 +259,7 @@ const Header = () => {
                   onClick={() => setIsAuthModalOpen(true)}
                   className="text-gray-700 hover:text-[#4C9A8F] px-4 py-2 text-sm font-semibold transition-colors duration-200 whitespace-nowrap"
                 >
-                  Login
+                  Login/Signup
                 </button>
                 <a className="bg-[#4C9A8F] hover:bg-[#57A79B] text-white border border-[#4c9a8f] px-6 py-2.5 text-[0.8rem] rounded-lg font-semibold transition-colors duration-200 whitespace-nowrap" href="/apply-membership">
                   Become a member
@@ -375,7 +386,7 @@ const Header = () => {
                       }}
                       className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2.5 rounded-lg font-medium transition-colors duration-200"
                     >
-                      Login
+                      Login/Signup
                     </button>
                     <a
                       href="/apply-membership"
