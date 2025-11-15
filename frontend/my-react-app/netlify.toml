@@ -5,9 +5,9 @@
 [build.environment]
   NODE_VERSION = "20"
 
+# Redirect all non-file requests to index.html for SPA routing
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-  force = true
 
