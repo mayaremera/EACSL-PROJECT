@@ -19,7 +19,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }) => {
           // If found by email but missing supabaseUserId, update it
           if (existingMember && !existingMember.supabaseUserId) {
             const updatedMember = { ...existingMember, supabaseUserId: session.user.id };
-            membersManager.update(existingMember.id, updatedMember);
+            await membersManager.update(existingMember.id, updatedMember);
             existingMember = updatedMember;
           }
         }
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
         // If user's email is confirmed and member exists but is inactive, activate them
         if (session.user.email_confirmed_at && existingMember && !existingMember.isActive) {
           const activatedMember = { ...existingMember, isActive: true };
-          membersManager.update(existingMember.id, activatedMember);
+          await membersManager.update(existingMember.id, activatedMember);
           existingMember = activatedMember;
         }
         
@@ -79,7 +79,10 @@ export const AuthProvider = ({ children }) => {
             image: session.user.user_metadata?.image || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.1.0&auto=format&fit=crop&q=60&w=600',
           };
           
-          membersManager.add(newMember);
+          await membersManager.add(newMember);
+          // Trigger UI update
+          const allMembers = membersManager.getAll();
+          window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
         }
       }
       
@@ -95,6 +98,10 @@ export const AuthProvider = ({ children }) => {
       
       // Sync user to members list when they sign in or confirm email
       if (session?.user) {
+        // Small delay to ensure any member creation from signUp has completed
+        // This prevents race conditions where onAuthStateChange runs before signUp finishes
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const existingMembers = membersManager.getAll();
         // Check by supabaseUserId first, then by email as fallback
         let existingMember = existingMembers.find(m => m.supabaseUserId === session.user.id);
@@ -106,7 +113,7 @@ export const AuthProvider = ({ children }) => {
           // If found by email but missing supabaseUserId, update it
           if (existingMember && !existingMember.supabaseUserId) {
             const updatedMember = { ...existingMember, supabaseUserId: session.user.id };
-            membersManager.update(existingMember.id, updatedMember);
+            await membersManager.update(existingMember.id, updatedMember);
             existingMember = updatedMember;
           }
         }
@@ -116,12 +123,13 @@ export const AuthProvider = ({ children }) => {
         if (session.user.email_confirmed_at && existingMember && !existingMember.isActive) {
           // User confirmed their email - activate the member
           const activatedMember = { ...existingMember, isActive: true };
-          membersManager.update(existingMember.id, activatedMember);
+          await membersManager.update(existingMember.id, activatedMember);
           existingMember = activatedMember;
         }
         
         if (!existingMember) {
           // Only create member record if it truly doesn't exist
+          // This is a fallback in case signUp didn't create the member
           const fullName = session.user.user_metadata?.full_name || 
                           session.user.email?.split('@')[0] || 
                           'Member';
@@ -151,7 +159,13 @@ export const AuthProvider = ({ children }) => {
             image: session.user.user_metadata?.image || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.1.0&auto=format&fit=crop&q=60&w=600',
           };
           
-          membersManager.add(newMember);
+          console.log('onAuthStateChange: Creating fallback member record for user:', session.user.email);
+          await membersManager.add(newMember);
+          // Trigger UI update
+          const allMembers = membersManager.getAll();
+          window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
+        } else {
+          console.log('onAuthStateChange: Member already exists for user:', session.user.email);
         }
       }
       
@@ -168,45 +182,106 @@ export const AuthProvider = ({ children }) => {
       password,
       options: {
         data: metadata,
+        emailRedirectTo: `${window.location.origin}/`,
       },
     });
-
-    // If signup successful, create member record
-    if (data?.user && !error) {
-      const fullName = metadata.full_name || email.split('@')[0];
-      const currentDate = new Date();
-      const membershipDate = currentDate.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long' 
-      });
+    
+    // Check if error indicates user already exists
+    if (error) {
+      const errorMsg = error.message?.toLowerCase() || '';
+      const errorCode = error.code || '';
       
-      // Check if member already exists for this user
-      const existingMembers = membersManager.getAll();
-      const existingMember = existingMembers.find(m => m.supabaseUserId === data.user.id);
-      
-      if (!existingMember) {
-        // Create new member record
-        const newMember = {
-          supabaseUserId: data.user.id, // Link to Supabase user
-          name: fullName,
-          email: email,
-          role: 'Member',
-          nationality: metadata.nationality || 'Egyptian',
-          flagCode: metadata.flagCode || 'eg',
-          description: `Member of EACSL since ${membershipDate}`,
-          fullDescription: `${fullName} is a valued member of the EACSL community.`,
-          membershipDate: membershipDate,
-          isActive: true,
-          activeTill: new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), currentDate.getDate()).getFullYear().toString(),
-          certificates: [],
-          phone: metadata.phone || '',
-          location: metadata.location || '',
-          website: metadata.website || '',
-          linkedin: metadata.linkedin || '',
-          image: metadata.image || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.1.0&auto=format&fit=crop&q=60&w=600', // Default placeholder image
+      // Supabase returns various error messages for existing users
+      // Common ones: "User already registered", "Email already registered", etc.
+      if (errorMsg.includes('already') || 
+          errorMsg.includes('registered') ||
+          errorMsg.includes('exists') ||
+          errorCode === 'user_already_registered' ||
+          errorCode === 'email_already_registered' ||
+          errorCode === 'signup_disabled') {
+        return { 
+          data: null, 
+          error: { 
+            message: 'An account with this email already exists. Please sign in instead.',
+            code: 'USER_ALREADY_EXISTS'
+          } 
         };
+      }
+      // Return other errors as-is
+      return { data, error };
+    }
+    
+    // If we got a user but also a session, it might mean the user already existed
+    // (Supabase sometimes returns existing users when signup is attempted)
+    if (data?.user && data?.session) {
+      // User already exists and is signed in
+      return {
+        data: null,
+        error: {
+          message: 'An account with this email already exists. You have been signed in.',
+          code: 'USER_ALREADY_EXISTS'
+        }
+      };
+    }
+
+    // If signup successful, create member record IMMEDIATELY
+    // This must happen before onAuthStateChange fires to avoid race conditions
+    if (data?.user && !error) {
+      try {
+        const fullName = metadata.full_name || email.split('@')[0];
+        const currentDate = new Date();
+        const membershipDate = currentDate.toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long' 
+        });
         
-        membersManager.add(newMember);
+        // Check if member already exists for this user
+        const existingMembers = membersManager.getAll();
+        const existingMember = existingMembers.find(m => m.supabaseUserId === data.user.id || m.email === email);
+        
+        if (!existingMember) {
+          // Create new member record
+          const newMember = {
+            supabaseUserId: data.user.id, // Link to Supabase user
+            name: fullName,
+            email: email,
+            role: 'Member',
+            nationality: metadata.nationality || 'Egyptian',
+            flagCode: metadata.flagCode || 'eg',
+            description: `Member of EACSL since ${membershipDate}`,
+            fullDescription: `${fullName} is a valued member of the EACSL community.`,
+            membershipDate: membershipDate,
+            isActive: true,
+            activeTill: new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), currentDate.getDate()).getFullYear().toString(),
+            certificates: [],
+            phone: metadata.phone || '',
+            location: metadata.location || '',
+            website: metadata.website || '',
+            linkedin: metadata.linkedin || '',
+            image: metadata.image || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.1.0&auto=format&fit=crop&q=60&w=600', // Default placeholder image
+          };
+          
+          console.log('Creating member record for new user:', email);
+          // Await member creation to ensure it's added to both localStorage and Supabase
+          const createdMember = await membersManager.add(newMember);
+          console.log('Member created successfully:', createdMember);
+          
+          // Verify member was added and trigger UI update
+          const allMembers = membersManager.getAll();
+          const verifyMember = allMembers.find(m => m.supabaseUserId === data.user.id || m.email === email);
+          if (verifyMember) {
+            console.log('Member verified in localStorage:', verifyMember);
+            // Force a UI update by dispatching the event again to ensure all listeners are notified
+            window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
+          } else {
+            console.error('ERROR: Member was not found in localStorage after creation!');
+          }
+        } else {
+          console.log('Member already exists for this user:', existingMember);
+        }
+      } catch (memberError) {
+        console.error('Error creating member record during signup:', memberError);
+        // Don't fail the signup if member creation fails, but log it
       }
     }
 
@@ -280,7 +355,7 @@ export const AuthProvider = ({ children }) => {
         image: user.user_metadata?.image || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.1.0&auto=format&fit=crop&q=60&w=600',
       };
       
-      const createdMember = membersManager.add(newMember);
+      const createdMember = await membersManager.add(newMember);
       return { member: createdMember, created: true };
     } catch (err) {
       console.error('Error syncing user to member:', err);

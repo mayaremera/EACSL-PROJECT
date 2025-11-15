@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import Header from '../components/layout/Header'
 import BecomeMemberForm from '../components/forms/BecomeMemberForm';
 
@@ -100,8 +100,18 @@ const ApplyMembershipPage = () => {
     });
   };
 
+  // Add a ref to track last submission time to prevent rapid duplicate submissions
+  const lastSubmissionRef = useRef(null);
+  
   const handleFormSubmit = async (data) => {
     try {
+      // Prevent duplicate submissions within 2 seconds
+      const now = Date.now();
+      if (lastSubmissionRef.current && (now - lastSubmissionRef.current) < 2000) {
+        throw new Error('Please wait a moment before submitting again.');
+      }
+      lastSubmissionRef.current = now;
+      
       // PRIORITY: Upload files to Supabase Storage first
       // This avoids localStorage size limits
       let profileImage, idImage, graduationCert, cv;
@@ -259,6 +269,18 @@ const ApplyMembershipPage = () => {
       } catch (error) {
         console.error('Error reading from localStorage:', error);
         existingForms = [];
+      }
+      
+      // Check for duplicate submission (same email with pending status)
+      const duplicateSubmission = existingForms.find(
+        form => form.email === formSubmission.email && form.status === 'pending'
+      );
+      
+      if (duplicateSubmission) {
+        throw new Error(
+          `You already have a pending application with email ${formSubmission.email}.\n\n` +
+          `Please wait for your current application to be reviewed before submitting again.`
+        );
       }
       
       // Add new submission

@@ -17,12 +17,15 @@ function ActiveMembersPage() {
     };
     
     loadMembers();
-    window.addEventListener('membersUpdated', (e) => {
+    
+    const handleMembersUpdated = (e) => {
       setMembers(e.detail);
-    });
+    };
+    
+    window.addEventListener('membersUpdated', handleMembersUpdated);
 
     return () => {
-      window.removeEventListener('membersUpdated', loadMembers);
+      window.removeEventListener('membersUpdated', handleMembersUpdated);
     };
   }, []);
 

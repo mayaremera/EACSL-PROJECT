@@ -106,6 +106,7 @@ export const membersManager = {
 
   // Add new member (syncs with Supabase)
   add: async (member) => {
+    console.log('membersManager.add() called with member:', member);
     const members = membersManager.getAll();
     const tempId = members.length > 0 ? Math.max(...members.map(m => m.id)) + 1 : 1;
     const newMember = {
@@ -114,27 +115,51 @@ export const membersManager = {
       isActive: member.isActive !== undefined ? member.isActive : true
     };
     
+    console.log('Creating member with tempId:', tempId, 'Member data:', newMember);
+    
     // Save to local storage first for immediate UI update
     const updated = [...members, newMember];
     membersManager.saveAll(updated);
+    console.log('Member saved to localStorage. Total members now:', updated.length);
     
-    // Sync with Supabase (async, don't block)
-    membersService.add(newMember).then(({ data, error }) => {
+    // Verify it was saved
+    const verifySave = membersManager.getAll();
+    const foundMember = verifySave.find(m => m.id === tempId);
+    if (foundMember) {
+      console.log('Member verified in localStorage after save:', foundMember);
+    } else {
+      console.error('ERROR: Member not found in localStorage immediately after save!');
+    }
+    
+    // Sync with Supabase (await to ensure it completes)
+    try {
+      console.log('Attempting to sync member to Supabase...');
+      const { data, error } = await membersService.add(newMember);
       if (data && !error) {
+        console.log('Member successfully synced to Supabase:', data);
         // Update local member with Supabase ID if different
         const localMembers = membersManager.getAll();
         const index = localMembers.findIndex(m => m.id === tempId);
         if (index !== -1) {
           localMembers[index] = { ...data, id: data.id || tempId };
           membersManager.saveAll(localMembers);
+          console.log('Local member updated with Supabase ID');
         }
+        return data;
       } else if (error) {
         console.warn('Failed to sync member to Supabase:', error);
+        console.log('Returning local member despite Supabase sync failure');
+        // Still return the local member even if Supabase sync fails
+        return newMember;
       }
-    }).catch(err => {
-      console.warn('Exception syncing member to Supabase:', err);
-    });
+    } catch (err) {
+      console.error('Exception syncing member to Supabase:', err);
+      console.log('Returning local member despite exception');
+      // Still return the local member even if Supabase sync fails
+      return newMember;
+    }
     
+    console.log('Returning new member:', newMember);
     return newMember;
   },
 
@@ -235,11 +260,50 @@ export const membersManager = {
       
       if (data && data.length > 0) {
         // Map Supabase members to local format
-        const localMembers = data.map(m => membersService.mapSupabaseToLocal(m));
-        membersManager.saveAll(localMembers);
-        return { synced: true, count: localMembers.length, error: null };
+        const supabaseMembers = data.map(m => membersService.mapSupabaseToLocal(m));
+        
+        // Get existing local members
+        const localMembers = membersManager.getAll();
+        
+        // Merge: Keep local members that aren't in Supabase (by supabaseUserId or email)
+        // and update/add Supabase members
+        const mergedMembers = [...localMembers];
+        
+        supabaseMembers.forEach(supabaseMember => {
+          // Find existing member by supabaseUserId or email
+          const existingIndex = mergedMembers.findIndex(
+            m => (m.supabaseUserId && m.supabaseUserId === supabaseMember.supabaseUserId) ||
+                 (m.email && m.email === supabaseMember.email && supabaseMember.email)
+          );
+          
+          if (existingIndex >= 0) {
+            // Update existing member with Supabase data (prefer Supabase data)
+            mergedMembers[existingIndex] = supabaseMember;
+          } else {
+            // Add new member from Supabase
+            mergedMembers.push(supabaseMember);
+          }
+        });
+        
+        // Remove duplicates (keep the one with supabaseUserId if both exist)
+        const uniqueMembers = [];
+        const seen = new Set();
+        mergedMembers.forEach(member => {
+          const key = member.supabaseUserId || member.email;
+          if (key && !seen.has(key)) {
+            seen.add(key);
+            uniqueMembers.push(member);
+          } else if (!key) {
+            // Members without supabaseUserId or email are kept (shouldn't happen, but safe)
+            uniqueMembers.push(member);
+          }
+        });
+        
+        membersManager.saveAll(uniqueMembers);
+        return { synced: true, count: supabaseMembers.length, error: null };
       }
       
+      // If Supabase has no members, keep local members (don't clear them)
       return { synced: true, count: 0, error: null };
     } catch (err) {
       console.error('Exception syncing from Supabase:', err);
