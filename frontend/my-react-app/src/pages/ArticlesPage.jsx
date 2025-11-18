@@ -1,117 +1,31 @@
-import React, { useState } from 'react';
-import { BookOpen, X, Clock, Tag, ExternalLink, Search, Filter } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { BookOpen, X, Tag, ExternalLink, Search, Filter } from 'lucide-react';
+import { articlesManager } from '../utils/dataManager';
 
 const ArticlesPage = () => {
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [articles, setArticles] = useState([]);
 
-  const articles = [
-    {
-      id: 1,
-      titleAr: "تطوير مهارات التواصل لدى الأطفال المصابين بالتوحد",
-      titleEn: "Developing Communication Skills in Children with Autism",
-      category: "Autism",
-      categoryAr: "التوحد",
-      date: "2024-10-15",
-      readTime: "8 min",
-      image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=800&h=500&fit=crop",
-      excerptAr: "استراتيجيات فعالة لتحسين مهارات التواصل الاجتماعي واللغوي للأطفال ذوي اضطراب طيف التوحد.",
-      excerptEn: "Effective strategies to improve social and linguistic communication skills in children with autism spectrum disorder.",
-      url: "https://www.autismspeaks.org/tool-kit/atnair-p-guide-communication"
-    },
-    {
-      id: 2,
-      titleAr: "الحبسة الكلامية: الأسباب والعلاج",
-      titleEn: "Aphasia: Causes and Treatment",
-      category: "Aphasia",
-      categoryAr: "الحبسة الكلامية",
-      date: "2024-09-28",
-      readTime: "6 min",
-      image: "https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800&h=500&fit=crop",
-      excerptAr: "فهم شامل للحبسة الكلامية، أنواعها المختلفة، وأحدث طرق العلاج المستخدمة.",
-      excerptEn: "Comprehensive understanding of aphasia, its types, and the latest treatment methods used.",
-      url: "https://www.asha.org/public/speech/disorders/aphasia/"
-    },
-    {
-      id: 3,
-      titleAr: "أهمية التدخل المبكر في علاج اضطرابات النطق",
-      titleEn: "The Importance of Early Intervention in Speech Disorders",
-      category: "Speech Therapy",
-      categoryAr: "علاج النطق",
-      date: "2024-11-01",
-      readTime: "7 min",
-      image: "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&h=500&fit=crop",
-      excerptAr: "دراسة شاملة تبرز أهمية الكشف المبكر والتدخل العلاجي المبكر في علاج اضطرابات النطق.",
-      excerptEn: "Comprehensive study highlighting the importance of early detection and intervention in speech disorders.",
-      url: "https://www.asha.org/public/speech/development/early-intervention/"
-    },
-    {
-      id: 4,
-      titleAr: "اضطرابات البلع: التشخيص والعلاج",
-      titleEn: "Swallowing Disorders: Diagnosis and Treatment",
-      category: "Dysphagia",
-      categoryAr: "عسر البلع",
-      date: "2024-08-20",
-      readTime: "9 min",
-      image: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&h=500&fit=crop",
-      excerptAr: "نظرة متعمقة على اضطرابات البلع، أسبابها المختلفة، وطرق التشخيص والعلاج الحديثة.",
-      excerptEn: "In-depth look at swallowing disorders, their causes, and modern diagnosis and treatment methods.",
-      url: "https://www.asha.org/public/speech/swallowing/swallowing-disorders-in-adults/"
-    },
-    {
-      id: 5,
-      titleAr: "علاج التلعثم عند الأطفال والبالغين",
-      titleEn: "Stuttering Treatment in Children and Adults",
-      category: "Fluency Disorders",
-      categoryAr: "اضطرابات الطلاقة",
-      date: "2024-10-05",
-      readTime: "10 min",
-      image: "https://images.unsplash.com/photo-1581579186913-45ac3e6efe93?w=800&h=500&fit=crop",
-      excerptAr: "دليل شامل لفهم التلعثم، أسبابه، والتقنيات العلاجية الحديثة المثبتة علمياً.",
-      excerptEn: "Comprehensive guide to understanding stuttering, its causes, and scientifically proven modern treatment techniques.",
-      url: "https://www.stutteringhelp.org/what-stuttering"
-    },
-    {
-      id: 6,
-      titleAr: "تطوير اللغة عند الأطفال ثنائيي اللغة",
-      titleEn: "Language Development in Bilingual Children",
-      category: "Language Development",
-      categoryAr: "تطور اللغة",
-      date: "2024-09-10",
-      readTime: "6 min",
-      image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&h=500&fit=crop",
-      excerptAr: "استكشاف فوائد وتحديات تربية الأطفال ثنائيي اللغة ودعم التطور اللغوي الصحي.",
-      excerptEn: "Exploring the benefits and challenges of raising bilingual children and supporting healthy language development.",
-      url: "https://www.asha.org/public/speech/development/learning-two-languages/"
-    },
-    {
-      id: 7,
-      titleAr: "اضطرابات الصوت: الأسباب والوقاية",
-      titleEn: "Voice Disorders: Causes and Prevention",
-      category: "Voice Disorders",
-      categoryAr: "اضطرابات الصوت",
-      date: "2024-07-18",
-      readTime: "5 min",
-      image: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&h=500&fit=crop",
-      excerptAr: "معلومات حول أسباب اضطرابات الصوت وطرق الوقاية منها والحفاظ على صحة الحنجرة.",
-      excerptEn: "Information about causes of voice disorders, prevention methods, and maintaining vocal health.",
-      url: "https://www.asha.org/public/speech/disorders/voice/"
-    },
-    {
-      id: 8,
-      titleAr: "تأخر الكلام واللغة عند الأطفال",
-      titleEn: "Speech and Language Delays in Children",
-      category: "Language Development",
-      categoryAr: "تطور اللغة",
-      date: "2024-08-05",
-      readTime: "8 min",
-      image: "https://images.unsplash.com/photo-1474418397713-7ede21d49118?w=800&h=500&fit=crop",
-      excerptAr: "دليل الأهل لفهم علامات تأخر الكلام واللغة ومتى يجب طلب المساعدة المتخصصة.",
-      excerptEn: "Parent's guide to understanding signs of speech and language delays and when to seek professional help.",
-      url: "https://www.asha.org/public/speech/development/late-bloomer/"
-    }
-  ];
+  useEffect(() => {
+    const loadArticles = () => {
+      const allArticles = articlesManager.getAll();
+      setArticles(allArticles);
+    };
+
+    loadArticles();
+
+    // Listen for article updates
+    const handleArticlesUpdate = () => {
+      loadArticles();
+    };
+
+    window.addEventListener('articlesUpdated', handleArticlesUpdate);
+    return () => {
+      window.removeEventListener('articlesUpdated', handleArticlesUpdate);
+    };
+  }, []);
 
   const categories = [
     { value: 'all', labelAr: 'الكل', labelEn: 'All' },
@@ -259,10 +173,6 @@ const ArticlesPage = () => {
                   <span className="px-2 py-0.5 bg-teal-50 text-[#4C9A8F] text-xs font-medium rounded-full">
                     {article.categoryAr}
                   </span>
-                  <span className="flex items-center text-xs text-gray-500">
-                    <Clock className="w-3 h-3 mr-1" />
-                    {article.readTime}
-                  </span>
                 </div>
                 <h3 className="text-base font-bold text-gray-900 mb-1 line-clamp-2">
                   {article.titleAr}
@@ -322,10 +232,6 @@ const ArticlesPage = () => {
               <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <span className="px-3 py-1 bg-teal-50 text-[#4C9A8F] text-xs font-medium rounded-full">
                   {selectedArticle.categoryAr}
-                </span>
-                <span className="flex items-center text-xs text-gray-500">
-                  <Clock className="w-3 h-3 mr-1" />
-                  {selectedArticle.readTime}
                 </span>
                 <span className="text-xs text-gray-500">{selectedArticle.date}</span>
               </div>

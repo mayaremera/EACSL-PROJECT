@@ -12,13 +12,19 @@ import {
     Clock,
     Eye,
     Download,
-    X
+    X,
+    Calendar,
+    Edit,
+    Trash2,
+    Archive
 } from "lucide-react";
-import { coursesManager, membersManager, initializeData } from '../utils/dataManager';
+import { coursesManager, membersManager, eventsManager, articlesManager, initializeData } from '../utils/dataManager';
 import CourseCard from '../components/cards/CourseCard';
 import MemberCard from '../components/cards/MemberCard';
 import CourseEditForm from '../components/dashboard/CourseEditForm';
 import MemberEditForm from '../components/dashboard/MemberEditForm';
+import EventEditForm from '../components/dashboard/EventEditForm';
+import ArticleEditForm from '../components/dashboard/ArticleEditForm';
 
 // Forms manager for member applications
 const formsManager = {
@@ -913,8 +919,14 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const [reservationStatusFilter, setReservationStatusFilter] = useState("all");
     const [editingCourse, setEditingCourse] = useState(null);
     const [editingMember, setEditingMember] = useState(null);
+    const [editingEvent, setEditingEvent] = useState(null);
+    const [editingArticle, setEditingArticle] = useState(null);
     const [isAddingCourse, setIsAddingCourse] = useState(false);
     const [isAddingMember, setIsAddingMember] = useState(false);
+    const [isAddingEvent, setIsAddingEvent] = useState(false);
+    const [isAddingArticle, setIsAddingArticle] = useState(false);
+    const [events, setEvents] = useState({ upcoming: [], past: [] });
+    const [articles, setArticles] = useState([]);
     const [selectedForm, setSelectedForm] = useState(null);
     const [selectedEventRegistration, setSelectedEventRegistration] = useState(null);
     const [selectedContactForm, setSelectedContactForm] = useState(null);
@@ -928,6 +940,11 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         loadForms();
         loadEventRegistrations();
         loadContactForms();
+        // Load events after initialization to ensure default event is created if needed
+        setTimeout(() => {
+            loadEvents();
+        }, 100);
+        loadArticles();
         
         // Sync members from Supabase on initial load (silently fail if table doesn't exist)
         membersManager.syncFromSupabase().then((result) => {
@@ -941,6 +958,32 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             // Silently handle errors on initial load
             console.warn('Could not sync members on initial load:', err);
         });
+
+        // Sync events from Supabase on initial load (silently fail if table doesn't exist)
+        eventsManager.syncFromSupabase().then((result) => {
+            if (result.synced) {
+                loadEvents();
+            } else if (result.error?.code === 'TABLE_NOT_FOUND') {
+                // Table doesn't exist yet - this is okay, just log a warning
+                console.info('Supabase events table not found. Events will be stored locally only until the table is created.');
+            }
+        }).catch(err => {
+            // Silently handle errors on initial load
+            console.warn('Could not sync events on initial load:', err);
+        });
+
+        // Sync articles from Supabase on initial load (silently fail if table doesn't exist)
+        articlesManager.syncFromSupabase().then((result) => {
+            if (result.synced) {
+                loadArticles();
+            } else if (result.error?.code === 'TABLE_NOT_FOUND') {
+                // Table doesn't exist yet - this is okay, just log a warning
+                console.info('Supabase articles table not found. Articles will be stored locally only until the table is created.');
+            }
+        }).catch(err => {
+            // Silently handle errors on initial load
+            console.warn('Could not sync articles on initial load:', err);
+        });
         loadReservations();
 
         // Listen for updates
@@ -950,6 +993,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         window.addEventListener('eventRegistrationsUpdated', handleEventRegistrationsUpdate);
         window.addEventListener('contactFormsUpdated', handleContactFormsUpdate);
         window.addEventListener('reservationsUpdated', handleReservationsUpdate);
+        window.addEventListener('eventsUpdated', handleEventsUpdate);
+        window.addEventListener('articlesUpdated', handleArticlesUpdate);
 
         return () => {
             window.removeEventListener('coursesUpdated', handleCoursesUpdate);
@@ -958,8 +1003,20 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             window.removeEventListener('eventRegistrationsUpdated', handleEventRegistrationsUpdate);
             window.removeEventListener('contactFormsUpdated', handleContactFormsUpdate);
             window.removeEventListener('reservationsUpdated', handleReservationsUpdate);
+            window.removeEventListener('eventsUpdated', handleEventsUpdate);
+            window.removeEventListener('articlesUpdated', handleArticlesUpdate);
         };
     }, []);
+
+    // Reload events when switching to events tab
+    useEffect(() => {
+        if (activeTab === 'events') {
+            loadEvents();
+        }
+        if (activeTab === 'articles') {
+            loadArticles();
+        }
+    }, [activeTab]);
 
     const handleCoursesUpdate = (e) => {
         setCourses(e.detail);
@@ -983,6 +1040,25 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
 
     const handleReservationsUpdate = (e) => {
         setReservations(e.detail);
+    };
+
+    const handleEventsUpdate = (e) => {
+        console.log('Events updated event received:', e.detail);
+        const eventsData = {
+            upcoming: Array.isArray(e.detail.upcoming) ? e.detail.upcoming : [],
+            past: Array.isArray(e.detail.past) ? e.detail.past : []
+        };
+        console.log('Setting events from update:', eventsData);
+        setEvents(eventsData);
+    };
+
+    const handleArticlesUpdate = (e) => {
+        setArticles(e.detail || []);
+    };
+
+    const loadArticles = () => {
+        const allArticles = articlesManager.getAll();
+        setArticles(allArticles);
     };
 
     const loadCourses = () => {
@@ -1013,6 +1089,46 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const loadReservations = () => {
         const allReservations = reservationsManager.getAll();
         setReservations(allReservations);
+    };
+
+    const loadEvents = () => {
+        const allEvents = eventsManager.getAll();
+        // Ensure we have the correct structure
+        const eventsData = {
+            upcoming: Array.isArray(allEvents.upcoming) ? allEvents.upcoming : [],
+            past: Array.isArray(allEvents.past) ? allEvents.past : []
+        };
+        
+        // Debug: Log what we found
+        console.log('=== Events Loading Debug ===');
+        console.log('Loaded events from localStorage:', eventsData);
+        console.log('Upcoming events count:', eventsData.upcoming.length);
+        console.log('Past events count:', eventsData.past.length);
+        console.log('Past events array:', eventsData.past);
+        console.log('Past events details:', JSON.stringify(eventsData.past, null, 2));
+        
+        // Check localStorage directly
+        const rawStorage = localStorage.getItem('eacsl_events');
+        console.log('Raw localStorage data:', rawStorage);
+        if (rawStorage) {
+            try {
+                const parsed = JSON.parse(rawStorage);
+                console.log('Parsed localStorage:', parsed);
+                console.log('Parsed past events:', parsed.past);
+                console.log('Parsed past events length:', parsed.past?.length);
+            } catch (e) {
+                console.error('Error parsing raw storage:', e);
+            }
+        }
+        
+        // If no events exist, check if we need to initialize
+        if (eventsData.upcoming.length === 0 && eventsData.past.length === 0) {
+            console.log('No events found in parsed data');
+        }
+        
+        console.log('Setting events state with:', eventsData);
+        setEvents(eventsData);
+        console.log('=== End Events Loading Debug ===');
     };
 
     const handleApproveForm = async (id, notes) => {
@@ -1166,10 +1282,45 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     };
 
     const handleSaveMember = async (memberData) => {
+        const { createAuthAccount, ...memberDataWithoutFlag } = memberData;
+        
         if (editingMember) {
-            await membersManager.update(editingMember.id, memberData);
+            await membersManager.update(editingMember.id, memberDataWithoutFlag);
         } else {
-            await membersManager.add(memberData);
+            // Add the member first
+            const createdMember = await membersManager.add(memberDataWithoutFlag);
+            
+            // If createAuthAccount is checked, create auth account and send password email
+            if (createAuthAccount && memberData.email) {
+                try {
+                    const { memberAuthService } = await import('../services/memberAuthService');
+                    const result = await memberAuthService.createAuthAccountAndSendPasswordEmail(
+                        memberData.email,
+                        memberData.name
+                    );
+                    
+                    if (result.success && result.userId) {
+                        // Link the auth account to the member
+                        const updatedMember = {
+                            ...createdMember,
+                            supabaseUserId: result.userId
+                        };
+                        await membersManager.update(createdMember.id, updatedMember);
+                        
+                        // Show success message
+                        alert(`✅ Member created successfully!\n\n${result.message || 'Authentication account created and password setup email sent.'}`);
+                    } else if (result.success && result.warning) {
+                        // Account created but email failed
+                        alert(`✅ Member created successfully!\n\n⚠️ ${result.warning}`);
+                    } else {
+                        // Auth account creation failed
+                        alert(`✅ Member created successfully!\n\n⚠️ Failed to create authentication account: ${result.error || 'Unknown error'}\n\nThe member can still use "Forgot Password" to set up their account later.`);
+                    }
+                } catch (error) {
+                    console.error('Error creating auth account:', error);
+                    alert(`✅ Member created successfully!\n\n⚠️ Failed to create authentication account. The member can use "Forgot Password" to set up their account later.`);
+                }
+            }
         }
         loadMembers();
         setEditingMember(null);
@@ -1187,15 +1338,27 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         // First, try to sync from Supabase (download)
         const result = await membersManager.syncFromSupabase();
         if (result.synced) {
+            // Reload members to reflect changes
             loadMembers();
+            
+            // Show detailed sync results
+            let message = `✅ Successfully synced from Supabase!\n\n`;
+            message += `📊 Supabase members: ${result.count}\n`;
+            message += `💾 Local members before: ${result.localCount || 'N/A'}\n`;
+            message += `💾 Local members after: ${membersManager.getAll().length}\n`;
+            
+            if (result.removed > 0) {
+                message += `\n🗑️ Removed ${result.removed} deleted member(s) from local storage.`;
+            }
+            
             if (result.count > 0) {
-                alert(`Successfully synced ${result.count} members from Supabase!`);
+                alert(message);
             } else {
                 // If no members in Supabase, offer to push local members
                 const localMembers = membersManager.getAll();
                 if (localMembers.length > 0) {
                     const pushToSupabase = window.confirm(
-                        `No members found in Supabase. Would you like to upload ${localMembers.length} local member(s) to Supabase?`
+                        `${message}\n\nNo members found in Supabase. Would you like to upload ${localMembers.length} local member(s) to Supabase?`
                     );
                     if (pushToSupabase) {
                         const pushResult = await membersManager.syncToSupabase();
@@ -1207,12 +1370,58 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                         }
                     }
                 } else {
-                    alert('No members found in Supabase or locally.');
+                    alert(message + '\n\nNo members found locally either.');
                 }
             }
         } else {
             const errorMessage = result.error?.userMessage || result.error?.message || 'Failed to sync members from Supabase.';
             alert(`${errorMessage}\n\nCheck SUPABASE_SETUP.md for instructions on creating the members table.`);
+        }
+    };
+
+    const handleSyncEvents = async () => {
+        // First, try to sync from Supabase (download)
+        const result = await eventsManager.syncFromSupabase();
+        if (result.synced) {
+            // Reload events to reflect changes
+            loadEvents();
+            
+            // Show detailed sync results
+            let message = `✅ Successfully synced from Supabase!\n\n`;
+            message += `📊 Supabase events: ${result.count}\n`;
+            message += `📅 Upcoming events: ${result.upcomingCount || 0}\n`;
+            message += `📆 Past events: ${result.pastCount || 0}\n`;
+            
+            if (result.count > 0) {
+                alert(message);
+            } else {
+                // If no events in Supabase, offer to push local events
+                const localEvents = eventsManager.getAll();
+                const allLocalEvents = [...(localEvents.upcoming || []), ...(localEvents.past || [])];
+                if (allLocalEvents.length > 0) {
+                    const pushToSupabase = window.confirm(
+                        `${message}\n\nNo events found in Supabase. Would you like to upload ${allLocalEvents.length} local event(s) to Supabase?`
+                    );
+                    if (pushToSupabase) {
+                        const pushResult = await eventsManager.syncToSupabase();
+                        if (pushResult.synced) {
+                            alert(`✅ Successfully uploaded ${pushResult.syncedCount} event(s) to Supabase!`);
+                            loadEvents();
+                        } else {
+                            alert(`❌ Failed to upload events: ${pushResult.error?.message || 'Unknown error'}`);
+                        }
+                    }
+                } else {
+                    alert(message);
+                }
+            }
+        } else {
+            // Sync failed
+            if (result.error?.code === 'TABLE_NOT_FOUND') {
+                alert(`⚠️ Events table does not exist in Supabase.\n\nPlease create it using the SQL script from EVENTS_SUPABASE_SETUP.md`);
+            } else {
+                alert(`❌ Failed to sync: ${result.error?.message || result.error?.userMessage || 'Unknown error'}`);
+            }
         }
     };
 
@@ -1275,9 +1484,111 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         return matchesSearch && matchesStatus;
     });
 
+    const handleSaveEvent = async (eventData) => {
+        let savedEvent;
+        if (editingEvent) {
+            savedEvent = await eventsManager.update(editingEvent.id, eventData);
+        } else {
+            savedEvent = await eventsManager.add(eventData);
+        }
+        loadEvents();
+        
+        // Update URL to show the saved event
+        if (savedEvent && savedEvent.id) {
+            window.history.pushState({}, '', `/upcoming-events/${savedEvent.id}`);
+        }
+        
+        setEditingEvent(null);
+        setIsAddingEvent(false);
+    };
+
+    const handleDeleteEvent = async (id) => {
+        if (window.confirm('Are you sure you want to delete this event?')) {
+            await eventsManager.delete(id);
+            loadEvents();
+        }
+    };
+
+    const handleMoveToPast = async (id) => {
+        if (window.confirm('Move this event to past events? You can move it back later if needed.')) {
+            await eventsManager.moveToPast(id);
+            loadEvents();
+        }
+    };
+
+    const handleMoveToUpcoming = async (id) => {
+        if (window.confirm('Move this event back to upcoming events?')) {
+            await eventsManager.moveToUpcoming(id);
+            loadEvents();
+        }
+    };
+
+    const handleSaveArticle = async (articleData) => {
+        if (editingArticle) {
+            await articlesManager.update(editingArticle.id, articleData);
+        } else {
+            await articlesManager.add(articleData);
+        }
+        loadArticles();
+        setEditingArticle(null);
+        setIsAddingArticle(false);
+    };
+
+    const handleDeleteArticle = async (id) => {
+        if (window.confirm('Are you sure you want to delete this article?')) {
+            await articlesManager.delete(id);
+            loadArticles();
+        }
+    };
+
+    const handleSyncArticles = async () => {
+        // First, try to sync from Supabase (download)
+        const result = await articlesManager.syncFromSupabase();
+        if (result.synced) {
+            // Reload articles to reflect changes
+            loadArticles();
+            
+            // Show detailed sync results
+            let message = `✅ Successfully synced from Supabase!\n\n`;
+            message += `📊 Supabase articles: ${result.count}\n`;
+            
+            if (result.count > 0) {
+                alert(message);
+            } else {
+                // If no articles in Supabase, offer to push local articles
+                const localArticles = articlesManager.getAll();
+                if (localArticles.length > 0) {
+                    const pushToSupabase = window.confirm(
+                        `${message}\n\nNo articles found in Supabase. Would you like to upload ${localArticles.length} local article(s) to Supabase?`
+                    );
+                    if (pushToSupabase) {
+                        const pushResult = await articlesManager.syncToSupabase();
+                        if (pushResult.synced) {
+                            alert(`✅ Successfully uploaded ${pushResult.syncedCount} article(s) to Supabase!`);
+                            loadArticles();
+                        } else {
+                            alert(`❌ Failed to upload articles: ${pushResult.error?.message || 'Unknown error'}`);
+                        }
+                    }
+                } else {
+                    alert(message);
+                }
+            }
+        } else {
+            // Sync failed
+            if (result.error?.code === 'TABLE_NOT_FOUND') {
+                alert(`⚠️ Articles table does not exist in Supabase.\n\nPlease create it using the SQL script from ARTICLES_SUPABASE_SETUP.md`);
+            } else {
+                alert(`❌ Failed to sync: ${result.error?.message || result.error?.userMessage || 'Unknown error'}`);
+            }
+        }
+    };
+
     const menuItems = [
         { icon: BookOpen, label: "Courses", tab: "courses" },
         { icon: Users, label: "Members", tab: "members" },
+        { icon: Calendar, label: "Events", tab: "events" },
+        { icon: FileText, label: "Articles", tab: "articles" },
         { icon: FileText, label: "Applications", tab: "applications" },
         { icon: Settings, label: "Settings", tab: "settings" },
     ];
@@ -1343,12 +1654,16 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             <h1 className="text-3xl font-bold text-gray-800 mb-2">
                                 {activeTab === 'courses' ? 'Courses Management' :
                                     activeTab === 'members' ? 'Members Management' :
+                                    activeTab === 'events' ? 'Events Management' :
+                                    activeTab === 'articles' ? 'Articles Management' :
                                     activeTab === 'applications' ? 'All Applications' :
                                         'Settings'}
                             </h1>
                             <p className="text-gray-600">
                                 {activeTab === 'courses' ? 'Manage all courses on the website' :
                                     activeTab === 'members' ? 'Manage all members on the website' :
+                                    activeTab === 'events' ? 'Manage upcoming and past events' :
+                                    activeTab === 'articles' ? 'Manage articles and resources' :
                                     activeTab === 'applications' ? 'Review and manage all form submissions' :
                                         'Dashboard settings and configuration'}
                             </p>
@@ -1370,6 +1685,24 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 <Plus size={20} />
                                 Add Member
                             </button>
+                        )}
+                        {activeTab === 'events' && (
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={loadEvents}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                    title="Refresh Events"
+                                >
+                                    <RefreshCw size={18} />
+                                </button>
+                                <button
+                                    onClick={() => setIsAddingEvent(true)}
+                                    className="flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors shadow-md"
+                                >
+                                    <Plus size={20} />
+                                    Add Event
+                                </button>
+                            </div>
                         )}
                     </div>
 
@@ -1496,6 +1829,324 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             {filteredMembers.length === 0 && (
                                 <div className="text-center py-12 bg-white rounded-lg">
                                     <p className="text-gray-500">No members found</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Events Tab */}
+                    {activeTab === 'events' && (
+                        <div>
+                            {/* Stats */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div className="bg-white p-4 rounded-lg shadow-sm">
+                                    <p className="text-sm text-gray-600">Upcoming Events</p>
+                                    <p className="text-2xl font-bold text-gray-900">{events.upcoming?.length || 0}</p>
+                                </div>
+                                <div className="bg-white p-4 rounded-lg shadow-sm">
+                                    <p className="text-sm text-gray-600">Past Events</p>
+                                    <p className="text-2xl font-bold text-gray-900">{events.past?.length || 0}</p>
+                                </div>
+                                <div className="bg-white p-4 rounded-lg shadow-sm">
+                                    <p className="text-sm text-gray-600 mb-2">Actions</p>
+                                    <div className="flex flex-col gap-2">
+                                        <button
+                                            onClick={handleSyncEvents}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178]"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Sync from Supabase
+                                        </button>
+                                        <button
+                                            onClick={loadEvents}
+                                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh Local
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Upcoming Events */}
+                            <div className="mb-8">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-2xl font-bold text-gray-900">Upcoming Events</h2>
+                                    {events.upcoming && events.upcoming.length > 0 && (
+                                        <span className="text-sm text-gray-500">
+                                            {events.upcoming.length} event{events.upcoming.length !== 1 ? 's' : ''}
+                                        </span>
+                                    )}
+                                </div>
+                                {events.upcoming && events.upcoming.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {events.upcoming.map((event) => (
+                                            <div key={event.id} className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <h3 className="text-xl font-bold text-gray-900 flex-1">{event.title || 'Untitled Event'}</h3>
+                                                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium ml-2">
+                                                        Upcoming
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-gray-600 mb-4 line-clamp-2">{event.subtitle || 'No description'}</p>
+                                                <div className="space-y-2 mb-4">
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-gray-500">Member Fee:</span>
+                                                        <span className="font-semibold text-gray-900">{event.memberFee || 0} EGP</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-gray-500">Guest Fee:</span>
+                                                        <span className="font-semibold text-gray-900">{event.guestFee || 0} EGP</span>
+                                                    </div>
+                                                    {event.tracks && event.tracks.length > 0 && (
+                                                        <div className="flex items-center justify-between text-sm">
+                                                            <span className="text-gray-500">Tracks:</span>
+                                                            <span className="font-semibold text-gray-900">{event.tracks.length}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200">
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingEvent(event);
+                                                        }}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors text-sm font-medium"
+                                                    >
+                                                        <Edit size={16} />
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleMoveToPast(event.id)}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
+                                                    >
+                                                        <Archive size={16} />
+                                                        Archive
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteEvent(event.id)}
+                                                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                                                        title="Delete Event"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                                    <a
+                                                        href={`/upcoming-events/${event.id}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-xs text-[#4C9A8F] hover:text-[#3d8178] font-medium"
+                                                    >
+                                                        View Event Page →
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                                        <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                        <p className="text-gray-500 mb-2">No upcoming events</p>
+                                        <p className="text-sm text-gray-400 mb-4">Click "Add Event" to create your first upcoming event</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Past Events */}
+                            <div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-2xl font-bold text-gray-900">Past Events</h2>
+                                    <div className="flex items-center gap-2">
+                                        {events.past && events.past.length > 0 && (
+                                            <span className="text-sm text-gray-500">
+                                                {events.past.length} event{events.past.length !== 1 ? 's' : ''}
+                                            </span>
+                                        )}
+                                        {/* Debug info */}
+                                        <span className="text-xs text-gray-400">
+                                            (State: {events.past ? 'exists' : 'null'}, Length: {events.past?.length || 0})
+                                        </span>
+                                    </div>
+                                </div>
+                                {(() => {
+                                    console.log('Rendering Past Events section');
+                                    console.log('events.past:', events.past);
+                                    console.log('events.past type:', typeof events.past);
+                                    console.log('events.past is array:', Array.isArray(events.past));
+                                    console.log('events.past length:', events.past?.length);
+                                    return null;
+                                })()}
+                                {events.past && Array.isArray(events.past) && events.past.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {events.past.map((event) => (
+                                            <div key={event.id} className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <h3 className="text-xl font-bold text-gray-900 flex-1">{event.title || 'Untitled Event'}</h3>
+                                                    <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium ml-2">
+                                                        Past
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-gray-600 mb-4 line-clamp-2">{event.subtitle || 'No description'}</p>
+                                                <div className="space-y-2 mb-4">
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-gray-500">Member Fee:</span>
+                                                        <span className="font-semibold text-gray-900">{event.memberFee || 0} EGP</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-gray-500">Guest Fee:</span>
+                                                        <span className="font-semibold text-gray-900">{event.guestFee || 0} EGP</span>
+                                                    </div>
+                                                    {event.tracks && event.tracks.length > 0 && (
+                                                        <div className="flex items-center justify-between text-sm">
+                                                            <span className="text-gray-500">Tracks:</span>
+                                                            <span className="font-semibold text-gray-900">{event.tracks.length}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200">
+                                                    <button
+                                                        onClick={() => setEditingEvent(event)}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors text-sm font-medium"
+                                                    >
+                                                        <Edit size={16} />
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleMoveToUpcoming(event.id)}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+                                                    >
+                                                        <Archive size={16} />
+                                                        Restore
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteEvent(event.id)}
+                                                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                                                        title="Delete Event"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                                        <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                        <p className="text-gray-500">No past events</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Articles Tab */}
+                    {activeTab === 'articles' && (
+                        <div>
+                            {/* Header with Add Button */}
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-900">Articles</h2>
+                                    <p className="text-sm text-gray-600 mt-1">Manage articles and resources</p>
+                                </div>
+                                <button
+                                    onClick={() => setIsAddingArticle(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                >
+                                    <Plus size={20} />
+                                    Add Article
+                                </button>
+                            </div>
+
+                            {/* Stats */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div className="bg-white p-4 rounded-lg shadow-sm">
+                                    <p className="text-sm text-gray-600">Total Articles</p>
+                                    <p className="text-2xl font-bold text-gray-900">{articles.length}</p>
+                                </div>
+                                <div className="bg-white p-4 rounded-lg shadow-sm">
+                                    <p className="text-sm text-gray-600 mb-2">Actions</p>
+                                    <div className="flex flex-col gap-2">
+                                        <button
+                                            onClick={handleSyncArticles}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178]"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Sync from Supabase
+                                        </button>
+                                        <button
+                                            onClick={loadArticles}
+                                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh Local
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Articles Grid */}
+                            {articles.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {articles.map((article) => (
+                                        <div key={article.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
+                                            {article.image && (
+                                                <div className="aspect-video bg-gray-100 overflow-hidden">
+                                                    <img
+                                                        src={article.image}
+                                                        alt={article.titleEn}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                            )}
+                                            <div className="p-4">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="px-2 py-0.5 bg-teal-50 text-[#4C9A8F] text-xs font-medium rounded-full">
+                                                        {article.categoryAr}
+                                                    </span>
+                                                </div>
+                                                <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-2">
+                                                    {article.titleAr}
+                                                </h3>
+                                                <p className="text-sm text-gray-600 mb-2 line-clamp-1">
+                                                    {article.titleEn}
+                                                </p>
+                                                <p className="text-gray-600 text-xs mb-3 line-clamp-2">
+                                                    {article.excerptAr}
+                                                </p>
+                                                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                                                    <span>{article.date}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
+                                                    <button
+                                                        onClick={() => setEditingArticle(article)}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors text-sm font-medium"
+                                                    >
+                                                        <Edit size={16} />
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteArticle(article.id)}
+                                                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                                                        title="Delete Article"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                                    <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Articles Yet</h3>
+                                    <p className="text-gray-600 mb-4">Get started by adding your first article</p>
+                                    <button
+                                        onClick={() => setIsAddingArticle(true)}
+                                        className="px-6 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                    >
+                                        Add Article
+                                    </button>
                                 </div>
                             )}
                         </div>
@@ -2077,6 +2728,47 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                     member={null}
                     onSave={handleSaveMember}
                     onCancel={() => setIsAddingMember(false)}
+                />
+            )}
+
+            {/* Event Edit Form Modal */}
+            {(isAddingEvent || editingEvent) && (
+                <EventEditForm
+                    event={editingEvent}
+                    onSave={(eventData) => {
+                        handleSaveEvent(eventData);
+                        // After saving, update URL to show the event being edited
+                        if (editingEvent && editingEvent.id) {
+                            setTimeout(() => {
+                                window.history.pushState({}, '', `/upcoming-events/${editingEvent.id}`);
+                            }, 100);
+                        } else {
+                            // For new events, wait for the event to be saved and get its ID
+                            setTimeout(() => {
+                                const allEvents = eventsManager.getAll();
+                                const latestEvent = allEvents.upcoming[allEvents.upcoming.length - 1];
+                                if (latestEvent && latestEvent.id) {
+                                    window.history.pushState({}, '', `/upcoming-events/${latestEvent.id}`);
+                                }
+                            }, 200);
+                        }
+                    }}
+                    onCancel={() => {
+                        setEditingEvent(null);
+                        setIsAddingEvent(false);
+                    }}
+                />
+            )}
+
+            {/* Article Edit Form Modal */}
+            {(isAddingArticle || editingArticle) && (
+                <ArticleEditForm
+                    article={editingArticle}
+                    onSave={handleSaveArticle}
+                    onCancel={() => {
+                        setEditingArticle(null);
+                        setIsAddingArticle(false);
+                    }}
                 />
             )}
 

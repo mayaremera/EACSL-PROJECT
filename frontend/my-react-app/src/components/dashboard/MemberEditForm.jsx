@@ -23,6 +23,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
   const [dragActive, setDragActive] = useState({});
   const [imagePreview, setImagePreview] = useState(null);
   const [emailExistsError, setEmailExistsError] = useState(null); // null, 'member', or 'pending'
+  const [createAuthAccount, setCreateAuthAccount] = useState(false); // Checkbox for creating auth account
 
   // Cleanup object URLs on unmount
   useEffect(() => {
@@ -251,7 +252,8 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         location: formData.location || '',
         website: formData.website || '',
         linkedin: formData.linkedin || '',
-        image: imageDataUrl
+        image: imageDataUrl,
+        createAuthAccount: !member && createAuthAccount // Only for new members
       };
       await onSave(dataToSave);
     } finally {
@@ -623,6 +625,28 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               </div>
             </div>
           </div>
+
+          {/* Create Authentication Account Checkbox (only for new members) */}
+          {!member && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={createAuthAccount}
+                  onChange={(e) => setCreateAuthAccount(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-[#4C9A8F] border-gray-300 rounded focus:ring-[#4C9A8F]"
+                />
+                <div className="flex-1">
+                  <div className="font-semibold text-blue-900 text-sm">
+                    Create Authentication Account
+                  </div>
+                  <div className="text-blue-700 text-xs mt-1">
+                    Check this to create a login account for this member. They will receive an email to set their password and can then log in to the website.
+                  </div>
+                </div>
+              </label>
+            </div>
+          )}
 
           <div className="flex justify-end gap-4 pt-4 border-t">
             <button

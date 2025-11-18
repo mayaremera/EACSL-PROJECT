@@ -31,6 +31,7 @@ import UpcomingEventsPage from "./../pages/UpcomingEventsPage";
 import PastEventsPage from "./../pages/PastEventsPage";
 import CourseDetailsPage from './../pages/CourseDetailsPage';
 import DashboardCourseEditorPage from './../pages/DashboardCourseEditorPage';
+import SetPasswordPage from './../pages/SetPasswordPage';
 
 // Layout & Auth
 import Layout from "../components/layout/Layout";
@@ -66,10 +67,11 @@ function AppRouter() {
           <Route path="/dashboard" element={<ProtectedRoute requireAdmin={true}><Dashboard /></ProtectedRoute>} />
           <Route path="/member-profile/:memberId" element={<MemberProfile />} />
           <Route path="/continuing-education/:memberId?" element={<ContinuingEducationMember />} />
-          <Route path="/upcoming-events" element={<UpcomingEventsPage />} />
+          <Route path="/upcoming-events/:eventId?" element={<UpcomingEventsPage />} />
           <Route path="/past-events" element={<PastEventsPage />} />
           <Route path="/course-details/:courseId" element={<CourseDetailsPage />} />
           <Route path="/dashboard-course-editor" element={<ProtectedRoute requireAdmin={true}><DashboardCourseEditorPage /></ProtectedRoute>} />
+          <Route path="/set-password" element={<SetPasswordPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
