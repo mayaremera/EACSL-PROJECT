@@ -1,52 +1,100 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import WaelAlDakroury from "../../assets/waelaldakroury.png";
 import OsamaElsayed from "../../assets/osamaelsayed.png";
 import SaharAAlsamahi from "../../assets/saharalsamahi.png";
 import MohamedGweda from "../../assets/mohamedgwida.png";
 import Booklet from "../../assets/booklet.png";
+import { eventsManager } from "../../utils/dataManager";
 
 // EventCard component embedded
 const EventCard = () => {
+  const [eventData, setEventData] = useState(null);
+
+  useEffect(() => {
+    const loadEvent = () => {
+      const upcomingEvents = eventsManager.getUpcoming();
+      if (upcomingEvents && upcomingEvents.length > 0) {
+        setEventData(upcomingEvents[0]);
+      }
+    };
+
+    loadEvent();
+
+    // Listen for event updates
+    const handleEventsUpdate = () => {
+      loadEvent();
+    };
+
+    window.addEventListener('eventsUpdated', handleEventsUpdate);
+    return () => {
+      window.removeEventListener('eventsUpdated', handleEventsUpdate);
+    };
+  }, []);
+
+  // Format date for display
+  const formatDate = (dateString) => {
+    if (!dateString) return { dayMonth: 'TBA', year: new Date().getFullYear().toString() };
+
+    try {
+      const date = new Date(dateString);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const day = date.getDate();
+      const month = months[date.getMonth()];
+      const year = date.getFullYear().toString();
+
+      // Format as "18 Jul" for compact display in badge
+      return { dayMonth: `${day} ${month}`, year };
+    } catch (e) {
+      return { dayMonth: 'TBA', year: new Date().getFullYear().toString() };
+    }
+  };
+
+  const dateInfo = eventData?.eventDate ? formatDate(eventData.eventDate) : { dayMonth: 'TBA', year: new Date().getFullYear().toString() };
+  const eventImage = eventData?.heroImageUrl || "https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=2072";
+  const eventTitle = eventData?.title || "SLPIP";
+  const eventSubtitle = eventData?.subtitle || "Speech Language Pathology International Program";
+
   return (
     <div className="w-full max-w-[460px] bg-white rounded-3xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-300 p-6">
       {/* Image Section */}
       <div className="relative">
         <img
-          src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&q=80&w=2072"
-          alt="Workspace"
-          className="w-full h-[300px] object-center rounded-2xl"
+          src={eventImage}
+          alt={eventTitle}
+          className="w-full h-[300px] object-cover rounded-2xl"
         />
 
         {/* Date Badge */}
-        <div className="absolute top-0 left-0 bg-[#8B0000] text-white rounded-tr-3xl rounded-br-full w-[110px] h-[110px]">
+        <div className="absolute top-0 left-0 bg-[#8B0000] text-white rounded-tr-3xl rounded-br-full w-[6.5rem] h-[6.5rem]">
           <div
-            className="absolute text-2xl lg:text-[1.1rem] font-bold leading-none"
-            style={{ top: "1rem", left: "47%", transform: "translateX(-50%)" }}
+            className="absolute text-2xl lg:text-[1.3rem] font-bold leading-none"
+            style={{ top: "1.5rem", left: "40%", transform: "translateX(-50%)" }}
           >
-            18,19 July
+            {dateInfo.dayMonth}
           </div>
           <div
             className="absolute text-sm font-medium"
             style={{
-              top: "3.2rem",
-              left: "37%",
+              top: "3rem",
+              left: "40%",
               transform: "translateX(-50%)",
             }}
           >
-            2025
+            {dateInfo.year}
           </div>
         </div>
       </div>
       {/* Content Section */}
       <div className="pt-6">
         {/* Title */}
-        <h1 className="text-5xl md:text-5xl font-extrabold text-black mb-2 leading-tight text-center">
-          SLPIP
+        <h1 className="text-5xl md:text-3xl font-extrabold text-black mb-2 leading-tight text-center">
+          {eventTitle}
         </h1>
 
         {/* Subtitle */}
-        <p className="text-[0.8rem] md:text-base font-medium text-gray-700 mb-6 leading-snug text-center">
-          Speech Language Pathology International Program
+        <p className="text-[0.8rem] md:text-sm font-medium text-gray-700 mb-6 leading-snug text-center">
+          {eventSubtitle}
         </p>
 
         {/* Team Grid */}

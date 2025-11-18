@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, Menu, X, ChevronDown, LogOut, User, Calendar, UserCircle, BookOpen } from 'lucide-react';
+import { Search, Menu, X, ChevronDown, LogOut, User, Calendar, UserCircle, BookOpen, Users, FileText, GraduationCap, Brain, Baby, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 import AuthModal from '../auth/AuthModal';
 import { useAuth } from '../../contexts/AuthContext';
 import { membersManager } from '../../utils/dataManager';
+import { searchService } from '../../services/searchService';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -12,8 +13,14 @@ const Header = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [memberData, setMemberData] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const dropdownRef = useRef(null);
   const userDropdownRef = useRef(null);
+  const searchRef = useRef(null);
+  const searchInputRef = useRef(null);
   const navigate = useNavigate();
   const { user, signOut, getMemberByUserId } = useAuth();
   
@@ -40,6 +47,25 @@ const Header = () => {
     setActiveDropdown(activeDropdown === menu ? null : menu);
   };
 
+  // Debounced search
+  useEffect(() => {
+    if (searchQuery.trim().length < 2) {
+      setSearchResults(null);
+      setIsSearching(false);
+      return;
+    }
+
+    setIsSearching(true);
+    const timeoutId = setTimeout(async () => {
+      const results = await searchService.searchAll(searchQuery);
+      setSearchResults(results);
+      setIsSearching(false);
+      setShowSearchDropdown(true);
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
   // ✅ Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -55,6 +81,12 @@ const Header = () => {
       ) {
         setUserDropdownOpen(false);
       }
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target)
+      ) {
+        setShowSearchDropdown(false);
+      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
@@ -62,6 +94,34 @@ const Header = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Handle search result click
+  const handleSearchResultClick = (url) => {
+    setShowSearchDropdown(false);
+    setSearchQuery('');
+    navigate(url);
+  };
+
+  // Get category icon
+  const getCategoryIcon = (type) => {
+    switch (type) {
+      case 'member':
+        return <Users size={16} className="text-teal-600" />;
+      case 'event':
+        return <Calendar size={16} className="text-blue-600" />;
+      case 'article':
+        return <FileText size={16} className="text-purple-600" />;
+      case 'course':
+        return <GraduationCap size={16} className="text-orange-600" />;
+      case 'therapy-program':
+        return <Brain size={16} className="text-pink-600" />;
+      case 'for-parents':
+        return <Baby size={16} className="text-green-600" />;
+      default:
+        return <Search size={16} className="text-gray-600" />;
+    }
+  };
+
 
   const handleSignOut = async () => {
     await signOut();
@@ -172,15 +232,250 @@ const Header = () => {
 
           {/* Search and CTA */}
           <div className="hidden lg:flex items-center space-x-4">
-            <div className="relative">
+            <div className="relative" ref={searchRef}>
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder="Search Anything"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value.trim().length >= 2) {
+                    setShowSearchDropdown(true);
+                  }
+                }}
+                onFocus={() => {
+                  if (searchQuery.trim().length >= 2 && searchResults) {
+                    setShowSearchDropdown(true);
+                  }
+                }}
                 className="w-64 px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-teal-500 focus:border-transparent text-sm"
               />
-              <button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-teal-600 transition-colors">
-                <Search size={20} />
-              </button>
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                {isSearching ? (
+                  <Loader2 size={20} className="text-teal-600 animate-spin" />
+                ) : (
+                  <Search size={20} className="text-gray-400" />
+                )}
+              </div>
+
+              {/* Search Dropdown */}
+              {showSearchDropdown && searchQuery.trim().length >= 2 && (
+                <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-xl w-96 max-h-[600px] overflow-y-auto z-50">
+                  {isSearching ? (
+                    <div className="p-8 text-center">
+                      <Loader2 size={24} className="animate-spin text-teal-600 mx-auto mb-2" />
+                      <p className="text-sm text-gray-500">Searching...</p>
+                    </div>
+                  ) : searchResults && searchResults.total > 0 ? (
+                    <div className="py-2">
+                      {/* Members */}
+                      {searchResults.members.length > 0 && (
+                        <div className="mb-2">
+                          <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                            <Users size={14} className="text-teal-600" />
+                            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                              Members ({searchResults.members.length})
+                            </span>
+                          </div>
+                          {searchResults.members.map((item) => (
+                            <button
+                              key={`member-${item.id}`}
+                              onClick={() => handleSearchResultClick(item.url)}
+                              className="w-full px-4 py-3 hover:bg-teal-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5">{getCategoryIcon(item.type)}</div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {item.title}
+                                  </p>
+                                  {item.subtitle && (
+                                    <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                      {item.subtitle}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Events */}
+                      {searchResults.events.length > 0 && (
+                        <div className="mb-2">
+                          <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                            <Calendar size={14} className="text-blue-600" />
+                            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                              Events ({searchResults.events.length})
+                            </span>
+                          </div>
+                          {searchResults.events.map((item) => (
+                            <button
+                              key={`event-${item.id}`}
+                              onClick={() => handleSearchResultClick(item.url)}
+                              className="w-full px-4 py-3 hover:bg-blue-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5">{getCategoryIcon(item.type)}</div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {item.title}
+                                  </p>
+                                  {item.subtitle && (
+                                    <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                      {item.subtitle}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Articles */}
+                      {searchResults.articles.length > 0 && (
+                        <div className="mb-2">
+                          <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                            <FileText size={14} className="text-purple-600" />
+                            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                              Articles ({searchResults.articles.length})
+                            </span>
+                          </div>
+                          {searchResults.articles.map((item) => (
+                            <button
+                              key={`article-${item.id}`}
+                              onClick={() => handleSearchResultClick(item.url)}
+                              className="w-full px-4 py-3 hover:bg-purple-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5">{getCategoryIcon(item.type)}</div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {item.title}
+                                  </p>
+                                  {item.subtitle && (
+                                    <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                      {item.subtitle}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Courses */}
+                      {searchResults.courses.length > 0 && (
+                        <div className="mb-2">
+                          <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                            <GraduationCap size={14} className="text-orange-600" />
+                            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                              Courses ({searchResults.courses.length})
+                            </span>
+                          </div>
+                          {searchResults.courses.map((item) => (
+                            <button
+                              key={`course-${item.id}`}
+                              onClick={() => handleSearchResultClick(item.url)}
+                              className="w-full px-4 py-3 hover:bg-orange-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5">{getCategoryIcon(item.type)}</div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {item.title}
+                                  </p>
+                                  {item.subtitle && (
+                                    <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                      {item.subtitle}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Therapy Programs */}
+                      {searchResults.therapyPrograms.length > 0 && (
+                        <div className="mb-2">
+                          <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                            <Brain size={14} className="text-pink-600" />
+                            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                              Therapy Programs ({searchResults.therapyPrograms.length})
+                            </span>
+                          </div>
+                          {searchResults.therapyPrograms.map((item) => (
+                            <button
+                              key={`therapy-${item.id}`}
+                              onClick={() => handleSearchResultClick(item.url)}
+                              className="w-full px-4 py-3 hover:bg-pink-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5">{getCategoryIcon(item.type)}</div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {item.title}
+                                  </p>
+                                  {item.subtitle && (
+                                    <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                      {item.subtitle}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* For Parents */}
+                      {searchResults.forParents.length > 0 && (
+                        <div className="mb-2">
+                          <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                            <Baby size={14} className="text-green-600" />
+                            <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                              For Parents ({searchResults.forParents.length})
+                            </span>
+                          </div>
+                          {searchResults.forParents.map((item) => (
+                            <button
+                              key={`parent-${item.id}`}
+                              onClick={() => handleSearchResultClick(item.url)}
+                              className="w-full px-4 py-3 hover:bg-green-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="mt-0.5">{getCategoryIcon(item.type)}</div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {item.title}
+                                  </p>
+                                  {item.subtitle && (
+                                    <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                      {item.subtitle}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-8 text-center">
+                      <Search size={32} className="text-gray-300 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-gray-600 mb-1">No results found</p>
+                      <p className="text-xs text-gray-500">Try different keywords</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
             {user ? (
               <div className="relative" ref={userDropdownRef}>
@@ -254,17 +549,12 @@ const Header = () => {
                 )}
               </div>
             ) : (
-              <>
-                <button
-                  onClick={() => setIsAuthModalOpen(true)}
-                  className="text-gray-700 hover:text-[#4C9A8F] px-4 py-2 text-sm font-semibold transition-colors duration-200 whitespace-nowrap"
-                >
-                  Login/Signup
-                </button>
-                <a className="bg-[#4C9A8F] hover:bg-[#57A79B] text-white border border-[#4c9a8f] px-6 py-2.5 text-[0.8rem] rounded-lg font-semibold transition-colors duration-200 whitespace-nowrap" href="/apply-membership">
-                  Become a member
-                </a>
-              </>
+              <button
+                onClick={() => setIsAuthModalOpen(true)}
+                className="bg-[#4C9A8F] text-white hover:text-white px-10 py-2 rounded-sm text-sm font-semibold transition-colors duration-200 whitespace-nowrap"
+              >
+                Login
+              </button>
             )}
           </div>
 
@@ -317,11 +607,45 @@ const Header = () => {
                   <input
                     type="text"
                     placeholder="Search Anything"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
                   />
-                  <button className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-teal-600 transition-colors">
-                    <Search size={20} />
-                  </button>
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    {isSearching ? (
+                      <Loader2 size={20} className="text-teal-600 animate-spin" />
+                    ) : (
+                      <Search size={20} className="text-gray-400" />
+                    )}
+                  </div>
+                  {/* Mobile Search Results - Simplified */}
+                  {showSearchDropdown && searchQuery.trim().length >= 2 && searchResults && searchResults.total > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl max-h-[400px] overflow-y-auto z-50">
+                      <div className="py-2">
+                        {[...searchResults.members, ...searchResults.events, ...searchResults.articles, ...searchResults.courses, ...searchResults.therapyPrograms, ...searchResults.forParents].slice(0, 8).map((item, idx) => (
+                          <button
+                            key={`mobile-result-${item.type}-${item.id}-${idx}`}
+                            onClick={() => handleSearchResultClick(item.url)}
+                            className="w-full px-4 py-3 hover:bg-teal-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="mt-0.5">{getCategoryIcon(item.type)}</div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">
+                                  {item.title}
+                                </p>
+                                {item.subtitle && (
+                                  <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                    {item.subtitle}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 {user ? (
                   <div className="space-y-2">
@@ -378,23 +702,15 @@ const Header = () => {
                     </button>
                   </div>
                 ) : (
-                  <>
-                    <button
-                      onClick={() => {
-                        setIsAuthModalOpen(true);
-                        setIsMenuOpen(false);
-                      }}
-                      className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2.5 rounded-lg font-medium transition-colors duration-200"
-                    >
-                      Login/Signup
-                    </button>
-                    <a
-                      href="/apply-membership"
-                      className="block w-full bg-teal-600 hover:bg-teal-700 text-white px-6 py-2.5 rounded-lg font-medium transition-colors duration-200 text-center"
-                    >
-                      Become a member
-                    </a>
-                  </>
+                  <button
+                    onClick={() => {
+                      setIsAuthModalOpen(true);
+                      setIsMenuOpen(false);
+                    }}
+                    className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2.5 rounded-lg font-medium transition-colors duration-200"
+                  >
+                    Login
+                  </button>
                 )}
               </div>
             </div>

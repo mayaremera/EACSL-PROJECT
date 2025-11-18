@@ -5,6 +5,8 @@ import { members as defaultMembers } from "../data/members";
 import { membersService } from "../services/membersService";
 import { eventsService } from "../services/eventsService";
 import { articlesService } from "../services/articlesService";
+import { therapyProgramsService } from "../services/therapyProgramsService";
+import { forParentsService } from "../services/forParentsService";
 
 // Courses Management
 export const coursesManager = {
@@ -1438,6 +1440,840 @@ export const articlesManager = {
   },
 };
 
+// Default therapy programs data
+const defaultTherapyPrograms = [
+  {
+    id: 1,
+    title: "جلسات علاج النطق للأطفال",
+    description: "توفير جلسات للأطفال لعلاج مجموعة متنوعة من الاضطرابات والإعاقات باستخدام تقنيات حديثة مثل التوحد واضطرابات السمع والشلل الدماغي ومتلازمة داون",
+    icon: "MessageCircle",
+    image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80",
+    imagePath: null,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 2,
+    title: "جلسات علاج النطق للبالغين",
+    description: "توفير جلسات علاج النطق للبالغين الذين يعانون من اضطرابات النطق والطلاقة",
+    icon: "Users",
+    image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=600&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=600&q=80",
+    imagePath: null,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 3,
+    title: "تنمية المهارات",
+    description: "العمل مع الأطفال لتعزيز الذاكرة والانتباه والمهارات البصرية ومهارات الحياة والمهارات الأكاديمية",
+    icon: "Brain",
+    image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&q=80",
+    imagePath: null,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 4,
+    title: "التدخل المبكر",
+    description: "توفير التدخل المبكر لتحسين إنتاج الكلام والمهارات العامة للأطفال",
+    icon: "Baby",
+    image: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=600&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=600&q=80",
+    imagePath: null,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 5,
+    title: "الدعم النفسي والأسري",
+    description: "نحن نقدم لك الدعم الذي تحتاجه لتحسين حياتك وحياة طفلك خاصة من يعانون من تحديات سلوكية",
+    icon: "Users",
+    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80",
+    imagePath: null,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 6,
+    title: "الاختبارات والتقييمات",
+    description: "نحن نجري أنواعًا مختلفة من التقييمات والاختبارات مثل اختبار الذكاء واختبار CARS والمزيد",
+    icon: "ClipboardList",
+    image: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&q=80",
+    imagePath: null,
+    createdAt: new Date().toISOString(),
+  },
+];
+
+// Therapy Programs Management
+export const therapyProgramsManager = {
+  // Cache for therapy programs (loaded from Supabase)
+  _cache: null,
+  _cacheTimestamp: null,
+  _cacheTimeout: 5 * 60 * 1000, // 5 minutes
+
+  // Get all therapy programs (from cache or Supabase, fallback to localStorage)
+  getAll: () => {
+    if (typeof window === "undefined") return defaultTherapyPrograms;
+    
+    // Check cache first
+    if (therapyProgramsManager._cache && therapyProgramsManager._cacheTimestamp) {
+      const cacheAge = Date.now() - therapyProgramsManager._cacheTimestamp;
+      if (cacheAge < therapyProgramsManager._cacheTimeout) {
+        return therapyProgramsManager._cache;
+      }
+    }
+
+    // Try localStorage as fallback
+    const stored = localStorage.getItem("eacsl_therapy_programs");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        return parsed;
+      } catch (e) {
+        console.error("Error parsing therapy programs from localStorage:", e);
+        // If parsing fails, save defaults and return them
+        localStorage.setItem("eacsl_therapy_programs", JSON.stringify(defaultTherapyPrograms));
+        return defaultTherapyPrograms;
+      }
+    }
+    // If no stored data, save defaults and return them
+    localStorage.setItem("eacsl_therapy_programs", JSON.stringify(defaultTherapyPrograms));
+    return defaultTherapyPrograms;
+  },
+
+  // Save therapy programs to cache and localStorage
+  saveAll: (programs) => {
+    therapyProgramsManager._cache = programs;
+    therapyProgramsManager._cacheTimestamp = Date.now();
+    localStorage.setItem("eacsl_therapy_programs", JSON.stringify(programs));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("therapyProgramsUpdated", { detail: programs })
+      );
+    }
+  },
+
+  // Add new therapy program (syncs with Supabase)
+  add: async (program) => {
+    const programs = therapyProgramsManager.getAll();
+    const tempId = programs.length > 0 ? Math.max(...programs.map((p) => p.id)) + 1 : 1;
+    const newProgram = {
+      ...program,
+      id: tempId,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Save to local storage first for immediate UI update
+    const updated = [...programs, newProgram];
+    therapyProgramsManager.saveAll(updated);
+
+    // Sync with Supabase
+    try {
+      const { data, error } = await therapyProgramsService.add(newProgram);
+      if (data && !error) {
+        // Update local program with Supabase ID if different
+        const localPrograms = therapyProgramsManager.getAll();
+        const index = localPrograms.findIndex((p) => p.id === tempId);
+        if (index !== -1) {
+          localPrograms[index] = { ...data, id: data.id || tempId };
+          therapyProgramsManager.saveAll(localPrograms);
+        }
+        return data;
+      } else if (error && error.code !== "TABLE_NOT_FOUND") {
+        console.warn("Failed to sync therapy program to Supabase:", error);
+      }
+    } catch (err) {
+      console.error("Exception syncing therapy program to Supabase:", err);
+    }
+
+    return newProgram;
+  },
+
+  // Update therapy program (syncs with Supabase)
+  update: async (id, updatedProgram) => {
+    const programs = therapyProgramsManager.getAll();
+    const index = programs.findIndex((p) => p.id === id);
+    if (index === -1) return null;
+
+    const updated = [...programs];
+    updated[index] = {
+      ...updatedProgram,
+      id,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Save to local storage first for immediate UI update
+    therapyProgramsManager.saveAll(updated);
+
+    // Sync with Supabase
+    therapyProgramsService
+      .update(id, updated[index])
+      .then(({ error }) => {
+        if (error && error.code !== "TABLE_NOT_FOUND") {
+          console.warn("Failed to sync therapy program update to Supabase:", error);
+        }
+      })
+      .catch((err) => {
+        console.warn("Exception syncing therapy program update to Supabase:", err);
+      });
+
+    return updated[index];
+  },
+
+  // Delete therapy program (syncs with Supabase)
+  delete: async (id) => {
+    const programs = therapyProgramsManager.getAll();
+    
+    // Get program to delete image if needed
+    const program = programs.find((p) => p.id === id);
+    if (program && program.imagePath) {
+      // Delete image from storage
+      therapyProgramsService.deleteImage(program.imagePath).catch((err) => {
+        console.warn("Failed to delete therapy program image from storage:", err);
+      });
+    }
+
+    const filtered = programs.filter((p) => p.id !== id);
+
+    // Save to local storage first for immediate UI update
+    therapyProgramsManager.saveAll(filtered);
+
+    // Sync with Supabase
+    therapyProgramsService
+      .delete(id)
+      .then(({ error }) => {
+        if (error && error.code !== "TABLE_NOT_FOUND") {
+          console.warn("Failed to sync therapy program deletion to Supabase:", error);
+        }
+      })
+      .catch((err) => {
+        console.warn("Exception syncing therapy program deletion to Supabase:", err);
+      });
+
+    return true;
+  },
+
+  // Get therapy program by ID
+  getById: (id) => {
+    const programs = therapyProgramsManager.getAll();
+    return programs.find((p) => p.id === id) || null;
+  },
+
+  // Fetch therapy programs from Supabase and sync with local storage
+  syncFromSupabase: async () => {
+    try {
+      const { data, error } = await therapyProgramsService.getAll();
+
+      if (error) {
+        if (
+          error.code === "TABLE_NOT_FOUND" ||
+          error.message?.includes("Table does not exist")
+        ) {
+          console.warn(
+            "Therapy programs table does not exist in Supabase. Please create it using the SQL script from THERAPY_PROGRAMS_SUPABASE_SETUP.md"
+          );
+          return {
+            synced: false,
+            error: {
+              ...error,
+              userMessage:
+                "Therapy programs table does not exist. Please create it in Supabase first. Check THERAPY_PROGRAMS_SUPABASE_SETUP.md for instructions.",
+            },
+          };
+        }
+        console.warn("Failed to fetch therapy programs from Supabase:", error);
+        return { synced: false, error };
+      }
+
+      // Map Supabase programs to local format
+      const supabasePrograms = data
+        ? data.map((p) => therapyProgramsService.mapSupabaseToLocal(p))
+        : [];
+
+      // Get existing local programs
+      const localPrograms = therapyProgramsManager.getAll();
+
+      // Start with Supabase programs as the source of truth
+      const uniquePrograms = [...supabasePrograms];
+
+      // Helper function to check if a program exists
+      const programExists = (program, programsArray) => {
+        return programsArray.some(
+          (existing) =>
+            program.id && existing.id && program.id === existing.id
+        );
+      };
+
+      // Get all Supabase program IDs
+      const supabaseIds = new Set(
+        supabasePrograms
+          .map((p) => p.id)
+          .filter((id) => id != null)
+          .map((id) => Number(id))
+      );
+
+      // Add local-only programs (those that don't exist in Supabase)
+      localPrograms.forEach((localProgram) => {
+        const existsInSupabase = programExists(localProgram, supabasePrograms);
+
+        if (!existsInSupabase) {
+          const localId = localProgram.id ? Number(localProgram.id) : null;
+          const wasSyncedBefore =
+            localId !== null && !isNaN(localId) && !supabaseIds.has(localId);
+
+          if (!wasSyncedBefore) {
+            // This is a truly local-only program
+            uniquePrograms.push(localProgram);
+          }
+        }
+      });
+
+      therapyProgramsManager.saveAll(uniquePrograms);
+
+      // Dispatch event to notify UI
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("therapyProgramsUpdated", { detail: uniquePrograms })
+        );
+      }
+
+      return {
+        synced: true,
+        count: supabasePrograms.length,
+        error: null,
+      };
+    } catch (err) {
+      console.error("Exception syncing from Supabase:", err);
+      return { synced: false, error: err };
+    }
+  },
+
+  // Push local therapy programs to Supabase (for initial sync)
+  syncToSupabase: async () => {
+    try {
+      const localPrograms = therapyProgramsManager.getAll();
+      let syncedCount = 0;
+      let errorCount = 0;
+      const errors = [];
+
+      for (const program of localPrograms) {
+        try {
+          // Prepare program data - ensure imageUrl is set from image if needed
+          const programData = {
+            ...program,
+            imageUrl: program.imageUrl || (program.image && !program.imagePath ? program.image : program.imageUrl),
+          };
+
+          // Check if program already exists in Supabase
+          let existingProgram = null;
+          if (program.id) {
+            const { data } = await therapyProgramsService.getById(program.id);
+            existingProgram = data;
+          }
+
+          if (existingProgram) {
+            // Update existing program
+            const { error } = await therapyProgramsService.update(program.id, programData);
+            if (!error) {
+              syncedCount++;
+              console.log(`✅ Synced therapy program: ${program.title}`);
+            } else if (error.code !== "TABLE_NOT_FOUND") {
+              errorCount++;
+              const errorMsg = `Failed to update therapy program ${program.title}: ${error.message}`;
+              console.warn(errorMsg);
+              errors.push(errorMsg);
+            }
+          } else {
+            // Add new program (don't pass the local ID, let Supabase generate one)
+            const programToAdd = { ...programData };
+            delete programToAdd.id; // Remove local ID so Supabase generates a new one
+            
+            const { data, error } = await therapyProgramsService.add(programToAdd);
+            if (!error && data) {
+              syncedCount++;
+              console.log(`✅ Added therapy program to Supabase: ${program.title}`);
+              
+              // Update local program with Supabase ID
+              const localPrograms = therapyProgramsManager.getAll();
+              const index = localPrograms.findIndex((p) => p.id === program.id);
+              if (index !== -1) {
+                localPrograms[index] = { ...data, id: data.id };
+                therapyProgramsManager.saveAll(localPrograms);
+              }
+            } else if (error && error.code !== "TABLE_NOT_FOUND") {
+              errorCount++;
+              const errorMsg = `Failed to add therapy program ${program.title}: ${error.message}`;
+              console.warn(errorMsg);
+              errors.push(errorMsg);
+            }
+          }
+        } catch (err) {
+          errorCount++;
+          const errorMsg = `Exception processing therapy program ${program.title}: ${err.message}`;
+          console.error(errorMsg);
+          errors.push(errorMsg);
+        }
+      }
+
+      return {
+        synced: true,
+        syncedCount,
+        errorCount,
+        total: localPrograms.length,
+        errors: errors.length > 0 ? errors : undefined,
+        error:
+          errorCount > 0
+            ? { message: `${errorCount} therapy programs failed to sync`, details: errors }
+            : null,
+      };
+    } catch (err) {
+      console.error("Exception syncing to Supabase:", err);
+      return { synced: false, error: err };
+    }
+  },
+};
+
+// Default for parents articles data
+const defaultForParentsArticles = [
+  {
+    id: 1,
+    title: "كيفية تعزيز الثقة بالنفس لدى الأطفال",
+    excerpt: "نصائح عملية لبناء ثقة طفلك بنفسه منذ الصغر",
+    image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80",
+    imagePath: null,
+    date: "15 أكتوبر 2024",
+    author: "د. سارة أحمد",
+    articleUrl: "https://www.example.com/article1",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 2,
+    title: "التواصل الفعال مع الأطفال",
+    excerpt: "أساليب التواصل الصحيحة التي تبني علاقة قوية مع طفلك",
+    image: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=600&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=600&q=80",
+    imagePath: null,
+    date: "10 أكتوبر 2024",
+    author: "د. محمد حسن",
+    articleUrl: "https://www.example.com/article2",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 3,
+    title: "التعامل مع نوبات الغضب عند الأطفال",
+    excerpt: "استراتيجيات فعالة للتعامل مع الغضب والانفعالات",
+    image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&q=80",
+    imagePath: null,
+    date: "5 أكتوبر 2024",
+    author: "د. ليلى إبراهيم",
+    articleUrl: "https://www.example.com/article3",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 4,
+    title: "أهمية اللعب في نمو الطفل",
+    excerpt: "كيف يساهم اللعب في التطور المعرفي والاجتماعي للطفل",
+    image: "https://images.unsplash.com/photo-1587616211892-c1c8c6b76d4c?w=600&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1587616211892-c1c8c6b76d4c?w=600&q=80",
+    imagePath: null,
+    date: "1 أكتوبر 2024",
+    author: "د. فاطمة علي",
+    articleUrl: "https://www.example.com/article4",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 5,
+    title: "تنمية المهارات اللغوية للطفل",
+    excerpt: "طرق فعالة لتطوير مهارات النطق واللغة عند الأطفال",
+    image: "https://images.unsplash.com/photo-1609220136736-443140cffec6?w=600&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1609220136736-443140cffec6?w=600&q=80",
+    imagePath: null,
+    date: "28 سبتمبر 2024",
+    author: "د. خالد محمود",
+    articleUrl: "https://www.example.com/article5",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 6,
+    title: "التربية الإيجابية وأثرها على الطفل",
+    excerpt: "مبادئ التربية الإيجابية وكيفية تطبيقها في حياتك اليومية",
+    image: "https://images.unsplash.com/photo-1491013516836-7db643ee125a?w=600&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1491013516836-7db643ee125a?w=600&q=80",
+    imagePath: null,
+    date: "25 سبتمبر 2024",
+    author: "د. منى سالم",
+    articleUrl: "https://www.example.com/article6",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 7,
+    title: "كيفية بناء روتين يومي صحي للأطفال",
+    excerpt: "أهمية الروتين اليومي وكيفية إنشائه بطريقة فعالة",
+    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80",
+    imagePath: null,
+    date: "20 سبتمبر 2024",
+    author: "د. أحمد يوسف",
+    articleUrl: "https://www.example.com/article7",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 8,
+    title: "التعامل مع التنمر والتحديات الاجتماعية",
+    excerpt: "كيف تحمي طفلك من التنمر وتعزز مهاراته الاجتماعية",
+    image: "https://images.unsplash.com/photo-1588392382834-a891154bca4d?w=600&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1588392382834-a891154bca4d?w=600&q=80",
+    imagePath: null,
+    date: "15 سبتمبر 2024",
+    author: "د. نادية فريد",
+    articleUrl: "https://www.example.com/article8",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: 9,
+    title: "تطوير الذكاء العاطفي عند الأطفال",
+    excerpt: "طرق لمساعدة طفلك على فهم وإدارة مشاعره بشكل صحي",
+    image: "https://images.unsplash.com/photo-1571442463800-1337d7af9d2f?w=600&q=80",
+    imageUrl: "https://images.unsplash.com/photo-1571442463800-1337d7af9d2f?w=600&q=80",
+    imagePath: null,
+    date: "10 سبتمبر 2024",
+    author: "د. طارق سمير",
+    articleUrl: "https://www.example.com/article9",
+    createdAt: new Date().toISOString(),
+  },
+];
+
+// For Parents Management
+export const forParentsManager = {
+  // Cache for parent articles (loaded from Supabase)
+  _cache: null,
+  _cacheTimestamp: null,
+  _cacheTimeout: 5 * 60 * 1000, // 5 minutes
+
+  // Get all parent articles (from cache or Supabase, fallback to localStorage)
+  getAll: () => {
+    if (typeof window === "undefined") return defaultForParentsArticles;
+    
+    // Check cache first
+    if (forParentsManager._cache && forParentsManager._cacheTimestamp) {
+      const cacheAge = Date.now() - forParentsManager._cacheTimestamp;
+      if (cacheAge < forParentsManager._cacheTimeout) {
+        return forParentsManager._cache;
+      }
+    }
+
+    // Try localStorage as fallback
+    const stored = localStorage.getItem("eacsl_for_parents");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        return parsed;
+      } catch (e) {
+        console.error("Error parsing for parents articles from localStorage:", e);
+        // If parsing fails, save defaults and return them
+        localStorage.setItem("eacsl_for_parents", JSON.stringify(defaultForParentsArticles));
+        return defaultForParentsArticles;
+      }
+    }
+    // If no stored data, save defaults and return them
+    localStorage.setItem("eacsl_for_parents", JSON.stringify(defaultForParentsArticles));
+    return defaultForParentsArticles;
+  },
+
+  // Save parent articles to cache and localStorage
+  saveAll: (articles) => {
+    forParentsManager._cache = articles;
+    forParentsManager._cacheTimestamp = Date.now();
+    localStorage.setItem("eacsl_for_parents", JSON.stringify(articles));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("forParentsUpdated", { detail: articles })
+      );
+    }
+  },
+
+  // Add new parent article (syncs with Supabase)
+  add: async (article) => {
+    const articles = forParentsManager.getAll();
+    const tempId = articles.length > 0 ? Math.max(...articles.map((a) => a.id)) + 1 : 1;
+    const newArticle = {
+      ...article,
+      id: tempId,
+      createdAt: new Date().toISOString(),
+    };
+
+    // Save to local storage first for immediate UI update
+    const updated = [...articles, newArticle];
+    forParentsManager.saveAll(updated);
+
+    // Sync with Supabase
+    try {
+      const { data, error } = await forParentsService.add(newArticle);
+      if (data && !error) {
+        // Update local article with Supabase ID if different
+        const localArticles = forParentsManager.getAll();
+        const index = localArticles.findIndex((a) => a.id === tempId);
+        if (index !== -1) {
+          localArticles[index] = { ...data, id: data.id || tempId };
+          forParentsManager.saveAll(localArticles);
+        }
+        return data;
+      } else if (error && error.code !== "TABLE_NOT_FOUND") {
+        console.warn("Failed to sync parent article to Supabase:", error);
+      }
+    } catch (err) {
+      console.error("Exception syncing parent article to Supabase:", err);
+    }
+
+    return newArticle;
+  },
+
+  // Update parent article (syncs with Supabase)
+  update: async (id, updatedArticle) => {
+    const articles = forParentsManager.getAll();
+    const index = articles.findIndex((a) => a.id === id);
+    if (index === -1) return null;
+
+    const updated = [...articles];
+    updated[index] = {
+      ...updatedArticle,
+      id,
+      updatedAt: new Date().toISOString(),
+    };
+
+    // Save to local storage first for immediate UI update
+    forParentsManager.saveAll(updated);
+
+    // Sync with Supabase
+    forParentsService
+      .update(id, updated[index])
+      .then(({ error }) => {
+        if (error && error.code !== "TABLE_NOT_FOUND") {
+          console.warn("Failed to sync parent article update to Supabase:", error);
+        }
+      })
+      .catch((err) => {
+        console.warn("Exception syncing parent article update to Supabase:", err);
+      });
+
+    return updated[index];
+  },
+
+  // Delete parent article (syncs with Supabase)
+  delete: async (id) => {
+    const articles = forParentsManager.getAll();
+    
+    // Get article to delete image if needed
+    const article = articles.find((a) => a.id === id);
+    if (article && article.imagePath) {
+      // Delete image from storage
+      forParentsService.deleteImage(article.imagePath).catch((err) => {
+        console.warn("Failed to delete parent article image from storage:", err);
+      });
+    }
+
+    const filtered = articles.filter((a) => a.id !== id);
+
+    // Save to local storage first for immediate UI update
+    forParentsManager.saveAll(filtered);
+
+    // Sync with Supabase
+    forParentsService
+      .delete(id)
+      .then(({ error }) => {
+        if (error && error.code !== "TABLE_NOT_FOUND") {
+          console.warn("Failed to sync parent article deletion to Supabase:", error);
+        }
+      })
+      .catch((err) => {
+        console.warn("Exception syncing parent article deletion to Supabase:", err);
+      });
+
+    return true;
+  },
+
+  // Get parent article by ID
+  getById: (id) => {
+    const articles = forParentsManager.getAll();
+    return articles.find((a) => a.id === id) || null;
+  },
+
+  // Fetch parent articles from Supabase and sync with local storage
+  syncFromSupabase: async () => {
+    try {
+      const { data, error } = await forParentsService.getAll();
+
+      if (error) {
+        if (
+          error.code === "TABLE_NOT_FOUND" ||
+          error.message?.includes("Table does not exist")
+        ) {
+          console.warn(
+            "For parents table does not exist in Supabase. Please create it using the SQL script from FOR_PARENTS_SUPABASE_SETUP.md"
+          );
+          return {
+            synced: false,
+            error: {
+              ...error,
+              userMessage:
+                "For parents table does not exist. Please create it in Supabase first. Check FOR_PARENTS_SUPABASE_SETUP.md for instructions.",
+            },
+          };
+        }
+        console.warn("Failed to fetch parent articles from Supabase:", error);
+        return { synced: false, error };
+      }
+
+      // Map Supabase articles to local format
+      const supabaseArticles = data
+        ? data.map((a) => forParentsService.mapSupabaseToLocal(a))
+        : [];
+
+      // Get existing local articles
+      const localArticles = forParentsManager.getAll();
+
+      // Start with Supabase articles as the source of truth
+      const uniqueArticles = [...supabaseArticles];
+
+      // Helper function to check if an article exists
+      const articleExists = (article, articlesArray) => {
+        return articlesArray.some(
+          (existing) =>
+            article.id && existing.id && article.id === existing.id
+        );
+      };
+
+      // Get all Supabase article IDs
+      const supabaseIds = new Set(
+        supabaseArticles
+          .map((a) => a.id)
+          .filter((id) => id != null)
+          .map((id) => Number(id))
+      );
+
+      // Add local-only articles (those that don't exist in Supabase)
+      localArticles.forEach((localArticle) => {
+        const existsInSupabase = articleExists(localArticle, supabaseArticles);
+
+        if (!existsInSupabase) {
+          const localId = localArticle.id ? Number(localArticle.id) : null;
+          const wasSyncedBefore =
+            localId !== null && !isNaN(localId) && !supabaseIds.has(localId);
+
+          if (!wasSyncedBefore) {
+            // This is a truly local-only article
+            uniqueArticles.push(localArticle);
+          }
+        }
+      });
+
+      forParentsManager.saveAll(uniqueArticles);
+
+      // Dispatch event to notify UI
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("forParentsUpdated", { detail: uniqueArticles })
+        );
+      }
+
+      return {
+        synced: true,
+        count: supabaseArticles.length,
+        error: null,
+      };
+    } catch (err) {
+      console.error("Exception syncing from Supabase:", err);
+      return { synced: false, error: err };
+    }
+  },
+
+  // Push local parent articles to Supabase (for initial sync)
+  syncToSupabase: async () => {
+    try {
+      const localArticles = forParentsManager.getAll();
+      let syncedCount = 0;
+      let errorCount = 0;
+      const errors = [];
+
+      for (const article of localArticles) {
+        try {
+          // Prepare article data - ensure imageUrl is set from image if needed
+          const articleData = {
+            ...article,
+            imageUrl: article.imageUrl || (article.image && !article.imagePath ? article.image : article.imageUrl),
+          };
+
+          // Check if article already exists in Supabase
+          let existingArticle = null;
+          if (article.id) {
+            const { data } = await forParentsService.getById(article.id);
+            existingArticle = data;
+          }
+
+          if (existingArticle) {
+            // Update existing article
+            const { error } = await forParentsService.update(article.id, articleData);
+            if (!error) {
+              syncedCount++;
+              console.log(`✅ Synced parent article: ${article.title}`);
+            } else if (error.code !== "TABLE_NOT_FOUND") {
+              errorCount++;
+              const errorMsg = `Failed to update parent article ${article.title}: ${error.message}`;
+              console.warn(errorMsg);
+              errors.push(errorMsg);
+            }
+          } else {
+            // Add new article (don't pass the local ID, let Supabase generate one)
+            const articleToAdd = { ...articleData };
+            delete articleToAdd.id; // Remove local ID so Supabase generates a new one
+            
+            const { data, error } = await forParentsService.add(articleToAdd);
+            if (!error && data) {
+              syncedCount++;
+              console.log(`✅ Added parent article to Supabase: ${article.title}`);
+              
+              // Update local article with Supabase ID
+              const localArticles = forParentsManager.getAll();
+              const index = localArticles.findIndex((a) => a.id === article.id);
+              if (index !== -1) {
+                localArticles[index] = { ...data, id: data.id };
+                forParentsManager.saveAll(localArticles);
+              }
+            } else if (error && error.code !== "TABLE_NOT_FOUND") {
+              errorCount++;
+              const errorMsg = `Failed to add parent article ${article.title}: ${error.message}`;
+              console.warn(errorMsg);
+              errors.push(errorMsg);
+            }
+          }
+        } catch (err) {
+          errorCount++;
+          const errorMsg = `Exception processing parent article ${article.title}: ${err.message}`;
+          console.error(errorMsg);
+          errors.push(errorMsg);
+        }
+      }
+
+      return {
+        synced: true,
+        syncedCount,
+        errorCount,
+        total: localArticles.length,
+        errors: errors.length > 0 ? errors : undefined,
+        error:
+          errorCount > 0
+            ? { message: `${errorCount} parent articles failed to sync`, details: errors }
+            : null,
+      };
+    } catch (err) {
+      console.error("Exception syncing to Supabase:", err);
+      return { synced: false, error: err };
+    }
+  },
+};
+
 // Initialize localStorage with default data if empty
 export const initializeData = () => {
   if (typeof window === "undefined") return;
@@ -1470,5 +2306,17 @@ export const initializeData = () => {
   if (!localStorage.getItem("eacsl_articles")) {
     localStorage.setItem("eacsl_articles", JSON.stringify(defaultArticles));
     console.log("Initialized default articles");
+  }
+
+  // Initialize therapy programs - create default programs if none exist
+  if (!localStorage.getItem("eacsl_therapy_programs")) {
+    localStorage.setItem("eacsl_therapy_programs", JSON.stringify(defaultTherapyPrograms));
+    console.log("Initialized default therapy programs");
+  }
+
+  // Initialize for parents articles - create default articles if none exist
+  if (!localStorage.getItem("eacsl_for_parents")) {
+    localStorage.setItem("eacsl_for_parents", JSON.stringify(defaultForParentsArticles));
+    console.log("Initialized default for parents articles");
   }
 };

@@ -16,15 +16,21 @@ import {
     Calendar,
     Edit,
     Trash2,
-    Archive
+    Archive,
+    Brain,
+    MessageCircle,
+    Baby,
+    ClipboardList,
 } from "lucide-react";
-import { coursesManager, membersManager, eventsManager, articlesManager, initializeData } from '../utils/dataManager';
+import { coursesManager, membersManager, eventsManager, articlesManager, therapyProgramsManager, forParentsManager, initializeData } from '../utils/dataManager';
 import CourseCard from '../components/cards/CourseCard';
 import MemberCard from '../components/cards/MemberCard';
 import CourseEditForm from '../components/dashboard/CourseEditForm';
 import MemberEditForm from '../components/dashboard/MemberEditForm';
 import EventEditForm from '../components/dashboard/EventEditForm';
 import ArticleEditForm from '../components/dashboard/ArticleEditForm';
+import TherapyProgramEditForm from '../components/dashboard/TherapyProgramEditForm';
+import ForParentEditForm from '../components/dashboard/ForParentEditForm';
 
 // Forms manager for member applications
 const formsManager = {
@@ -921,12 +927,18 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const [editingMember, setEditingMember] = useState(null);
     const [editingEvent, setEditingEvent] = useState(null);
     const [editingArticle, setEditingArticle] = useState(null);
+    const [editingTherapyProgram, setEditingTherapyProgram] = useState(null);
+    const [editingForParent, setEditingForParent] = useState(null);
     const [isAddingCourse, setIsAddingCourse] = useState(false);
     const [isAddingMember, setIsAddingMember] = useState(false);
     const [isAddingEvent, setIsAddingEvent] = useState(false);
     const [isAddingArticle, setIsAddingArticle] = useState(false);
+    const [isAddingTherapyProgram, setIsAddingTherapyProgram] = useState(false);
+    const [isAddingForParent, setIsAddingForParent] = useState(false);
     const [events, setEvents] = useState({ upcoming: [], past: [] });
     const [articles, setArticles] = useState([]);
+    const [therapyPrograms, setTherapyPrograms] = useState([]);
+    const [forParentsArticles, setForParentsArticles] = useState([]);
     const [selectedForm, setSelectedForm] = useState(null);
     const [selectedEventRegistration, setSelectedEventRegistration] = useState(null);
     const [selectedContactForm, setSelectedContactForm] = useState(null);
@@ -945,6 +957,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             loadEvents();
         }, 100);
         loadArticles();
+        loadTherapyPrograms();
+        loadForParentsArticles();
         
         // Sync members from Supabase on initial load (silently fail if table doesn't exist)
         membersManager.syncFromSupabase().then((result) => {
@@ -984,6 +998,32 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             // Silently handle errors on initial load
             console.warn('Could not sync articles on initial load:', err);
         });
+
+        // Sync therapy programs from Supabase on initial load (silently fail if table doesn't exist)
+        therapyProgramsManager.syncFromSupabase().then((result) => {
+            if (result.synced) {
+                loadTherapyPrograms();
+            } else if (result.error?.code === 'TABLE_NOT_FOUND') {
+                // Table doesn't exist yet - this is okay, just log a warning
+                console.info('Supabase therapy programs table not found. Therapy programs will be stored locally only until the table is created.');
+            }
+        }).catch(err => {
+            // Silently handle errors on initial load
+            console.warn('Could not sync therapy programs on initial load:', err);
+        });
+
+        // Sync for parents articles from Supabase on initial load (silently fail if table doesn't exist)
+        forParentsManager.syncFromSupabase().then((result) => {
+            if (result.synced) {
+                loadForParentsArticles();
+            } else if (result.error?.code === 'TABLE_NOT_FOUND') {
+                // Table doesn't exist yet - this is okay, just log a warning
+                console.info('Supabase for parents table not found. For parents articles will be stored locally only until the table is created.');
+            }
+        }).catch(err => {
+            // Silently handle errors on initial load
+            console.warn('Could not sync for parents articles on initial load:', err);
+        });
         loadReservations();
 
         // Listen for updates
@@ -995,6 +1035,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         window.addEventListener('reservationsUpdated', handleReservationsUpdate);
         window.addEventListener('eventsUpdated', handleEventsUpdate);
         window.addEventListener('articlesUpdated', handleArticlesUpdate);
+        window.addEventListener('therapyProgramsUpdated', handleTherapyProgramsUpdate);
+        window.addEventListener('forParentsUpdated', handleForParentsUpdate);
 
         return () => {
             window.removeEventListener('coursesUpdated', handleCoursesUpdate);
@@ -1005,6 +1047,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             window.removeEventListener('reservationsUpdated', handleReservationsUpdate);
             window.removeEventListener('eventsUpdated', handleEventsUpdate);
             window.removeEventListener('articlesUpdated', handleArticlesUpdate);
+            window.removeEventListener('therapyProgramsUpdated', handleTherapyProgramsUpdate);
+            window.removeEventListener('forParentsUpdated', handleForParentsUpdate);
         };
     }, []);
 
@@ -1015,6 +1059,12 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         }
         if (activeTab === 'articles') {
             loadArticles();
+        }
+        if (activeTab === 'therapy-programs') {
+            loadTherapyPrograms();
+        }
+        if (activeTab === 'for-parents') {
+            loadForParentsArticles();
         }
     }, [activeTab]);
 
@@ -1056,9 +1106,27 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         setArticles(e.detail || []);
     };
 
+    const handleTherapyProgramsUpdate = (e) => {
+        setTherapyPrograms(e.detail || []);
+    };
+
+    const handleForParentsUpdate = (e) => {
+        setForParentsArticles(e.detail || []);
+    };
+
     const loadArticles = () => {
         const allArticles = articlesManager.getAll();
         setArticles(allArticles);
+    };
+
+    const loadTherapyPrograms = () => {
+        const allPrograms = therapyProgramsManager.getAll();
+        setTherapyPrograms(allPrograms);
+    };
+
+    const loadForParentsArticles = () => {
+        const allArticles = forParentsManager.getAll();
+        setForParentsArticles(allArticles);
     };
 
     const loadCourses = () => {
@@ -1584,11 +1652,135 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         }
     };
 
+    const handleSaveTherapyProgram = async (programData) => {
+        if (editingTherapyProgram) {
+            await therapyProgramsManager.update(editingTherapyProgram.id, programData);
+        } else {
+            await therapyProgramsManager.add(programData);
+        }
+        loadTherapyPrograms();
+        setEditingTherapyProgram(null);
+        setIsAddingTherapyProgram(false);
+    };
+
+    const handleDeleteTherapyProgram = async (id) => {
+        if (window.confirm('Are you sure you want to delete this therapy program?')) {
+            await therapyProgramsManager.delete(id);
+            loadTherapyPrograms();
+        }
+    };
+
+    const handleSyncTherapyPrograms = async () => {
+        // First, try to sync from Supabase (download)
+        const result = await therapyProgramsManager.syncFromSupabase();
+        if (result.synced) {
+            // Reload programs to reflect changes
+            loadTherapyPrograms();
+            
+            // Show detailed sync results
+            let message = `✅ Successfully synced from Supabase!\n\n`;
+            message += `📊 Supabase therapy programs: ${result.count}\n`;
+            
+            if (result.count > 0) {
+                alert(message);
+            } else {
+                // If no programs in Supabase, offer to push local programs
+                const localPrograms = therapyProgramsManager.getAll();
+                if (localPrograms.length > 0) {
+                    const pushToSupabase = window.confirm(
+                        `${message}\n\nNo therapy programs found in Supabase. Would you like to upload ${localPrograms.length} local program(s) to Supabase?`
+                    );
+                    if (pushToSupabase) {
+                        const pushResult = await therapyProgramsManager.syncToSupabase();
+                        if (pushResult.synced) {
+                            alert(`✅ Successfully uploaded ${pushResult.syncedCount} program(s) to Supabase!`);
+                            loadTherapyPrograms();
+                        } else {
+                            alert(`❌ Failed to upload programs: ${pushResult.error?.message || 'Unknown error'}`);
+                        }
+                    }
+                } else {
+                    alert(message);
+                }
+            }
+        } else {
+            // Sync failed
+            if (result.error?.code === 'TABLE_NOT_FOUND') {
+                alert(`⚠️ Therapy programs table does not exist in Supabase.\n\nPlease create it using the SQL script from THERAPY_PROGRAMS_SUPABASE_SETUP.md`);
+            } else {
+                alert(`❌ Failed to sync: ${result.error?.message || result.error?.userMessage || 'Unknown error'}`);
+            }
+        }
+    };
+
+    const handleSaveForParent = async (articleData) => {
+        if (editingForParent) {
+            await forParentsManager.update(editingForParent.id, articleData);
+        } else {
+            await forParentsManager.add(articleData);
+        }
+        loadForParentsArticles();
+        setEditingForParent(null);
+        setIsAddingForParent(false);
+    };
+
+    const handleDeleteForParent = async (id) => {
+        if (window.confirm('Are you sure you want to delete this parent article?')) {
+            await forParentsManager.delete(id);
+            loadForParentsArticles();
+        }
+    };
+
+    const handleSyncForParents = async () => {
+        // First, try to sync from Supabase (download)
+        const result = await forParentsManager.syncFromSupabase();
+        if (result.synced) {
+            // Reload articles to reflect changes
+            loadForParentsArticles();
+            
+            // Show detailed sync results
+            let message = `✅ Successfully synced from Supabase!\n\n`;
+            message += `📊 Supabase for parents articles: ${result.count}\n`;
+            
+            if (result.count > 0) {
+                alert(message);
+            } else {
+                // If no articles in Supabase, offer to push local articles
+                const localArticles = forParentsManager.getAll();
+                if (localArticles.length > 0) {
+                    const pushToSupabase = window.confirm(
+                        `${message}\n\nNo for parents articles found in Supabase. Would you like to upload ${localArticles.length} local article(s) to Supabase?`
+                    );
+                    if (pushToSupabase) {
+                        const pushResult = await forParentsManager.syncToSupabase();
+                        if (pushResult.synced) {
+                            alert(`✅ Successfully uploaded ${pushResult.syncedCount} article(s) to Supabase!`);
+                            loadForParentsArticles();
+                        } else {
+                            alert(`❌ Failed to upload articles: ${pushResult.error?.message || 'Unknown error'}`);
+                        }
+                    }
+                } else {
+                    alert(message);
+                }
+            }
+        } else {
+            // Sync failed
+            if (result.error?.code === 'TABLE_NOT_FOUND') {
+                alert(`⚠️ For parents table does not exist in Supabase.\n\nPlease create it using the SQL script from FOR_PARENTS_SUPABASE_SETUP.md`);
+            } else {
+                alert(`❌ Failed to sync: ${result.error?.message || result.error?.userMessage || 'Unknown error'}`);
+            }
+        }
+    };
+
     const menuItems = [
         { icon: BookOpen, label: "Courses", tab: "courses" },
         { icon: Users, label: "Members", tab: "members" },
         { icon: Calendar, label: "Events", tab: "events" },
         { icon: FileText, label: "Articles", tab: "articles" },
+        { icon: Brain, label: "Therapy Programs", tab: "therapy-programs" },
+        { icon: BookOpen, label: "For Parents", tab: "for-parents" },
         { icon: FileText, label: "Applications", tab: "applications" },
         { icon: Settings, label: "Settings", tab: "settings" },
     ];
@@ -1656,6 +1848,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                     activeTab === 'members' ? 'Members Management' :
                                     activeTab === 'events' ? 'Events Management' :
                                     activeTab === 'articles' ? 'Articles Management' :
+                                    activeTab === 'therapy-programs' ? 'Therapy Programs Management' :
+                                    activeTab === 'for-parents' ? 'For Parents Management' :
                                     activeTab === 'applications' ? 'All Applications' :
                                         'Settings'}
                             </h1>
@@ -1664,6 +1858,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                     activeTab === 'members' ? 'Manage all members on the website' :
                                     activeTab === 'events' ? 'Manage upcoming and past events' :
                                     activeTab === 'articles' ? 'Manage articles and resources' :
+                                    activeTab === 'therapy-programs' ? 'Manage therapy programs and services' :
+                                    activeTab === 'for-parents' ? 'Manage articles and resources for parents' :
                                     activeTab === 'applications' ? 'Review and manage all form submissions' :
                                         'Dashboard settings and configuration'}
                             </p>
@@ -1685,6 +1881,58 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 <Plus size={20} />
                                 Add Member
                             </button>
+                        )}
+                        {activeTab === 'therapy-programs' && (
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={loadTherapyPrograms}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                    title="Refresh Therapy Programs"
+                                >
+                                    <RefreshCw size={18} />
+                                </button>
+                                <button
+                                    onClick={handleSyncTherapyPrograms}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                                    title="Sync from Supabase"
+                                >
+                                    <RefreshCw size={18} />
+                                    Sync
+                                </button>
+                                <button
+                                    onClick={() => setIsAddingTherapyProgram(true)}
+                                    className="flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors shadow-md"
+                                >
+                                    <Plus size={20} />
+                                    Add Program
+                                </button>
+                            </div>
+                        )}
+                        {activeTab === 'for-parents' && (
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={loadForParentsArticles}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                    title="Refresh For Parents Articles"
+                                >
+                                    <RefreshCw size={18} />
+                                </button>
+                                <button
+                                    onClick={handleSyncForParents}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                                    title="Sync from Supabase"
+                                >
+                                    <RefreshCw size={18} />
+                                    Sync
+                                </button>
+                                <button
+                                    onClick={() => setIsAddingForParent(true)}
+                                    className="flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors shadow-md"
+                                >
+                                    <Plus size={20} />
+                                    Add Article
+                                </button>
+                            </div>
                         )}
                         {activeTab === 'events' && (
                             <div className="flex items-center gap-3">
@@ -2143,6 +2391,235 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                     <p className="text-gray-600 mb-4">Get started by adding your first article</p>
                                     <button
                                         onClick={() => setIsAddingArticle(true)}
+                                        className="px-6 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                    >
+                                        Add Article
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Therapy Programs Tab */}
+                    {activeTab === 'therapy-programs' && (
+                        <div>
+                            {/* Header with Add Button */}
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-900">Therapy Programs</h2>
+                                    <p className="text-sm text-gray-600 mt-1">Manage therapy programs and services</p>
+                                </div>
+                                <button
+                                    onClick={() => setIsAddingTherapyProgram(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                >
+                                    <Plus size={20} />
+                                    Add Program
+                                </button>
+                            </div>
+
+                            {/* Stats */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div className="bg-white p-4 rounded-lg shadow-sm">
+                                    <p className="text-sm text-gray-600">Total Programs</p>
+                                    <p className="text-2xl font-bold text-gray-900">{therapyPrograms.length}</p>
+                                </div>
+                                <div className="bg-white p-4 rounded-lg shadow-sm">
+                                    <p className="text-sm text-gray-600 mb-2">Actions</p>
+                                    <div className="flex flex-col gap-2">
+                                        <button
+                                            onClick={handleSyncTherapyPrograms}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178]"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Sync from Supabase
+                                        </button>
+                                        <button
+                                            onClick={loadTherapyPrograms}
+                                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh Local
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Programs Grid */}
+                            {therapyPrograms.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {therapyPrograms.map((program) => {
+                                        const iconMap = {
+                                            MessageCircle: MessageCircle,
+                                            Users: Users,
+                                            Baby: Baby,
+                                            Brain: Brain,
+                                            ClipboardList: ClipboardList,
+                                        };
+                                        const Icon = iconMap[program.icon] || MessageCircle;
+                                        
+                                        return (
+                                            <div key={program.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
+                                                {program.image && (
+                                                    <div className="aspect-video bg-gray-100 overflow-hidden">
+                                                        <img
+                                                            src={program.image || program.imageUrl}
+                                                            alt={program.title}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </div>
+                                                )}
+                                                <div className="p-4">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <div className="p-2 bg-teal-50 rounded-full">
+                                                            <Icon className="w-5 h-5 text-[#4C9A8F]" />
+                                                        </div>
+                                                    </div>
+                                                    <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2" dir="rtl">
+                                                        {program.title}
+                                                    </h3>
+                                                    <p className="text-gray-600 text-sm mb-3 line-clamp-3" dir="rtl">
+                                                        {program.description}
+                                                    </p>
+                                                    <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
+                                                        <button
+                                                            onClick={() => setEditingTherapyProgram(program)}
+                                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors text-sm font-medium"
+                                                        >
+                                                            <Edit size={16} />
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteTherapyProgram(program.id)}
+                                                            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                                                            title="Delete Program"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                                    <Brain className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Therapy Programs Yet</h3>
+                                    <p className="text-gray-600 mb-4">Get started by adding your first therapy program</p>
+                                    <button
+                                        onClick={() => setIsAddingTherapyProgram(true)}
+                                        className="px-6 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                    >
+                                        Add Program
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* For Parents Tab */}
+                    {activeTab === 'for-parents' && (
+                        <div>
+                            {/* Header with Add Button */}
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-900">For Parents Articles</h2>
+                                    <p className="text-sm text-gray-600 mt-1">Manage articles and resources for parents</p>
+                                </div>
+                                <button
+                                    onClick={() => setIsAddingForParent(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                >
+                                    <Plus size={20} />
+                                    Add Article
+                                </button>
+                            </div>
+
+                            {/* Stats */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div className="bg-white p-4 rounded-lg shadow-sm">
+                                    <p className="text-sm text-gray-600">Total Articles</p>
+                                    <p className="text-2xl font-bold text-gray-900">{forParentsArticles.length}</p>
+                                </div>
+                                <div className="bg-white p-4 rounded-lg shadow-sm">
+                                    <p className="text-sm text-gray-600 mb-2">Actions</p>
+                                    <div className="flex flex-col gap-2">
+                                        <button
+                                            onClick={handleSyncForParents}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178]"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Sync from Supabase
+                                        </button>
+                                        <button
+                                            onClick={loadForParentsArticles}
+                                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh Local
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Articles Grid */}
+                            {forParentsArticles.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {forParentsArticles.map((article) => (
+                                        <div key={article.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
+                                            {article.image && (
+                                                <div className="aspect-video bg-gray-100 overflow-hidden">
+                                                    <img
+                                                        src={article.image || article.imageUrl}
+                                                        alt={article.title}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                            )}
+                                            <div className="p-4">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <div className="p-2 bg-teal-50 rounded-full">
+                                                        <BookOpen className="w-5 h-5 text-[#4C9A8F]" />
+                                                    </div>
+                                                </div>
+                                                <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2" dir="rtl">
+                                                    {article.title}
+                                                </h3>
+                                                <p className="text-gray-600 text-sm mb-3 line-clamp-2" dir="rtl">
+                                                    {article.excerpt}
+                                                </p>
+                                                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                                                    <span>{article.author}</span>
+                                                    <span>{article.date}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
+                                                    <button
+                                                        onClick={() => setEditingForParent(article)}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors text-sm font-medium"
+                                                    >
+                                                        <Edit size={16} />
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteForParent(article.id)}
+                                                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                                                        title="Delete Article"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                                    <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No For Parents Articles Yet</h3>
+                                    <p className="text-gray-600 mb-4">Get started by adding your first article for parents</p>
+                                    <button
+                                        onClick={() => setIsAddingForParent(true)}
                                         className="px-6 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
                                     >
                                         Add Article
@@ -2768,6 +3245,30 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                     onCancel={() => {
                         setEditingArticle(null);
                         setIsAddingArticle(false);
+                    }}
+                />
+            )}
+
+            {/* Therapy Program Edit Form */}
+            {(isAddingTherapyProgram || editingTherapyProgram) && (
+                <TherapyProgramEditForm
+                    program={editingTherapyProgram}
+                    onSave={handleSaveTherapyProgram}
+                    onCancel={() => {
+                        setEditingTherapyProgram(null);
+                        setIsAddingTherapyProgram(false);
+                    }}
+                />
+            )}
+
+            {/* For Parent Edit Form */}
+            {(isAddingForParent || editingForParent) && (
+                <ForParentEditForm
+                    article={editingForParent}
+                    onSave={handleSaveForParent}
+                    onCancel={() => {
+                        setEditingForParent(null);
+                        setIsAddingForParent(false);
                     }}
                 />
             )}
