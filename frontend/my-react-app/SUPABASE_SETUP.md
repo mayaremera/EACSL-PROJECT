@@ -31,6 +31,11 @@ CREATE TABLE IF NOT EXISTS members (
   website TEXT,
   linkedin TEXT,
   image TEXT,
+  total_money_spent TEXT DEFAULT '0 EGP',
+  courses_enrolled INTEGER DEFAULT 0,
+  total_hours_learned INTEGER DEFAULT 0,
+  active_courses JSONB DEFAULT '[]'::jsonb,
+  completed_courses JSONB DEFAULT '[]'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -161,4 +166,24 @@ If you have members stored locally (in localStorage):
 1. Go to Dashboard
 2. Click "Sync from Supabase" - this will upload your local members to Supabase
 3. Note: This only works if members don't already exist in Supabase (based on email or ID)
+
+## Migration: Adding Continuing Education Fields
+
+If you already have the `members` table created and need to add the continuing education fields, run this migration script in your Supabase SQL Editor:
+
+```sql
+-- Add continuing education columns to existing members table
+ALTER TABLE members 
+ADD COLUMN IF NOT EXISTS total_money_spent TEXT DEFAULT '0 EGP',
+ADD COLUMN IF NOT EXISTS courses_enrolled INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS total_hours_learned INTEGER DEFAULT 0,
+ADD COLUMN IF NOT EXISTS active_courses JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN IF NOT EXISTS completed_courses JSONB DEFAULT '[]'::jsonb;
+```
+
+After running this migration:
+1. The new columns will be added to your existing table
+2. All existing members will have default values (0 EGP, 0 courses, empty arrays)
+3. You can now edit members in the Dashboard to add continuing education data
+4. The data will sync properly between local storage and Supabase
 

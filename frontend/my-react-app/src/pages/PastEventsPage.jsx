@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Users, Award, BookOpen, MapPin, Clock, X } from 'lucide-react';
 import { eventsManager } from '../utils/dataManager';
+import PageHero from '../components/ui/PageHero';
+import Breadcrumbs from '../components/ui/Breadcrumbs';
 
 export default function PastEventsPage() {
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -31,27 +33,14 @@ export default function PastEventsPage() {
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Hero Section */}
-        <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center">
-              <h1 className="text-4xl md:text-5xl font-bold mb-4">Past Events</h1>
-              <p className="text-lg md:text-xl text-teal-50 max-w-2xl mx-auto">
-                Explore our previous conferences, programs, and professional development events
-              </p>
-            </div>
-          </div>
-        </div>
+        <PageHero
+          title="Past Events"
+          subtitle="Explore our previous conferences, programs, and professional development events"
+          icon={<Calendar className="w-12 h-12" />}
+        />
 
         {/* Breadcrumb */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div className="flex items-center text-sm text-gray-600">
-              <a href="#" className="hover:text-[#4C9A8F] transition-colors">Home</a>
-              <span className="mx-2">/</span>
-              <span className="text-gray-900 font-medium">Past Events</span>
-            </div>
-          </div>
-        </div>
+        <Breadcrumbs items={[{ label: 'Events', path: '/upcoming-events' }, { label: 'Past Events' }]} />
 
         {/* Empty State */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -70,27 +59,14 @@ export default function PastEventsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Past Events</h1>
-            <p className="text-lg md:text-xl text-teal-50 max-w-2xl mx-auto">
-              Explore our previous conferences, programs, and professional development events
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHero
+        title="Past Events"
+        subtitle="Explore our previous conferences, programs, and professional development events"
+        icon={<Calendar className="w-12 h-12" />}
+      />
 
       {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center text-sm text-gray-600">
-            <a href="#" className="hover:text-[#4C9A8F] transition-colors">Home</a>
-            <span className="mx-2">/</span>
-            <span className="text-gray-900 font-medium">Past Events</span>
-          </div>
-        </div>
-      </div>
+      <Breadcrumbs items={[{ label: 'Past Events' }]} />
 
       {/* Events List */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Clock, Users, DollarSign, CheckCircle, User, Mail, Phone, Building2 } from 'lucide-react';
 import { eventsManager } from '../utils/dataManager';
+import PageHero from '../components/ui/PageHero';
+import Breadcrumbs from '../components/ui/Breadcrumbs';
 
 const UpcomingEventsPage = () => {
   const { eventId } = useParams();
@@ -241,17 +243,7 @@ const UpcomingEventsPage = () => {
       </div>
 
       {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center text-sm text-gray-600">
-            <a href="#" className="hover:text-[#4C9A8F] transition-colors">Home</a>
-            <span className="mx-2">/</span>
-            <a href="#" className="hover:text-[#4C9A8F] transition-colors">Events</a>
-            <span className="mx-2">/</span>
-            <span className="text-gray-900 font-medium">Conference Schedule</span>
-          </div>
-        </div>
-      </div>
+      <Breadcrumbs items={[{ label: eventData.title || 'Conference Schedule' }]} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

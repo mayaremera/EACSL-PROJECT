@@ -101,7 +101,8 @@ function ContinuingEducationMember() {
           image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.1.0&auto=format&fit=crop&q=60&w=600',
           coursesEnrolled: 0,
           coursesCompleted: 0,
-          activeCourses: 0,
+          activeCourses: [],
+          completedCourses: [],
           totalHoursLearned: 0,
           totalMoneySpent: "0 EGP",
           ceUnitsLeft: 0
@@ -204,6 +205,10 @@ function ContinuingEducationMember() {
     memberSince: member.membershipDate || '',
   };
 
+  // Get active and completed courses from member data
+  const activeCourses = Array.isArray(member.activeCourses) ? member.activeCourses : [];
+  const completedCourses = Array.isArray(member.completedCourses) ? member.completedCourses : [];
+
   // Map member data to accountData format for stats
   const accountData = {
     name: member.name || '',
@@ -213,70 +218,14 @@ function ContinuingEducationMember() {
     memberSince: member.membershipDate || '',
     specialty: member.role || '',
     image: member.image || '',
-    coursesEnrolled: member.coursesEnrolled || 0,
-    coursesCompleted: member.coursesCompleted || 0,
-    activeCourses: member.activeCourses || 0,
+    coursesEnrolled: member.coursesEnrolled || activeCourses.length + completedCourses.length || 0,
+    coursesCompleted: member.coursesCompleted !== undefined ? member.coursesCompleted : completedCourses.length,
+    activeCourses: activeCourses.length,
     totalHoursLearned: member.totalHoursLearned || 0,
     totalMoneySpent: member.totalMoneySpent || "0 EGP",
     certificatesEarned: member.certificates?.length || 0,
     ceUnitsLeft: member.ceUnitsLeft || 0
   };
-
-  const activeCourses = [
-    {
-      id: 1,
-      titleAr: "أساسيات علاج النطق واللغة",
-      titleEn: "Fundamentals of Speech and Language Therapy",
-      image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80",
-      instructor: "Dr. Sarah Ahmed",
-      instructorImage: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop",
-      lessonsCompleted: 16,
-      totalLessons: 24,
-      hoursCompleted: 12,
-      totalHours: 18,
-      dueDate: "Dec 15, 2024",
-      price: "2,500 EGP"
-    },
-    {
-      id: 2,
-      titleAr: "اضطرابات طيف التوحد: التقييم والتدخل",
-      titleEn: "Autism Spectrum Disorders: Assessment & Intervention",
-      image: "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=600&q=80",
-      instructor: "Dr. Mohamed Hassan",
-      instructorImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop",
-      lessonsCompleted: 12,
-      totalLessons: 30,
-      hoursCompleted: 8,
-      totalHours: 20,
-      dueDate: "Jan 10, 2025",
-      price: "3,200 EGP"
-    }
-  ];
-
-  const completedCourses = [
-    {
-      id: 5,
-      titleAr: "تطور اللغة عند الأطفال",
-      titleEn: "Child Language Development",
-      image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&q=80",
-      instructor: "Dr. Fatima Khaled",
-      completedDate: "Oct 15, 2024",
-      totalHours: 12,
-      certificate: true,
-      price: "2,300 EGP"
-    },
-    {
-      id: 6,
-      titleAr: "اضطرابات الصوت والحنجرة",
-      titleEn: "Voice and Laryngeal Disorders",
-      image: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=600&q=80",
-      instructor: "Dr. Karim Nasser",
-      completedDate: "Sep 20, 2024",
-      totalHours: 14,
-      certificate: true,
-      price: "3,000 EGP"
-    }
-  ];
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -472,67 +421,105 @@ function ContinuingEducationMember() {
         {/* Active Courses */}
         {activeTab === 'active' && (
           <div className="pb-12">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {activeCourses.map((course) => (
+            {activeCourses.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+                <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-gray-900 mb-2">No Active Courses</h3>
+                <p className="text-gray-600">You don't have any active courses yet. Contact an administrator to enroll in courses.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {activeCourses.map((course) => (
                 <div key={course.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                   <div className="flex flex-col sm:flex-row gap-4 p-5">
                     <div className="w-full sm:w-32 h-32 flex-shrink-0 rounded-lg overflow-hidden">
-                      <img 
-                        src={course.image} 
-                        alt={course.titleEn}
-                        className="w-full h-full object-cover"
-                      />
+                      {course.image ? (
+                        <img 
+                          src={course.image} 
+                          alt={course.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                          <BookOpen className="w-8 h-8 text-gray-400" />
+                        </div>
+                      )}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-1">
-                        {course.titleAr}
+                        {course.title}
                       </h3>
                       <p className="text-sm text-gray-600 mb-3 line-clamp-1">
-                        {course.titleEn}
+                        {course.category} • {course.level}
                       </p>
 
-                      <div className="grid grid-cols-2 gap-3 mb-3">
-                        <div className="flex items-center gap-2 text-xs text-gray-600">
-                          <BookOpen className="w-4 h-4 text-[#4C9A8F]" />
-                          <span>{course.lessonsCompleted}/{course.totalLessons} Lessons</span>
+                      {course.lessons && (
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                          <div className="flex items-center gap-2 text-xs text-gray-600">
+                            <BookOpen className="w-4 h-4 text-[#4C9A8F]" />
+                            <span>{course.lessons} Lessons</span>
+                          </div>
+                          {course.duration && (
+                            <div className="flex items-center gap-2 text-xs text-gray-600">
+                              <Clock className="w-4 h-4 text-[#4C9A8F]" />
+                              <span>{course.duration}</span>
+                            </div>
+                          )}
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-gray-600">
-                          <Clock className="w-4 h-4 text-[#4C9A8F]" />
-                          <span>{course.hoursCompleted}/{course.totalHours}h</span>
-                        </div>
-                      </div>
+                      )}
 
                       <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                        <div className="flex items-center gap-2">
-                          <img 
-                            src={course.instructorImage} 
-                            alt={course.instructor}
-                            className="w-6 h-6 rounded-full object-cover"
-                          />
-                          <span className="text-xs text-gray-600">{course.instructor}</span>
-                        </div>
+                        {course.instructor && (
+                          <div className="flex items-center gap-2">
+                            {course.instructorImage && (
+                              <img 
+                                src={course.instructorImage} 
+                                alt={course.instructor}
+                                className="w-6 h-6 rounded-full object-cover"
+                              />
+                            )}
+                            <span className="text-xs text-gray-600">{course.instructor}</span>
+                          </div>
+                        )}
+                        {course.price && (
+                          <span className="text-xs font-semibold text-gray-900">{course.price}</span>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* Completed Courses */}
         {activeTab === 'completed' && (
           <div className="pb-12">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {completedCourses.map((course) => (
+            {completedCourses.length === 0 ? (
+              <div className="bg-white rounded-xl shadow-sm p-12 text-center">
+                <CheckCircle className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-gray-900 mb-2">No Completed Courses</h3>
+                <p className="text-gray-600">You haven't completed any courses yet. Complete your active courses to see them here.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {completedCourses.map((course) => (
                 <div key={course.id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden">
                   <div className="relative h-40 overflow-hidden">
-                    <img 
-                      src={course.image} 
-                      alt={course.titleEn}
-                      className="w-full h-full object-cover"
-                    />
+                    {course.image ? (
+                      <img 
+                        src={course.image} 
+                        alt={course.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                        <BookOpen className="w-12 h-12 text-gray-400" />
+                      </div>
+                    )}
                     <div className="absolute top-3 right-3">
                       <div className="bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
                         <CheckCircle className="w-3 h-3" />
@@ -543,35 +530,40 @@ function ContinuingEducationMember() {
 
                   <div className="p-5">
                     <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-1">
-                      {course.titleAr}
+                      {course.title}
                     </h3>
                     <p className="text-sm text-gray-600 mb-4 line-clamp-1">
-                      {course.titleEn}
+                      {course.category} • {course.level}
                     </p>
 
-                    <div className="bg-purple-50 rounded-lg p-3 text-center mb-4">
-                      <p className="text-xs text-gray-600 mb-1">Hours</p>
-                      <p className="text-xl font-bold text-purple-600">{course.totalHours}h</p>
-                    </div>
+                    {course.duration && (
+                      <div className="bg-purple-50 rounded-lg p-3 text-center mb-4">
+                        <p className="text-xs text-gray-600 mb-1">Duration</p>
+                        <p className="text-xl font-bold text-purple-600">{course.duration}</p>
+                      </div>
+                    )}
 
                     <div className="flex items-center justify-between text-xs text-gray-600 mb-4">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5" />
-                        <span>{course.completedDate}</span>
-                      </div>
-                      <span className="font-semibold text-gray-900">{course.price}</span>
+                      {course.completedDate && (
+                        <div className="flex items-center gap-1">
+                          <Calendar className="w-3.5 h-3.5" />
+                          <span>{new Date(course.completedDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
+                        </div>
+                      )}
+                      {course.price && (
+                        <span className="font-semibold text-gray-900">{course.price}</span>
+                      )}
                     </div>
 
-                    {course.certificate && (
-                      <button className="w-full bg-[#4C9A8F] hover:bg-[#3d8178] text-white py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2">
-                        <Download className="w-4 h-4" />
-                        Download Certificate
-                      </button>
-                    )}
+                    <button className="w-full bg-[#4C9A8F] hover:bg-[#3d8178] text-white py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2">
+                      <Download className="w-4 h-4" />
+                      Download Certificate
+                    </button>
                   </div>
                 </div>
               ))}
-            </div>
+              </div>
+            )}
           </div>
         )}
       </div>

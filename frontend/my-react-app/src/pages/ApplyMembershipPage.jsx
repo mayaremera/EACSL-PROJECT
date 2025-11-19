@@ -1,6 +1,9 @@
 import React, { useRef } from 'react';
 import Header from '../components/layout/Header'
 import BecomeMemberForm from '../components/forms/BecomeMemberForm';
+import PageHero from '../components/ui/PageHero';
+import Breadcrumbs from '../components/ui/Breadcrumbs';
+import { UserPlus } from 'lucide-react';
 
 const ApplyMembershipPage = () => {
 
@@ -334,28 +337,15 @@ const ApplyMembershipPage = () => {
   return (
 
     <div className="min-h-screen bg-white">
-{/* Hero Section */}
-    <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Apply for Membership</h1>
-            <p className="text-lg md:text-xl text-teal-50 max-w-2xl mx-auto">
-              Explore moments from our events, educational programs, and community activities
-            </p>
-          </div>
-        </div>
-      </div>
+      {/* Hero Section */}
+      <PageHero
+        title="Apply for Membership"
+        subtitle="Join our professional community and become part of EACSL"
+        icon={<UserPlus className="w-12 h-12" />}
+      />
 
       {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center text-sm text-gray-600">
-            <a href="#" className="hover:text-[#4C9A8F] transition-colors">Home</a>
-            <span className="mx-2">/</span>
-            <span className="text-gray-900 font-medium">Apply for Membership</span>
-          </div>
-        </div>
-      </div>
+      <Breadcrumbs items={[{ label: 'Become a Member' }]} />
       
 
       {/* Form Container with Background */}

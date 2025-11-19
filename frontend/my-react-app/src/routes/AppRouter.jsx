@@ -46,19 +46,13 @@ function AppRouter() {
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/past-events" element={<PastEvents />} />
-          <Route path="/speakers" element={<SpeakersPage />} />
-          <Route path="/scientific-committee" element={<ScientificCommitteePage />} />
-          <Route path="/organizing-committee" element={<OrganizingCommitteePage />} />
-          <Route path="/seminars" element={<SeminarsPage />} />
           <Route path="/registration" element={<RegistrationPage />} />
           <Route path="/gallery" element={<GalleryPage />} />
-          <Route path="/education" element={<EducationPage />} />
           <Route path="/online-courses" element={<OnlineCoursesPage />} />
           <Route path="/articles" element={<ArticlesPage />} />
           <Route path="/members-overview" element={<MembersOverviewPage />} />
           <Route path="/apply-membership" element={<ApplyMembershipPage />} />
           <Route path="/active-members" element={<ActiveMembersPage />} />
-          <Route path="/services" element={<ServicesPage/>} />
           <Route path="/therapy-programs" element={<TherapyPrograms />} />
           <Route path="/for-parents" element={<ForParentsPage />} />
           <Route path="/reservation" element={<ReservationPage />} />

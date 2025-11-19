@@ -4,6 +4,8 @@ import { BookOpen, X, Clock, Users, Search, ChevronDown, ArrowRight, Filter } fr
 import { getCategories, getLevels } from '../data/courses';
 import { coursesManager } from '../utils/dataManager';
 import CourseCard from '../components/cards/CourseCard';
+import PageHero from '../components/ui/PageHero';
+import Breadcrumbs from '../components/ui/Breadcrumbs';
 
 const OnlineCoursesPage = () => {
   const navigate = useNavigate();
@@ -69,30 +71,14 @@ const OnlineCoursesPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-12">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="flex justify-center mb-3">
-              <BookOpen className="w-12 h-12" />
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">Online Courses</h1>
-            <p className="text-base text-teal-50">
-              Professional Development Courses
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHero
+        title="Online Courses"
+        subtitle="Professional Development Courses"
+        icon={<BookOpen className="w-12 h-12" />}
+      />
 
       {/* Breadcrumb */}
-      <div className="bg-white border-b">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-          <div className="flex items-center text-sm text-gray-600">
-            <a href="#" className="hover:text-[#4C9A8F]">Home</a>
-            <span className="mx-2">/</span>
-            <span className="text-gray-900">Courses</span>
-          </div>
-        </div>
-      </div>
+      <Breadcrumbs items={[{ label: 'Education', path: '/education' }, { label: 'Online Courses' }]} />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search and Filters */}

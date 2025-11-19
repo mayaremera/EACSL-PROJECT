@@ -1,7 +1,11 @@
 import React, { useState } from 'react';
 import { MapPin, Phone, Mail, Clock, Send, ArrowLeft, CheckCircle } from 'lucide-react';
+import PageHero from '../components/ui/PageHero';
+import Breadcrumbs from '../components/ui/Breadcrumbs';
+import { useNavigate } from 'react-router-dom';
 
 const ReservationPage = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     kidsName: '',
     yourName: '',
@@ -145,29 +149,13 @@ const ReservationPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Book an Assessment</h1>
-          <p className="text-lg md:text-xl text-teal-50 max-w-2xl mx-auto">
-            Schedule your appointment with our professional team
-          </p>
-        </div>
-      </div>
+      <PageHero
+        title="Book an Assessment"
+        subtitle="Schedule your appointment with our professional team"
+      />
 
       {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center text-sm text-gray-600">
-            <a href="#" className="hover:text-[#4C9A8F] transition-colors">Home</a>
-            <span className="mx-2">/</span>
-            <span className="text-gray-900 font-medium">Reservation</span>
-          </div>
-          <button className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] font-semibold transition-colors">
-            <ArrowLeft size={16} />
-            Back to Services
-          </button>
-        </div>
-      </div>
+      <Breadcrumbs items={[{ label: 'Services', path: '/services' }, { label: 'Reservation' }]} />
 
       {/* Office Info Cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">

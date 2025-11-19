@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Loader, Upload, Check, AlertCircle } from 'lucide-react';
-import { membersManager } from '../../utils/dataManager';
+import { X, Save, Loader, Upload, Check, AlertCircle, BookOpen, Plus, Trash2 } from 'lucide-react';
+import { membersManager, coursesManager } from '../../utils/dataManager';
 
 const MemberEditForm = ({ member, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -24,6 +24,9 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
   const [imagePreview, setImagePreview] = useState(null);
   const [emailExistsError, setEmailExistsError] = useState(null); // null, 'member', or 'pending'
   const [createAuthAccount, setCreateAuthAccount] = useState(false); // Checkbox for creating auth account
+  const [availableCourses, setAvailableCourses] = useState([]);
+  const [selectedActiveCourse, setSelectedActiveCourse] = useState('');
+  const [selectedCompletedCourse, setSelectedCompletedCourse] = useState('');
 
   // Cleanup object URLs on unmount
   useEffect(() => {
@@ -65,7 +68,12 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         location: member.location || '',
         website: member.website || '',
         linkedin: member.linkedin || '',
-        image: member.image || ''
+        image: member.image || '',
+        totalMoneySpent: member.totalMoneySpent || '0 EGP',
+        coursesEnrolled: member.coursesEnrolled || 0,
+        totalHoursLearned: member.totalHoursLearned || 0,
+        activeCourses: member.activeCourses || [],
+        completedCourses: member.completedCourses || []
       });
       setEmailExistsError(null); // Reset error when editing existing member
     } else {
@@ -83,11 +91,22 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         location: '',
         website: '',
         linkedin: '',
-        image: ''
+        image: '',
+        totalMoneySpent: '0 EGP',
+        coursesEnrolled: 0,
+        totalHoursLearned: 0,
+        activeCourses: [],
+        completedCourses: []
       });
       setEmailExistsError(null); // Reset error when adding new member
     }
   }, [member]);
+
+  // Load available courses
+  useEffect(() => {
+    const courses = coursesManager.getAll();
+    setAvailableCourses(courses);
+  }, []);
 
   const roles = ['Board Member', 'Vice President', 'Secretary General', 'Treasurer', 'Research Director', 'Member'];
 
@@ -95,7 +114,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : (type === 'number' ? (value === '' ? 0 : parseFloat(value) || 0) : value)
     }));
     // Reset email error when email changes
     if (name === 'email') {
@@ -117,6 +136,46 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
     setFormData(prev => ({
       ...prev,
       certificates: prev.certificates.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleAddActiveCourse = () => {
+    if (selectedActiveCourse) {
+      const course = availableCourses.find(c => c.id === parseInt(selectedActiveCourse));
+      if (course && !(formData.activeCourses || []).some(ac => ac.id === course.id)) {
+        setFormData(prev => ({
+          ...prev,
+          activeCourses: [...(prev.activeCourses || []), { ...course, enrolledDate: new Date().toISOString() }]
+        }));
+        setSelectedActiveCourse('');
+      }
+    }
+  };
+
+  const handleRemoveActiveCourse = (courseId) => {
+    setFormData(prev => ({
+      ...prev,
+      activeCourses: (prev.activeCourses || []).filter(ac => ac.id !== courseId)
+    }));
+  };
+
+  const handleAddCompletedCourse = () => {
+    if (selectedCompletedCourse) {
+      const course = availableCourses.find(c => c.id === parseInt(selectedCompletedCourse));
+      if (course && !(formData.completedCourses || []).some(cc => cc.id === course.id)) {
+        setFormData(prev => ({
+          ...prev,
+          completedCourses: [...(prev.completedCourses || []), { ...course, completedDate: new Date().toISOString() }]
+        }));
+        setSelectedCompletedCourse('');
+      }
+    }
+  };
+
+  const handleRemoveCompletedCourse = (courseId) => {
+    setFormData(prev => ({
+      ...prev,
+      completedCourses: (prev.completedCourses || []).filter(cc => cc.id !== courseId)
     }));
   };
 
@@ -253,6 +312,11 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         website: formData.website || '',
         linkedin: formData.linkedin || '',
         image: imageDataUrl,
+        totalMoneySpent: formData.totalMoneySpent || '0 EGP',
+        coursesEnrolled: formData.coursesEnrolled || 0,
+        totalHoursLearned: formData.totalHoursLearned || 0,
+        activeCourses: formData.activeCourses || [],
+        completedCourses: formData.completedCourses || [],
         createAuthAccount: !member && createAuthAccount // Only for new members
       };
       await onSave(dataToSave);
@@ -622,6 +686,189 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                     </button>
                   </div>
                 ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Continuing Education Section */}
+          <div className="border-t border-gray-200 pt-6">
+            <div className="flex items-center gap-2 mb-6">
+              <BookOpen className="w-5 h-5 text-[#4C9A8F]" />
+              <h3 className="text-xl font-bold text-gray-900">Continuing Education</h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+              {/* Money Spent */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Money Spent
+                </label>
+                <input
+                  type="text"
+                  name="totalMoneySpent"
+                  value={formData.totalMoneySpent}
+                  onChange={handleChange}
+                  placeholder="0 EGP"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                />
+              </div>
+
+              {/* Courses Enrolled */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Courses Enrolled
+                </label>
+                <input
+                  type="number"
+                  name="coursesEnrolled"
+                  value={formData.coursesEnrolled}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                />
+              </div>
+
+              {/* Hours Learned */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Hours Learned
+                </label>
+                <input
+                  type="number"
+                  name="totalHoursLearned"
+                  value={formData.totalHoursLearned}
+                  onChange={handleChange}
+                  min="0"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Active Courses */}
+            <div className="mb-6">
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Active Courses
+              </label>
+              <div className="flex gap-2 mb-3">
+                <select
+                  value={selectedActiveCourse}
+                  onChange={(e) => setSelectedActiveCourse(e.target.value)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                >
+                  <option value="">Select a course to add...</option>
+                  {availableCourses
+                    .filter(course => !(formData.activeCourses || []).some(ac => ac.id === course.id))
+                    .map(course => (
+                      <option key={course.id} value={course.id}>
+                        {course.title}
+                      </option>
+                    ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleAddActiveCourse}
+                  disabled={!selectedActiveCourse}
+                  className="px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add
+                </button>
+              </div>
+              <div className="space-y-2">
+                {(formData.activeCourses || []).map((course) => (
+                  <div key={course.id} className="flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <div className="flex items-center gap-3 flex-1">
+                      {course.image && (
+                        <img 
+                          src={course.image} 
+                          alt={course.title}
+                          className="w-12 h-12 object-cover rounded"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">{course.title}</p>
+                        <p className="text-xs text-gray-600">{course.category} • {course.level}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveActiveCourse(course.id)}
+                      className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded transition-colors"
+                      title="Remove course"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                {(!formData.activeCourses || formData.activeCourses.length === 0) && (
+                  <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
+                    No active courses. Add courses from the dropdown above.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Completed Courses */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-3">
+                Completed Courses
+              </label>
+              <div className="flex gap-2 mb-3">
+                <select
+                  value={selectedCompletedCourse}
+                  onChange={(e) => setSelectedCompletedCourse(e.target.value)}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                >
+                  <option value="">Select a course to add...</option>
+                  {availableCourses
+                    .filter(course => !(formData.completedCourses || []).some(cc => cc.id === course.id))
+                    .map(course => (
+                      <option key={course.id} value={course.id}>
+                        {course.title}
+                      </option>
+                    ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={handleAddCompletedCourse}
+                  disabled={!selectedCompletedCourse}
+                  className="px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add
+                </button>
+              </div>
+              <div className="space-y-2">
+                {(formData.completedCourses || []).map((course) => (
+                  <div key={course.id} className="flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200">
+                    <div className="flex items-center gap-3 flex-1">
+                      {course.image && (
+                        <img 
+                          src={course.image} 
+                          alt={course.title}
+                          className="w-12 h-12 object-cover rounded"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">{course.title}</p>
+                        <p className="text-xs text-gray-600">{course.category} • {course.level}</p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveCompletedCourse(course.id)}
+                      className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded transition-colors"
+                      title="Remove course"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+                {(!formData.completedCourses || formData.completedCourses.length === 0) && (
+                  <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
+                    No completed courses. Add courses from the dropdown above.
+                  </p>
+                )}
               </div>
             </div>
           </div>
