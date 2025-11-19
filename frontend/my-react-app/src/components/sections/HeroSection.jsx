@@ -6,7 +6,9 @@ import MohamedGweda from "../../assets/mohamedgwida.png";
 import Booklet from "../../assets/booklet.png";
 import { eventsManager } from "../../utils/dataManager";
 
-// EventCard component embedded
+// ----------------------------
+// Event Card (unchanged)
+// ----------------------------
 const EventCard = () => {
   const [eventData, setEventData] = useState(null);
 
@@ -56,7 +58,7 @@ const EventCard = () => {
   const eventSubtitle = eventData?.subtitle || "Speech Language Pathology International Program";
 
   return (
-    <div className="w-full max-w-[460px] bg-white rounded-3xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-300 p-6">
+    <div className="w-full max-w-[500px] bg-white rounded-3xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-300 p-6">
       {/* Image Section */}
       <div className="relative">
         <img
@@ -85,6 +87,7 @@ const EventCard = () => {
           </div>
         </div>
       </div>
+
       {/* Content Section */}
       <div className="pt-6">
         {/* Title */}
@@ -104,7 +107,7 @@ const EventCard = () => {
             <img
               src={WaelAlDakroury}
               alt="Wael AlDakroury"
-              className="w-9 h-9 rounded-full object-cover flex-shrink-0"
+              className="w-9 h-9 rounded-full object-cover object-top flex-shrink-0"
             />
             <div className="min-w-0">
               <div className="text-[0.8rem] md:text-sm font-bold text-black whitespace-nowrap">
@@ -121,7 +124,7 @@ const EventCard = () => {
             <img
               src={OsamaElsayed}
               alt="Osama Elsayed"
-              className="w-9 h-9 rounded-full object-cover"
+              className="w-9 h-9 rounded-full object-cover object-top"
             />
             <div>
               <div className="text-[0.8rem] md:text-sm font-bold text-black">
@@ -138,7 +141,7 @@ const EventCard = () => {
             <img
               src={SaharAAlsamahi}
               alt="Sahar A.Alsamahi"
-              className="w-9 h-9 rounded-full object-cover"
+              className="w-9 h-9 rounded-full object-cover object-top"
             />
             <div>
               <div className="text-[0.8rem] md:text-sm font-bold text-black">
@@ -155,7 +158,7 @@ const EventCard = () => {
             <img
               src={MohamedGweda}
               alt="Mohamed Gwida"
-              className="w-9 h-9 rounded-full object-cover"
+              className="w-9 h-9 rounded-full object-cover object-top"
             />
             <div>
               <div className="text-[0.8rem] md:text-sm font-bold text-black">
@@ -172,6 +175,9 @@ const EventCard = () => {
   );
 };
 
+// ----------------------------
+// HERO SECTION (updated)
+// ----------------------------
 const HeroSection = () => {
   const [currentEvent, setCurrentEvent] = React.useState(null);
 
@@ -205,18 +211,22 @@ const HeroSection = () => {
 
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-[#f7f8fa] py-20">
-      {/* Content container */}
-      <div className="relative z-10 max-w-[1400px] w-full mx-auto grid lg:grid-cols-[65%_35%] items-center gap-8 lg:gap-5 px-6 md:px-12 lg:px-[7rem]">
-        {/* LEFT SIDE - 70% */}
+      {/* Container */}
+      <div className="relative z-10 max-w-[1400px] w-full mx-auto grid lg:grid-cols-[62%_38%] items-center gap-8 lg:gap-5 px-6 md:px-12 lg:px-[7rem]">
+
+        {/* Left Side */}
         <div className="space-y-6 flex flex-col items-center md:items-start">
-          <h1 className="text-4xl md:text-5xl lg:text-5xl font-extrabold text-gray-900 leading-tight text-center md:text-left">
-            Speech Language Pathology International Program
+
+          {/* Updated Catchy Title */}
+          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight text-center md:text-left">
+            Advancing Speech-Language Pathology 2025
           </h1>
+
+          {/* Updated Description */}
           <p className="text-base md:text-lg lg:text-[1.1rem] font-normal text-[#5a6270] max-w-[42rem] text-center md:text-left">
-            EACSL aims to serve professionals and students dedicated to
-            speech-language pathology and related special education fields. The
-            EACSL aspires to deliver exceptional services in speech and language
-            disorders rehabilitation
+            Join leading experts for a two-day conference focused on advancing clinical
+            practice, enhancing research impact, and exploring innovation across speech,
+            swallowing, language disorders, and audiology.
           </p>
 
           <a className="text-sm md:text-base px-8 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] font-semibold rounded-md hover:bg-[#5A9B8E] hover:text-white transition-all duration-300 w-fit" href={getEnrollUrl()}>
@@ -224,10 +234,11 @@ const HeroSection = () => {
           </a>
         </div>
 
-        {/* RIGHT SIDE - 30% */}
+        {/* Right Side — Card */}
         <div className="relative flex items-center justify-end">
           <EventCard />
         </div>
+
       </div>
     </section>
   );
