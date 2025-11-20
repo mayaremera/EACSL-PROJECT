@@ -24,7 +24,7 @@ import {
     ClipboardList,
 } from "lucide-react";
 import { coursesManager, membersManager, eventsManager, articlesManager, therapyProgramsManager, forParentsManager, initializeData } from '../utils/dataManager';
-import { supabase } from '../lib/supabase';
+import { membershipFormsService } from '../services/membershipFormsService';
 import CourseCard from '../components/cards/CourseCard';
 import MemberCard from '../components/cards/MemberCard';
 import CourseEditForm from '../components/dashboard/CourseEditForm';
@@ -1235,6 +1235,9 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         if (activeTab === 'for-parents') {
             loadForParentsArticles();
         }
+        if (activeTab === 'applications') {
+            loadForms();
+        }
     }, [activeTab]);
 
     const handleCoursesUpdate = (e) => {
@@ -1322,13 +1325,66 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         setMembers(allMembers);
     };
 
-    const loadForms = () => {
+    const loadForms = async () => {
+        // Try to load from Supabase first
+        try {
+            const result = await membershipFormsService.getAll();
+            if (result.data && !result.error) {
+                // Update localStorage for backward compatibility
+                formsManager.data = result.data;
+                formsManager.save();
+                setForms(result.data);
+                return;
+            }
+        } catch (error) {
+            console.warn('Could not load forms from Supabase, using localStorage:', error);
+        }
+        
+        // Fallback to localStorage
         const allForms = formsManager.getAll();
         setForms(allForms);
     };
 
-    const loadEventRegistrations = async () => {
-        const allRegistrations = await eventRegistrationsManager.getAll();
+    // Sync membership forms from Supabase
+    const syncFormsFromSupabase = async () => {
+        try {
+            const result = await membershipFormsService.getAll();
+            
+            if (result.error) {
+                if (result.error.code === 'TABLE_NOT_FOUND') {
+                    alert(
+                        '❌ Membership Forms Table Not Found\n\n' +
+                        'The membership_forms table does not exist in Supabase.\n\n' +
+                        'To fix this:\n' +
+                        '1. Go to Supabase Dashboard → SQL Editor\n' +
+                        '2. Run the SQL script from CREATE_MEMBERSHIP_FORMS_TABLE.sql\n' +
+                        '3. Try syncing again\n\n' +
+                        'See MEMBERSHIP_FORMS_SUPABASE_SETUP.md for detailed instructions.'
+                    );
+                    return;
+                }
+                alert(`Error syncing forms from Supabase: ${result.error.message || 'Unknown error'}`);
+                return;
+            }
+
+            if (result.data && Array.isArray(result.data)) {
+                // Update localStorage for backward compatibility
+                formsManager.data = result.data;
+                formsManager.save();
+                setForms(result.data);
+                alert(`✅ Successfully synced ${result.data.length} form(s) from Supabase!`);
+            } else {
+                setForms([]);
+                alert('No forms found in Supabase.');
+            }
+        } catch (error) {
+            console.error('Error syncing forms from Supabase:', error);
+            alert(`Error syncing forms: ${error.message || 'Unknown error'}`);
+        }
+    };
+
+    const loadEventRegistrations = () => {
+        const allRegistrations = eventRegistrationsManager.getAll();
         setEventRegistrations(allRegistrations);
     };
 
@@ -1399,8 +1455,22 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     };
 
     const handleApproveForm = async (id, notes) => {
-        // Get the form data
-        const form = formsManager.getAll().find(f => f.id === id);
+        // Get the form data - try Supabase first, fallback to localStorage
+        let form = null;
+        try {
+            const result = await membershipFormsService.getById(parseInt(id));
+            if (result.data) {
+                form = result.data;
+            }
+        } catch (error) {
+            console.warn('Could not fetch form from Supabase, trying localStorage:', error);
+        }
+
+        // Fallback to localStorage if Supabase fails
+        if (!form) {
+            form = formsManager.getAll().find(f => f.id === id || f.id === id.toString());
+        }
+
         if (!form) {
             alert('Form not found');
             return;
@@ -1445,8 +1515,14 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             const result = await memberApprovalService.approveApplication(form);
 
             if (result.success) {
-                // Update form status
-                formsManager.updateStatus(id, 'approved', notes);
+                // Update form status in Supabase
+                try {
+                    await membershipFormsService.updateStatus(parseInt(id), 'approved', notes);
+                } catch (error) {
+                    console.warn('Could not update form status in Supabase, updating localStorage:', error);
+                    formsManager.updateStatus(id, 'approved', notes);
+                }
+                
                 loadForms();
                 loadMembers(); // Refresh members list
 
@@ -1469,15 +1545,29 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         }
     };
 
-    const handleRejectForm = (id, notes) => {
-        formsManager.updateStatus(id, 'rejected', notes);
-        loadForms();
+    const handleRejectForm = async (id, notes) => {
+        try {
+            // Update in Supabase
+            await membershipFormsService.updateStatus(parseInt(id), 'rejected', notes);
+            loadForms();
+        } catch (error) {
+            console.warn('Could not update form status in Supabase, updating localStorage:', error);
+            formsManager.updateStatus(id, 'rejected', notes);
+            loadForms();
+        }
     };
 
-    const handleDeleteForm = (id) => {
+    const handleDeleteForm = async (id) => {
         if (window.confirm('Are you sure you want to delete this application?')) {
-            formsManager.delete(id);
-            loadForms();
+            try {
+                // Delete from Supabase
+                await membershipFormsService.delete(parseInt(id));
+                loadForms();
+            } catch (error) {
+                console.warn('Could not delete form from Supabase, deleting from localStorage:', error);
+                formsManager.delete(id);
+                loadForms();
+            }
         }
     };
 
@@ -2785,14 +2875,24 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {forms.length}</span>
                                             <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {forms.filter(f => f.status === 'pending').length}</span>
                                         </div>
-                                        <button
-                                            onClick={loadForms}
-                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
-                                            title="Refresh Member Applications"
-                                        >
-                                            <RefreshCw size={16} />
-                                            Refresh
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={syncFormsFromSupabase}
+                                                className="flex items-center gap-2 px-4 py-2 text-sm bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                                title="Sync from Supabase"
+                                            >
+                                                <RefreshCw size={16} />
+                                                Sync from Supabase
+                                            </button>
+                                            <button
+                                                onClick={loadForms}
+                                                className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
+                                                title="Refresh Member Applications"
+                                            >
+                                                <RefreshCw size={16} />
+                                                Refresh
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
