@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Clock, Users, DollarSign, CheckCircle, User, Mail, Phone, Building2 } from 'lucide-react';
+import { eventsManager } from '../utils/dataManager';
 
 const UpcomingEventsPage = () => {
+  const { eventId } = useParams();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -13,6 +17,76 @@ const UpcomingEventsPage = () => {
   });
 
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [eventData, setEventData] = useState(null);
+
+  useEffect(() => {
+    const loadEvent = () => {
+      let event = null;
+      
+      // If eventId is provided, get that specific event
+      if (eventId) {
+        event = eventsManager.getById(parseInt(eventId));
+        // If event is found but it's a past event, redirect to past events
+        if (event && event.status === 'past') {
+          navigate(`/past-events`);
+          return;
+        }
+      }
+      
+      // If no eventId or event not found, get the first upcoming event
+      if (!event) {
+        const upcomingEvents = eventsManager.getUpcoming();
+        if (upcomingEvents && upcomingEvents.length > 0) {
+          event = upcomingEvents[0];
+          // Update URL if we're showing a different event than requested
+          if (eventId && event.id !== parseInt(eventId)) {
+            navigate(`/upcoming-events/${event.id}`, { replace: true });
+          } else if (!eventId) {
+            navigate(`/upcoming-events/${event.id}`, { replace: true });
+          }
+        } else {
+          // Default event data if no events exist
+          event = {
+            id: 'default',
+            title: 'Conference Schedule',
+            subtitle: 'Advancing Practice and Research in Speech-Language Pathology: Bridging Science and Clinical Impact',
+            memberFee: 500,
+            guestFee: 800,
+            tracks: ['Track A: Speech & Swallowing', 'Track B: Language Disorders', 'Track C: Audiology'],
+            scheduleDay1: [
+              { time: '4:00 - 5:00 PM', trackA: 'Opening Ceremony & Welcome Address - Conference Chair', trackB: 'All Attendees', trackC: 'All Attendees' },
+              { time: '5:00 - 7:00 PM', trackA: 'Session 1A: Advances in Aphasia Rehabilitation', trackB: 'Session 1B: Translating Research into Practice', trackC: 'Session 1C: Digital Tools in SLP Education' },
+              { time: '7:00 - 7:30 PM', trackA: 'Break / Networking / Exhibits', trackB: 'Break / Networking / Exhibits', trackC: 'Break / Networking / Exhibits' },
+              { time: '7:30 - 9:30 PM', trackA: 'Session 2A: Pediatric Speech Disorders', trackB: 'Session 2B: Motor Speech Disorders Symposium', trackC: 'Session 2C: Clinical Education Innovations' }
+            ],
+            scheduleDay2: [
+              { time: '4:00 - 6:00 PM', trackA: 'Session 3A: Leadership in SLP Practice', trackB: 'Session 3B: Voice and Fluency Disorders', trackC: 'Session 3C: Advocacy & Ethical Practice' },
+              { time: '6:00 - 6:30 PM', trackA: 'Break / Networking', trackB: 'Break / Networking', trackC: 'Break / Networking' },
+              { time: '6:30 - 8:30 PM', trackA: 'Session 4A: Excellence in Clinical Documentation', trackB: 'Session 4B: Best Practices in Research Forum', trackC: 'Session 4C: The Future of Public Health in Telepractice' },
+              { time: '8:30 PM', trackA: 'Closing Ceremony & Conference Summary', trackB: 'All Attendees', trackC: 'All Attendees' }
+            ],
+            day1Title: 'Day One - Knowledge and Innovation',
+            day2Title: 'Day Two - Collaboration and Future Directions',
+            heroImageUrl: ''
+          };
+        }
+      }
+      
+      setEventData(event);
+    };
+
+    loadEvent();
+
+    // Listen for event updates
+    const handleEventsUpdate = () => {
+      loadEvent();
+    };
+
+    window.addEventListener('eventsUpdated', handleEventsUpdate);
+    return () => {
+      window.removeEventListener('eventsUpdated', handleEventsUpdate);
+    };
+  }, [eventId, navigate]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -39,32 +113,66 @@ const UpcomingEventsPage = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Create form submission object
+    const formSubmission = {
+      id: Date.now().toString(),
+      type: 'eventRegistration',
+      fullName: formData.fullName,
+      email: formData.email,
+      phone: formData.phone,
+      organization: formData.organization,
+      membershipType: formData.membershipType,
+      selectedTracks: formData.selectedTracks,
+      specialRequirements: formData.specialRequirements,
+      registrationFee: currentFee,
+      submittedAt: new Date().toISOString(),
+      status: 'pending'
+    };
+
+    // Get existing registrations from localStorage
+    let existingRegistrations = [];
+    try {
+      const stored = localStorage.getItem('eventRegistrations');
+      existingRegistrations = stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error('Error reading from localStorage:', error);
+      existingRegistrations = [];
+    }
+    
+    // Add new submission
+    existingRegistrations.push(formSubmission);
+    
+    // Save back to localStorage
+    try {
+      localStorage.setItem('eventRegistrations', JSON.stringify(existingRegistrations));
+      // Dispatch event to notify dashboard
+      window.dispatchEvent(new CustomEvent('eventRegistrationsUpdated', { detail: existingRegistrations }));
+    } catch (error) {
+      console.error('Error saving registration:', error);
+      alert('Failed to save registration. Please try again.');
+      return;
+    }
+    
     console.log('Registration submitted:', formData);
     setIsSubmitted(true);
   };
 
-  const scheduleDay1 = [
-    { time: '4:00 - 5:00 PM', trackA: 'Opening Ceremony & Welcome Address - Conference Chair', trackB: 'All Attendees', trackC: 'All Attendees' },
-    { time: '5:00 - 7:00 PM', trackA: 'Session 1A: Advances in Aphasia Rehabilitation', trackB: 'Session 1B: Translating Research into Practice', trackC: 'Session 1C: Digital Tools in SLP Education' },
-    { time: '7:00 - 7:30 PM', trackA: 'Break / Networking / Exhibits', trackB: 'Break / Networking / Exhibits', trackC: 'Break / Networking / Exhibits' },
-    { time: '7:30 - 9:30 PM', trackA: 'Session 2A: Pediatric Speech Disorders', trackB: 'Session 2B: Motor Speech Disorders Symposium', trackC: 'Session 2C: Clinical Education Innovations' }
-  ];
+  if (!eventData) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Loading event information...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const scheduleDay2 = [
-    { time: '4:00 - 6:00 PM', trackA: 'Session 3A: Leadership in SLP Practice', trackB: 'Session 3B: Voice and Fluency Disorders', trackC: 'Session 3C: Advocacy & Ethical Practice' },
-    { time: '6:00 - 6:30 PM', trackA: 'Break / Networking', trackB: 'Break / Networking', trackC: 'Break / Networking' },
-    { time: '6:30 - 8:30 PM', trackA: 'Session 4A: Excellence in Clinical Documentation', trackB: 'Session 4B: Best Practices in Research Forum', trackC: 'Session 4C: The Future of Public Health in Telepractice' },
-    { time: '8:30 PM', trackA: 'Closing Ceremony & Conference Summary', trackB: 'All Attendees', trackC: 'All Attendees' }
-  ];
-
-  const tracks = [
-    'Track A: Speech & Swallowing',
-    'Track B: Language Disorders',
-    'Track C: Audiology'
-  ];
-
-  const memberFee = 500;
-  const guestFee = 800;
+  const scheduleDay1 = eventData.scheduleDay1 || [];
+  const scheduleDay2 = eventData.scheduleDay2 || [];
+  const tracks = eventData.tracks || [];
+  const memberFee = eventData.memberFee || 500;
+  const guestFee = eventData.guestFee || 800;
   const currentFee = formData.membershipType === 'member' ? memberFee : guestFee;
 
   if (isSubmitted) {
@@ -100,21 +208,23 @@ const UpcomingEventsPage = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
       <div className="relative bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-20 overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'url(https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=1200&q=80)',
-            backgroundSize: 'cover',
-            backgroundPosition: 'center'
-          }}></div>
-        </div>
+        {eventData.heroImageUrl && (
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute inset-0" style={{
+              backgroundImage: `url(${eventData.heroImageUrl})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
+            }}></div>
+          </div>
+        )}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center">
             <div className="inline-block bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-4">
               <span className="text-sm font-semibold">LIVE EVENT</span>
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold mb-4">Conference Schedule</h1>
+            <h1 className="text-4xl md:text-6xl font-bold mb-4">{eventData.title || 'Conference Schedule'}</h1>
             <p className="text-xl md:text-2xl text-teal-50 max-w-3xl mx-auto mb-6">
-              Advancing Practice and Research in Speech-Language Pathology: Bridging Science and Clinical Impact
+              {eventData.subtitle || 'Advancing Practice and Research in Speech-Language Pathology: Bridging Science and Clinical Impact'}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4 text-teal-100">
               <div className="flex items-center gap-2">
@@ -189,24 +299,27 @@ const UpcomingEventsPage = () => {
 
             {/* Schedule Day 1 */}
             <div className="bg-white rounded-xl shadow-md p-8 mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Day One - Knowledge and Innovation</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">{eventData.day1Title || 'Day One - Knowledge and Innovation'}</h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b-2 border-gray-200">
                       <th className="text-left py-3 px-2 font-semibold text-gray-900">Time</th>
-                      <th className="text-left py-3 px-2 font-semibold text-gray-900">Track A</th>
-                      <th className="text-left py-3 px-2 font-semibold text-gray-900">Track B</th>
-                      <th className="text-left py-3 px-2 font-semibold text-gray-900">Track C</th>
+                      {tracks.map((track, index) => (
+                        <th key={index} className="text-left py-3 px-2 font-semibold text-gray-900">{track}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
                     {scheduleDay1.map((slot, index) => (
                       <tr key={index} className="border-b border-gray-100">
                         <td className="py-3 px-2 font-medium text-[#4C9A8F]">{slot.time}</td>
-                        <td className="py-3 px-2 text-gray-700">{slot.trackA}</td>
-                        <td className="py-3 px-2 text-gray-700">{slot.trackB}</td>
-                        <td className="py-3 px-2 text-gray-700">{slot.trackC}</td>
+                        {tracks.map((track, trackIndex) => {
+                          const trackKey = `track${String.fromCharCode(65 + trackIndex)}`;
+                          return (
+                            <td key={trackIndex} className="py-3 px-2 text-gray-700">{slot[trackKey] || ''}</td>
+                          );
+                        })}
                       </tr>
                     ))}
                   </tbody>
@@ -216,24 +329,27 @@ const UpcomingEventsPage = () => {
 
             {/* Schedule Day 2 */}
             <div className="bg-white rounded-xl shadow-md p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Day Two - Collaboration and Future Directions</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">{eventData.day2Title || 'Day Two - Collaboration and Future Directions'}</h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b-2 border-gray-200">
                       <th className="text-left py-3 px-2 font-semibold text-gray-900">Time</th>
-                      <th className="text-left py-3 px-2 font-semibold text-gray-900">Track A</th>
-                      <th className="text-left py-3 px-2 font-semibold text-gray-900">Track B</th>
-                      <th className="text-left py-3 px-2 font-semibold text-gray-900">Track C</th>
+                      {tracks.map((track, index) => (
+                        <th key={index} className="text-left py-3 px-2 font-semibold text-gray-900">{track}</th>
+                      ))}
                     </tr>
                   </thead>
                   <tbody>
                     {scheduleDay2.map((slot, index) => (
                       <tr key={index} className="border-b border-gray-100">
                         <td className="py-3 px-2 font-medium text-[#4C9A8F]">{slot.time}</td>
-                        <td className="py-3 px-2 text-gray-700">{slot.trackA}</td>
-                        <td className="py-3 px-2 text-gray-700">{slot.trackB}</td>
-                        <td className="py-3 px-2 text-gray-700">{slot.trackC}</td>
+                        {tracks.map((track, trackIndex) => {
+                          const trackKey = `track${String.fromCharCode(65 + trackIndex)}`;
+                          return (
+                            <td key={trackIndex} className="py-3 px-2 text-gray-700">{slot[trackKey] || ''}</td>
+                          );
+                        })}
                       </tr>
                     ))}
                   </tbody>

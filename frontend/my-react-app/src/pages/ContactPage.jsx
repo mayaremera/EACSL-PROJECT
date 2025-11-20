@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Phone, Mail, Clock, Send } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, CheckCircle } from 'lucide-react';
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -10,17 +10,50 @@ const ContactPage = () => {
     message: ''
   });
 
+  const [isSubmitted, setIsSubmitted] = useState(false);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Create form submission object
+    const formSubmission = {
+      id: Date.now().toString(),
+      type: 'contactMessage',
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      subject: formData.subject,
+      message: formData.message,
+      submittedAt: new Date().toISOString(),
+      status: 'pending'
+    };
+
+    // Get existing contact forms from localStorage
+    let existingForms = [];
+    try {
+      const stored = localStorage.getItem('contactForms');
+      existingForms = stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error('Error reading from localStorage:', error);
+      existingForms = [];
+    }
+    
+    // Add new submission
+    existingForms.push(formSubmission);
+    
+    // Save back to localStorage
+    try {
+      localStorage.setItem('contactForms', JSON.stringify(existingForms));
+      // Dispatch event to notify dashboard
+      window.dispatchEvent(new CustomEvent('contactFormsUpdated', { detail: existingForms }));
+    } catch (error) {
+      console.error('Error saving contact form:', error);
+      alert('Failed to save your message. Please try again.');
+      return;
+    }
+    
     console.log('Form submitted:', formData);
-    alert('Thank you for your message! We will get back to you soon.');
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      subject: '',
-      message: ''
-    });
+    setIsSubmitted(true);
   };
 
   const handleChange = (e) => {
@@ -56,6 +89,40 @@ const ContactPage = () => {
       link: 'mailto:info@eacsl.net'
     }
   ];
+
+  if (isSubmitted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 max-w-2xl w-full text-center">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-12 h-12 text-green-600" />
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Message Sent Successfully!</h2>
+          <p className="text-gray-600 mb-6 leading-relaxed">
+            Thank you for contacting us! Our team will get back to you as soon as possible.
+          </p>
+          <div className="bg-teal-50 border-l-4 border-[#4C9A8F] p-4 mb-6">
+            <p className="text-sm text-gray-700">
+              <strong>Name:</strong> {formData.name}<br />
+              <strong>Email:</strong> {formData.email}<br />
+              {formData.phone && (
+                <>
+                  <strong>Phone:</strong> {formData.phone}<br />
+                </>
+              )}
+              <strong>Subject:</strong> {formData.subject}
+            </p>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-8 py-3 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200"
+          >
+            Back to Contact Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

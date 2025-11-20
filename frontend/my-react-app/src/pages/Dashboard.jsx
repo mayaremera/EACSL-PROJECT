@@ -12,13 +12,25 @@ import {
     Clock,
     Eye,
     Download,
-    X
+    X,
+    Calendar,
+    Edit,
+    Trash2,
+    Archive,
+    Brain,
+    MessageCircle,
+    Baby,
+    ClipboardList,
 } from "lucide-react";
-import { coursesManager, membersManager, initializeData } from '../utils/dataManager';
+import { coursesManager, membersManager, eventsManager, articlesManager, therapyProgramsManager, forParentsManager, initializeData } from '../utils/dataManager';
 import CourseCard from '../components/cards/CourseCard';
 import MemberCard from '../components/cards/MemberCard';
 import CourseEditForm from '../components/dashboard/CourseEditForm';
 import MemberEditForm from '../components/dashboard/MemberEditForm';
+import EventEditForm from '../components/dashboard/EventEditForm';
+import ArticleEditForm from '../components/dashboard/ArticleEditForm';
+import TherapyProgramEditForm from '../components/dashboard/TherapyProgramEditForm';
+import ForParentEditForm from '../components/dashboard/ForParentEditForm';
 
 // Forms manager for member applications
 const formsManager = {
@@ -66,6 +78,135 @@ const formsManager = {
     }
 };
 
+// Event registrations manager
+const eventRegistrationsManager = {
+    data: [],
+    
+    getAll() {
+        const stored = localStorage.getItem('eventRegistrations');
+        if (stored) {
+            try {
+                this.data = JSON.parse(stored);
+                if (!Array.isArray(this.data)) {
+                    this.data = [];
+                }
+            } catch (e) {
+                console.error('Error parsing stored event registrations:', e);
+                this.data = [];
+            }
+        } else {
+            this.data = [];
+        }
+        return this.data;
+    },
+    
+    save() {
+        localStorage.setItem('eventRegistrations', JSON.stringify(this.data));
+        window.dispatchEvent(new CustomEvent('eventRegistrationsUpdated', { detail: this.data }));
+    },
+    
+    updateStatus(id, status, notes = '') {
+        const registration = this.data.find(r => r.id === id);
+        if (registration) {
+            registration.status = status;
+            registration.reviewNotes = notes;
+            registration.reviewedAt = new Date().toISOString();
+            this.save();
+        }
+    },
+    
+    delete(id) {
+        this.data = this.data.filter(r => r.id !== id);
+        this.save();
+    }
+};
+
+// Contact forms manager
+const contactFormsManager = {
+    data: [],
+    
+    getAll() {
+        const stored = localStorage.getItem('contactForms');
+        if (stored) {
+            try {
+                this.data = JSON.parse(stored);
+                if (!Array.isArray(this.data)) {
+                    this.data = [];
+                }
+            } catch (e) {
+                console.error('Error parsing stored contact forms:', e);
+                this.data = [];
+            }
+        } else {
+            this.data = [];
+        }
+        return this.data;
+    },
+    
+    save() {
+        localStorage.setItem('contactForms', JSON.stringify(this.data));
+        window.dispatchEvent(new CustomEvent('contactFormsUpdated', { detail: this.data }));
+    },
+    
+    updateStatus(id, status, notes = '') {
+        const form = this.data.find(f => f.id === id);
+        if (form) {
+            form.status = status;
+            form.reviewNotes = notes;
+            form.reviewedAt = new Date().toISOString();
+            this.save();
+        }
+    },
+    
+    delete(id) {
+        this.data = this.data.filter(f => f.id !== id);
+        this.save();
+    }
+};
+
+// Reservations manager
+const reservationsManager = {
+    data: [],
+    
+    getAll() {
+        const stored = localStorage.getItem('reservations');
+        if (stored) {
+            try {
+                this.data = JSON.parse(stored);
+                if (!Array.isArray(this.data)) {
+                    this.data = [];
+                }
+            } catch (e) {
+                console.error('Error parsing stored reservations:', e);
+                this.data = [];
+            }
+        } else {
+            this.data = [];
+        }
+        return this.data;
+    },
+    
+    save() {
+        localStorage.setItem('reservations', JSON.stringify(this.data));
+        window.dispatchEvent(new CustomEvent('reservationsUpdated', { detail: this.data }));
+    },
+    
+    updateStatus(id, status, notes = '') {
+        const reservation = this.data.find(r => r.id === id);
+        if (reservation) {
+            reservation.status = status;
+            reservation.reviewNotes = notes;
+            reservation.reviewedAt = new Date().toISOString();
+            this.save();
+        }
+    },
+    
+    delete(id) {
+        this.data = this.data.filter(r => r.id !== id);
+        this.save();
+    }
+};
+
 // Form Details Modal Component
 const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
     const [reviewNotes, setReviewNotes] = useState(form.reviewNotes || '');
@@ -80,44 +221,80 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
         onClose();
     };
 
-    // Function to download file from base64 data
-    const handleDownload = (file, label) => {
+    // Function to download file from base64 data or Supabase Storage
+    const handleDownload = async (file, label) => {
         if (!file) {
             alert('File not available for download');
             return;
         }
 
-        // Check if file has base64 data (new format) or just metadata (old format)
-        if (!file.data) {
-            alert('File data not available. This file was submitted before the download feature was added.');
-            return;
-        }
-
         try {
-            // Convert base64 to blob
-            const base64Data = file.data;
-            // Handle both formats: with or without data URL prefix
-            const base64String = base64Data.includes(',') 
-                ? base64Data.split(',')[1] 
-                : base64Data;
-            
-            const byteCharacters = atob(base64String);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let i = 0; i < byteCharacters.length; i++) {
-                byteNumbers[i] = byteCharacters.charCodeAt(i);
+            // If file is in Supabase Storage, download from URL
+            if (file.uploaded && file.url) {
+                // Open in new tab or download
+                const link = document.createElement('a');
+                link.href = file.url;
+                link.download = file.name;
+                link.target = '_blank';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                return;
             }
-            const byteArray = new Uint8Array(byteNumbers);
-            const blob = new Blob([byteArray], { type: file.type || 'application/octet-stream' });
 
-            // Create download link
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = file.name;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
+            // If file has base64 data, convert and download
+            if (file.data) {
+                // Convert base64 to blob
+                const base64Data = file.data;
+                // Handle both formats: with or without data URL prefix
+                const base64String = base64Data.includes(',') 
+                    ? base64Data.split(',')[1] 
+                    : base64Data;
+                
+                const byteCharacters = atob(base64String);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], { type: file.type || 'application/octet-stream' });
+
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = file.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(url);
+                return;
+            }
+
+            // If file has storage path but no URL, try to get signed URL
+            if (file.storagePath) {
+                const { supabase } = await import('../lib/supabase');
+                const { data, error } = await supabase.storage
+                    .from('MemberBucket')
+                    .createSignedUrl(file.storagePath, 3600); // 1 hour expiry
+
+                if (error) {
+                    throw error;
+                }
+
+                if (data?.signedUrl) {
+                    const link = document.createElement('a');
+                    link.href = data.signedUrl;
+                    link.download = file.name;
+                    link.target = '_blank';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    return;
+                }
+            }
+
+            alert('File data not available. This file was submitted before the download feature was added.');
         } catch (error) {
             console.error('Error downloading file:', error);
             alert('Error downloading file. Please try again.');
@@ -290,19 +467,482 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
     );
 };
 
+// Event Registration Details Modal Component
+const EventRegistrationModal = ({ registration, onClose, onApprove, onReject }) => {
+    const [reviewNotes, setReviewNotes] = useState(registration.reviewNotes || '');
+
+    const handleApprove = () => {
+        onApprove(registration.id, reviewNotes);
+        onClose();
+    };
+
+    const handleReject = () => {
+        onReject(registration.id, reviewNotes);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                {/* Header */}
+                <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900">Event Registration Details</h2>
+                        <p className="text-sm text-gray-500 mt-1">
+                            Submitted on {new Date(registration.submittedAt).toLocaleDateString()}
+                        </p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 space-y-6">
+                    {/* Status Badge */}
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold text-gray-700">Status:</span>
+                        <span className={`px-4 py-2 rounded-full text-sm font-medium ${
+                            registration.status === 'approved' ? 'bg-green-100 text-green-700' :
+                            registration.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                            'bg-yellow-100 text-yellow-700'
+                        }`}>
+                            {registration.status.charAt(0).toUpperCase() + registration.status.slice(1)}
+                        </span>
+                    </div>
+
+                    {/* Personal Information */}
+                    <div className="bg-gray-50 rounded-lg p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Full Name</p>
+                                <p className="text-gray-900 font-medium">{registration.fullName}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Email</p>
+                                <p className="text-gray-900 font-medium">{registration.email}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Phone</p>
+                                <p className="text-gray-900 font-medium">{registration.phone}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Organization</p>
+                                <p className="text-gray-900 font-medium">{registration.organization || 'N/A'}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Registration Details */}
+                    <div className="bg-gray-50 rounded-lg p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Registration Details</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Membership Type</p>
+                                <p className="text-gray-900 font-medium">
+                                    {registration.membershipType === 'member' ? 'EACSL Member' : 'Guest'}
+                                </p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Registration Fee</p>
+                                <p className="text-gray-900 font-medium">{registration.registrationFee} EGP</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Selected Tracks */}
+                    {registration.selectedTracks && registration.selectedTracks.length > 0 && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Preferred Tracks</h3>
+                            <div className="flex flex-wrap gap-2">
+                                {registration.selectedTracks.map((track, index) => (
+                                    <span key={index} className="px-4 py-2 bg-[#5A9B8E] text-white rounded-full text-sm">
+                                        {track}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Special Requirements */}
+                    {registration.specialRequirements && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Special Requirements</h3>
+                            <p className="text-gray-700 leading-relaxed">{registration.specialRequirements}</p>
+                        </div>
+                    )}
+
+                    {/* Review Notes */}
+                    {registration.status !== 'pending' && registration.reviewNotes && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Review Notes</h3>
+                            <p className="text-gray-700 leading-relaxed">{registration.reviewNotes}</p>
+                            <p className="text-sm text-gray-500 mt-3">
+                                Reviewed on {new Date(registration.reviewedAt).toLocaleDateString()}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Action Section (only for pending) */}
+                    {registration.status === 'pending' && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Review & Action</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Review Notes (Optional)
+                                    </label>
+                                    <textarea
+                                        value={reviewNotes}
+                                        onChange={(e) => setReviewNotes(e.target.value)}
+                                        placeholder="Add notes about your decision..."
+                                        rows="4"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none resize-none"
+                                    />
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={handleApprove}
+                                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                                    >
+                                        <CheckCircle size={20} />
+                                        Approve Registration
+                                    </button>
+                                    <button
+                                        onClick={handleReject}
+                                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                                    >
+                                        <XCircle size={20} />
+                                        Reject Registration
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Contact Form Details Modal Component
+const ContactFormModal = ({ form, onClose, onApprove, onReject }) => {
+    const [reviewNotes, setReviewNotes] = useState(form.reviewNotes || '');
+
+    const handleApprove = () => {
+        onApprove(form.id, reviewNotes);
+        onClose();
+    };
+
+    const handleReject = () => {
+        onReject(form.id, reviewNotes);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                {/* Header */}
+                <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900">Contact Message Details</h2>
+                        <p className="text-sm text-gray-500 mt-1">
+                            Submitted on {new Date(form.submittedAt).toLocaleDateString()}
+                        </p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 space-y-6">
+                    {/* Status Badge */}
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold text-gray-700">Status:</span>
+                        <span className={`px-4 py-2 rounded-full text-sm font-medium ${
+                            form.status === 'approved' ? 'bg-green-100 text-green-700' :
+                            form.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                            'bg-yellow-100 text-yellow-700'
+                        }`}>
+                            {form.status.charAt(0).toUpperCase() + form.status.slice(1)}
+                        </span>
+                    </div>
+
+                    {/* Contact Information */}
+                    <div className="bg-gray-50 rounded-lg p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Name</p>
+                                <p className="text-gray-900 font-medium">{form.name}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Email</p>
+                                <p className="text-gray-900 font-medium">{form.email}</p>
+                            </div>
+                            {form.phone && (
+                                <div>
+                                    <p className="text-sm text-gray-600 mb-1">Phone</p>
+                                    <p className="text-gray-900 font-medium">{form.phone}</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Message Details */}
+                    <div className="bg-gray-50 rounded-lg p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Message</h3>
+                        <div className="space-y-4">
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Subject</p>
+                                <p className="text-gray-900 font-medium">{form.subject}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Message</p>
+                                <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{form.message}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Review Notes */}
+                    {form.status !== 'pending' && form.reviewNotes && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Review Notes</h3>
+                            <p className="text-gray-700 leading-relaxed">{form.reviewNotes}</p>
+                            <p className="text-sm text-gray-500 mt-3">
+                                Reviewed on {new Date(form.reviewedAt).toLocaleDateString()}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Action Section (only for pending) */}
+                    {form.status === 'pending' && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Review & Action</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Review Notes (Optional)
+                                    </label>
+                                    <textarea
+                                        value={reviewNotes}
+                                        onChange={(e) => setReviewNotes(e.target.value)}
+                                        placeholder="Add notes about your decision..."
+                                        rows="4"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none resize-none"
+                                    />
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={handleApprove}
+                                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                                    >
+                                        <CheckCircle size={20} />
+                                        Mark as Resolved
+                                    </button>
+                                    <button
+                                        onClick={handleReject}
+                                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                                    >
+                                        <XCircle size={20} />
+                                        Reject
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// Reservation Details Modal Component
+const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
+    const [reviewNotes, setReviewNotes] = useState(reservation.reviewNotes || '');
+
+    const handleApprove = () => {
+        onApprove(reservation.id, reviewNotes);
+        onClose();
+    };
+
+    const handleReject = () => {
+        onReject(reservation.id, reviewNotes);
+        onClose();
+    };
+
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+                {/* Header */}
+                <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-900">Reservation Details</h2>
+                        <p className="text-sm text-gray-500 mt-1">
+                            Submitted on {new Date(reservation.submittedAt).toLocaleDateString()}
+                        </p>
+                    </div>
+                    <button
+                        onClick={onClose}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                        <X size={24} />
+                    </button>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 space-y-6">
+                    {/* Status Badge */}
+                    <div className="flex items-center gap-3">
+                        <span className="text-sm font-semibold text-gray-700">Status:</span>
+                        <span className={`px-4 py-2 rounded-full text-sm font-medium ${
+                            reservation.status === 'approved' ? 'bg-green-100 text-green-700' :
+                            reservation.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                            'bg-yellow-100 text-yellow-700'
+                        }`}>
+                            {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                        </span>
+                    </div>
+
+                    {/* Contact Information */}
+                    <div className="bg-gray-50 rounded-lg p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Contact Information</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Child's Name</p>
+                                <p className="text-gray-900 font-medium">{reservation.kidsName}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Parent/Guardian Name</p>
+                                <p className="text-gray-900 font-medium">{reservation.yourName}</p>
+                            </div>
+                            <div>
+                                <p className="text-sm text-gray-600 mb-1">Phone Number</p>
+                                <p className="text-gray-900 font-medium">{reservation.phoneNumber}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Requested Assessments */}
+                    {reservation.selectedAssessments && reservation.selectedAssessments.length > 0 && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Requested Assessments</h3>
+                            <div className="flex flex-wrap gap-2">
+                                {reservation.selectedAssessments.map((assessment, index) => (
+                                    <span key={index} className="px-4 py-2 bg-[#5A9B8E] text-white rounded-full text-sm">
+                                        {assessment}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Concern/Description */}
+                    {reservation.concern && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Child's Condition Description</h3>
+                            <p className="text-gray-700 leading-relaxed whitespace-pre-wrap">{reservation.concern}</p>
+                        </div>
+                    )}
+
+                    {/* Review Notes */}
+                    {reservation.status !== 'pending' && reservation.reviewNotes && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Review Notes</h3>
+                            <p className="text-gray-700 leading-relaxed">{reservation.reviewNotes}</p>
+                            <p className="text-sm text-gray-500 mt-3">
+                                Reviewed on {new Date(reservation.reviewedAt).toLocaleDateString()}
+                            </p>
+                        </div>
+                    )}
+
+                    {/* Action Section (only for pending) */}
+                    {reservation.status === 'pending' && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Review & Action</h3>
+                            <div className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Review Notes (Optional)
+                                    </label>
+                                    <textarea
+                                        value={reviewNotes}
+                                        onChange={(e) => setReviewNotes(e.target.value)}
+                                        placeholder="Add notes about your decision..."
+                                        rows="4"
+                                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none resize-none"
+                                    />
+                                </div>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={handleApprove}
+                                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+                                    >
+                                        <CheckCircle size={20} />
+                                        Approve Reservation
+                                    </button>
+                                    <button
+                                        onClick={handleReject}
+                                        className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                                    >
+                                        <XCircle size={20} />
+                                        Reject Reservation
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
     const Dashboard = () => {
     const [activeTab, setActiveTab] = useState("courses");
     const [courses, setCourses] = useState([]);
     const [members, setMembers] = useState([]);
     const [forms, setForms] = useState([]);
+    const [eventRegistrations, setEventRegistrations] = useState([]);
+    const [contactForms, setContactForms] = useState([]);
+    const [reservations, setReservations] = useState([]);
     const [searchTerm, setSearchTerm] = useState("");
     const [formSearchTerm, setFormSearchTerm] = useState("");
+    const [eventSearchTerm, setEventSearchTerm] = useState("");
+    const [contactSearchTerm, setContactSearchTerm] = useState("");
+    const [reservationSearchTerm, setReservationSearchTerm] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
+    const [eventStatusFilter, setEventStatusFilter] = useState("all");
+    const [contactStatusFilter, setContactStatusFilter] = useState("all");
+    const [reservationStatusFilter, setReservationStatusFilter] = useState("all");
     const [editingCourse, setEditingCourse] = useState(null);
     const [editingMember, setEditingMember] = useState(null);
+    const [editingEvent, setEditingEvent] = useState(null);
+    const [editingArticle, setEditingArticle] = useState(null);
+    const [editingTherapyProgram, setEditingTherapyProgram] = useState(null);
+    const [editingForParent, setEditingForParent] = useState(null);
     const [isAddingCourse, setIsAddingCourse] = useState(false);
     const [isAddingMember, setIsAddingMember] = useState(false);
+    const [isAddingEvent, setIsAddingEvent] = useState(false);
+    const [isAddingArticle, setIsAddingArticle] = useState(false);
+    const [isAddingTherapyProgram, setIsAddingTherapyProgram] = useState(false);
+    const [isAddingForParent, setIsAddingForParent] = useState(false);
+    const [events, setEvents] = useState({ upcoming: [], past: [] });
+    const [articles, setArticles] = useState([]);
+    const [therapyPrograms, setTherapyPrograms] = useState([]);
+    const [forParentsArticles, setForParentsArticles] = useState([]);
     const [selectedForm, setSelectedForm] = useState(null);
+    const [selectedEventRegistration, setSelectedEventRegistration] = useState(null);
+    const [selectedContactForm, setSelectedContactForm] = useState(null);
+    const [selectedReservation, setSelectedReservation] = useState(null);
 
     // Initialize data and load
     useEffect(() => {
@@ -310,18 +950,123 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
         loadCourses();
         loadMembers();
         loadForms();
+        loadEventRegistrations();
+        loadContactForms();
+        // Load events after initialization to ensure default event is created if needed
+        setTimeout(() => {
+            loadEvents();
+        }, 100);
+        loadArticles();
+        loadTherapyPrograms();
+        loadForParentsArticles();
+        
+        // Sync members from Supabase on initial load (silently fail if table doesn't exist)
+        membersManager.syncFromSupabase().then((result) => {
+            if (result.synced) {
+                loadMembers();
+            } else if (result.error?.code === 'TABLE_NOT_FOUND') {
+                // Table doesn't exist yet - this is okay, just log a warning
+                console.info('Supabase members table not found. Members will be stored locally only until the table is created.');
+            }
+        }).catch(err => {
+            // Silently handle errors on initial load
+            console.warn('Could not sync members on initial load:', err);
+        });
+
+        // Sync events from Supabase on initial load (silently fail if table doesn't exist)
+        eventsManager.syncFromSupabase().then((result) => {
+            if (result.synced) {
+                loadEvents();
+            } else if (result.error?.code === 'TABLE_NOT_FOUND') {
+                // Table doesn't exist yet - this is okay, just log a warning
+                console.info('Supabase events table not found. Events will be stored locally only until the table is created.');
+            }
+        }).catch(err => {
+            // Silently handle errors on initial load
+            console.warn('Could not sync events on initial load:', err);
+        });
+
+        // Sync articles from Supabase on initial load (silently fail if table doesn't exist)
+        articlesManager.syncFromSupabase().then((result) => {
+            if (result.synced) {
+                loadArticles();
+            } else if (result.error?.code === 'TABLE_NOT_FOUND') {
+                // Table doesn't exist yet - this is okay, just log a warning
+                console.info('Supabase articles table not found. Articles will be stored locally only until the table is created.');
+            }
+        }).catch(err => {
+            // Silently handle errors on initial load
+            console.warn('Could not sync articles on initial load:', err);
+        });
+
+        // Sync therapy programs from Supabase on initial load (silently fail if table doesn't exist)
+        therapyProgramsManager.syncFromSupabase().then((result) => {
+            if (result.synced) {
+                loadTherapyPrograms();
+            } else if (result.error?.code === 'TABLE_NOT_FOUND') {
+                // Table doesn't exist yet - this is okay, just log a warning
+                console.info('Supabase therapy programs table not found. Therapy programs will be stored locally only until the table is created.');
+            }
+        }).catch(err => {
+            // Silently handle errors on initial load
+            console.warn('Could not sync therapy programs on initial load:', err);
+        });
+
+        // Sync for parents articles from Supabase on initial load (silently fail if table doesn't exist)
+        forParentsManager.syncFromSupabase().then((result) => {
+            if (result.synced) {
+                loadForParentsArticles();
+            } else if (result.error?.code === 'TABLE_NOT_FOUND') {
+                // Table doesn't exist yet - this is okay, just log a warning
+                console.info('Supabase for parents table not found. For parents articles will be stored locally only until the table is created.');
+            }
+        }).catch(err => {
+            // Silently handle errors on initial load
+            console.warn('Could not sync for parents articles on initial load:', err);
+        });
+        loadReservations();
 
         // Listen for updates
         window.addEventListener('coursesUpdated', handleCoursesUpdate);
         window.addEventListener('membersUpdated', handleMembersUpdate);
         window.addEventListener('formsUpdated', handleFormsUpdate);
+        window.addEventListener('eventRegistrationsUpdated', handleEventRegistrationsUpdate);
+        window.addEventListener('contactFormsUpdated', handleContactFormsUpdate);
+        window.addEventListener('reservationsUpdated', handleReservationsUpdate);
+        window.addEventListener('eventsUpdated', handleEventsUpdate);
+        window.addEventListener('articlesUpdated', handleArticlesUpdate);
+        window.addEventListener('therapyProgramsUpdated', handleTherapyProgramsUpdate);
+        window.addEventListener('forParentsUpdated', handleForParentsUpdate);
 
         return () => {
             window.removeEventListener('coursesUpdated', handleCoursesUpdate);
             window.removeEventListener('membersUpdated', handleMembersUpdate);
             window.removeEventListener('formsUpdated', handleFormsUpdate);
+            window.removeEventListener('eventRegistrationsUpdated', handleEventRegistrationsUpdate);
+            window.removeEventListener('contactFormsUpdated', handleContactFormsUpdate);
+            window.removeEventListener('reservationsUpdated', handleReservationsUpdate);
+            window.removeEventListener('eventsUpdated', handleEventsUpdate);
+            window.removeEventListener('articlesUpdated', handleArticlesUpdate);
+            window.removeEventListener('therapyProgramsUpdated', handleTherapyProgramsUpdate);
+            window.removeEventListener('forParentsUpdated', handleForParentsUpdate);
         };
     }, []);
+
+    // Reload events when switching to events tab
+    useEffect(() => {
+        if (activeTab === 'events') {
+            loadEvents();
+        }
+        if (activeTab === 'articles') {
+            loadArticles();
+        }
+        if (activeTab === 'therapy-programs') {
+            loadTherapyPrograms();
+        }
+        if (activeTab === 'for-parents') {
+            loadForParentsArticles();
+        }
+    }, [activeTab]);
 
     const handleCoursesUpdate = (e) => {
         setCourses(e.detail);
@@ -333,6 +1078,55 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
 
     const handleFormsUpdate = (e) => {
         setForms(e.detail);
+    };
+
+    const handleEventRegistrationsUpdate = (e) => {
+        setEventRegistrations(e.detail);
+    };
+
+    const handleContactFormsUpdate = (e) => {
+        setContactForms(e.detail);
+    };
+
+    const handleReservationsUpdate = (e) => {
+        setReservations(e.detail);
+    };
+
+    const handleEventsUpdate = (e) => {
+        console.log('Events updated event received:', e.detail);
+        const eventsData = {
+            upcoming: Array.isArray(e.detail.upcoming) ? e.detail.upcoming : [],
+            past: Array.isArray(e.detail.past) ? e.detail.past : []
+        };
+        console.log('Setting events from update:', eventsData);
+        setEvents(eventsData);
+    };
+
+    const handleArticlesUpdate = (e) => {
+        setArticles(e.detail || []);
+    };
+
+    const handleTherapyProgramsUpdate = (e) => {
+        setTherapyPrograms(e.detail || []);
+    };
+
+    const handleForParentsUpdate = (e) => {
+        setForParentsArticles(e.detail || []);
+    };
+
+    const loadArticles = () => {
+        const allArticles = articlesManager.getAll();
+        setArticles(allArticles);
+    };
+
+    const loadTherapyPrograms = () => {
+        const allPrograms = therapyProgramsManager.getAll();
+        setTherapyPrograms(allPrograms);
+    };
+
+    const loadForParentsArticles = () => {
+        const allArticles = forParentsManager.getAll();
+        setForParentsArticles(allArticles);
     };
 
     const loadCourses = () => {
@@ -350,9 +1144,130 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
         setForms(allForms);
     };
 
-    const handleApproveForm = (id, notes) => {
-        formsManager.updateStatus(id, 'approved', notes);
-        loadForms();
+    const loadEventRegistrations = () => {
+        const allRegistrations = eventRegistrationsManager.getAll();
+        setEventRegistrations(allRegistrations);
+    };
+
+    const loadContactForms = () => {
+        const allContactForms = contactFormsManager.getAll();
+        setContactForms(allContactForms);
+    };
+
+    const loadReservations = () => {
+        const allReservations = reservationsManager.getAll();
+        setReservations(allReservations);
+    };
+
+    const loadEvents = () => {
+        const allEvents = eventsManager.getAll();
+        // Ensure we have the correct structure
+        const eventsData = {
+            upcoming: Array.isArray(allEvents.upcoming) ? allEvents.upcoming : [],
+            past: Array.isArray(allEvents.past) ? allEvents.past : []
+        };
+        
+        // Debug: Log what we found
+        console.log('=== Events Loading Debug ===');
+        console.log('Loaded events from localStorage:', eventsData);
+        console.log('Upcoming events count:', eventsData.upcoming.length);
+        console.log('Past events count:', eventsData.past.length);
+        console.log('Past events array:', eventsData.past);
+        console.log('Past events details:', JSON.stringify(eventsData.past, null, 2));
+        
+        // Check localStorage directly
+        const rawStorage = localStorage.getItem('eacsl_events');
+        console.log('Raw localStorage data:', rawStorage);
+        if (rawStorage) {
+            try {
+                const parsed = JSON.parse(rawStorage);
+                console.log('Parsed localStorage:', parsed);
+                console.log('Parsed past events:', parsed.past);
+                console.log('Parsed past events length:', parsed.past?.length);
+            } catch (e) {
+                console.error('Error parsing raw storage:', e);
+            }
+        }
+        
+        // If no events exist, check if we need to initialize
+        if (eventsData.upcoming.length === 0 && eventsData.past.length === 0) {
+            console.log('No events found in parsed data');
+        }
+        
+        console.log('Setting events state with:', eventsData);
+        setEvents(eventsData);
+        console.log('=== End Events Loading Debug ===');
+    };
+
+    const handleApproveForm = async (id, notes) => {
+        // Get the form data
+        const form = formsManager.getAll().find(f => f.id === id);
+        if (!form) {
+            alert('Form not found');
+            return;
+        }
+
+        // Validate email before proceeding
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!form.email || !emailRegex.test(form.email)) {
+            alert('Invalid email address in the application. Please check the email before approving.');
+            return;
+        }
+
+        // Confirm approval
+        const confirmApprove = window.confirm(
+            `Approve this application?\n\n` +
+            `This will create TWO accounts:\n\n` +
+            `1. Authentication Account:\n` +
+            `   - For login capability\n` +
+            `   - Regular member (not admin)\n` +
+            `   - Appears in Authentication tab\n` +
+            `   - Confirmation email sent automatically\n\n` +
+            `2. Member Account:\n` +
+            `   - Profile information\n` +
+            `   - Linked to auth account\n` +
+            `   - Appears in Members tab\n` +
+            `   - Status: PENDING until email confirmed\n\n` +
+            `After email confirmation:\n` +
+            `- Member can log in to view their profile\n` +
+            `- Member status becomes ACTIVE\n\n` +
+            `Continue?`
+        );
+
+        if (!confirmApprove) {
+            return;
+        }
+
+        try {
+            // Import the approval service
+            const { memberApprovalService } = await import('../services/memberApprovalService');
+            
+            // Approve the application (creates account and member)
+            const result = await memberApprovalService.approveApplication(form);
+
+            if (result.success) {
+                // Update form status
+                formsManager.updateStatus(id, 'approved', notes);
+                loadForms();
+                loadMembers(); // Refresh members list
+
+                // Show detailed message from service (includes member ID and status)
+                alert(result.message || 
+                    `✅ Application Approved Successfully!\n\n` +
+                    `Member: ${form.username} (${form.email})\n` +
+                    `Member ID: ${result.memberId || 'N/A'}\n\n` +
+                    `✅ Member added to Members table\n` +
+                    `✅ Authentication account created (for login)\n` +
+                    `✅ Confirmation email sent\n\n` +
+                    `The member can now log in and access their profile.`
+                );
+            } else {
+                alert(`❌ Failed to approve application:\n\n${result.error}\n\nPlease try again or contact support.`);
+            }
+        } catch (error) {
+            console.error('Error approving application:', error);
+            alert(`❌ Error approving application:\n\n${error.message}\n\nPlease try again.`);
+        }
     };
 
     const handleRejectForm = (id, notes) => {
@@ -364,6 +1279,57 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
         if (window.confirm('Are you sure you want to delete this application?')) {
             formsManager.delete(id);
             loadForms();
+        }
+    };
+
+    const handleApproveEventRegistration = (id, notes) => {
+        eventRegistrationsManager.updateStatus(id, 'approved', notes);
+        loadEventRegistrations();
+    };
+
+    const handleRejectEventRegistration = (id, notes) => {
+        eventRegistrationsManager.updateStatus(id, 'rejected', notes);
+        loadEventRegistrations();
+    };
+
+    const handleDeleteEventRegistration = (id) => {
+        if (window.confirm('Are you sure you want to delete this event registration?')) {
+            eventRegistrationsManager.delete(id);
+            loadEventRegistrations();
+        }
+    };
+
+    const handleApproveContactForm = (id, notes) => {
+        contactFormsManager.updateStatus(id, 'approved', notes);
+        loadContactForms();
+    };
+
+    const handleRejectContactForm = (id, notes) => {
+        contactFormsManager.updateStatus(id, 'rejected', notes);
+        loadContactForms();
+    };
+
+    const handleDeleteContactForm = (id) => {
+        if (window.confirm('Are you sure you want to delete this contact message?')) {
+            contactFormsManager.delete(id);
+            loadContactForms();
+        }
+    };
+
+    const handleApproveReservation = (id, notes) => {
+        reservationsManager.updateStatus(id, 'approved', notes);
+        loadReservations();
+    };
+
+    const handleRejectReservation = (id, notes) => {
+        reservationsManager.updateStatus(id, 'rejected', notes);
+        loadReservations();
+    };
+
+    const handleDeleteReservation = (id) => {
+        if (window.confirm('Are you sure you want to delete this reservation?')) {
+            reservationsManager.delete(id);
+            loadReservations();
         }
     };
 
@@ -384,19 +1350,147 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
     };
 
     const handleSaveMember = async (memberData) => {
+        const { createAuthAccount, ...memberDataWithoutFlag } = memberData;
+        
         if (editingMember) {
-            membersManager.update(editingMember.id, memberData);
+            await membersManager.update(editingMember.id, memberDataWithoutFlag);
         } else {
-            membersManager.add(memberData);
+            // Add the member first
+            const createdMember = await membersManager.add(memberDataWithoutFlag);
+            
+            // If createAuthAccount is checked, create auth account and send password email
+            if (createAuthAccount && memberData.email) {
+                try {
+                    const { memberAuthService } = await import('../services/memberAuthService');
+                    const result = await memberAuthService.createAuthAccountAndSendPasswordEmail(
+                        memberData.email,
+                        memberData.name
+                    );
+                    
+                    if (result.success && result.userId) {
+                        // Link the auth account to the member
+                        const updatedMember = {
+                            ...createdMember,
+                            supabaseUserId: result.userId
+                        };
+                        await membersManager.update(createdMember.id, updatedMember);
+                        
+                        // Show success message
+                        alert(`✅ Member created successfully!\n\n${result.message || 'Authentication account created and password setup email sent.'}`);
+                    } else if (result.success && result.warning) {
+                        // Account created but email failed
+                        alert(`✅ Member created successfully!\n\n⚠️ ${result.warning}`);
+                    } else {
+                        // Auth account creation failed
+                        alert(`✅ Member created successfully!\n\n⚠️ Failed to create authentication account: ${result.error || 'Unknown error'}\n\nThe member can still use "Forgot Password" to set up their account later.`);
+                    }
+                } catch (error) {
+                    console.error('Error creating auth account:', error);
+                    alert(`✅ Member created successfully!\n\n⚠️ Failed to create authentication account. The member can use "Forgot Password" to set up their account later.`);
+                }
+            }
         }
         loadMembers();
         setEditingMember(null);
         setIsAddingMember(false);
     };
 
-    const handleDeleteMember = (id) => {
-        membersManager.delete(id);
-        loadMembers();
+    const handleDeleteMember = async (id) => {
+        if (window.confirm('Are you sure you want to delete this member? This will also remove them from Supabase.')) {
+            await membersManager.delete(id);
+            loadMembers();
+        }
+    };
+
+    const handleSyncMembers = async () => {
+        // First, try to sync from Supabase (download)
+        const result = await membersManager.syncFromSupabase();
+        if (result.synced) {
+            // Reload members to reflect changes
+            loadMembers();
+            
+            // Show detailed sync results
+            let message = `✅ Successfully synced from Supabase!\n\n`;
+            message += `📊 Supabase members: ${result.count}\n`;
+            message += `💾 Local members before: ${result.localCount || 'N/A'}\n`;
+            message += `💾 Local members after: ${membersManager.getAll().length}\n`;
+            
+            if (result.removed > 0) {
+                message += `\n🗑️ Removed ${result.removed} deleted member(s) from local storage.`;
+            }
+            
+            if (result.count > 0) {
+                alert(message);
+            } else {
+                // If no members in Supabase, offer to push local members
+                const localMembers = membersManager.getAll();
+                if (localMembers.length > 0) {
+                    const pushToSupabase = window.confirm(
+                        `${message}\n\nNo members found in Supabase. Would you like to upload ${localMembers.length} local member(s) to Supabase?`
+                    );
+                    if (pushToSupabase) {
+                        const pushResult = await membersManager.syncToSupabase();
+                        if (pushResult.synced) {
+                            loadMembers();
+                            alert(`Successfully uploaded ${pushResult.syncedCount} member(s) to Supabase!`);
+                        } else {
+                            alert(`Failed to upload members: ${pushResult.error?.message || 'Unknown error'}`);
+                        }
+                    }
+                } else {
+                    alert(message + '\n\nNo members found locally either.');
+                }
+            }
+        } else {
+            const errorMessage = result.error?.userMessage || result.error?.message || 'Failed to sync members from Supabase.';
+            alert(`${errorMessage}\n\nCheck SUPABASE_SETUP.md for instructions on creating the members table.`);
+        }
+    };
+
+    const handleSyncEvents = async () => {
+        // First, try to sync from Supabase (download)
+        const result = await eventsManager.syncFromSupabase();
+        if (result.synced) {
+            // Reload events to reflect changes
+            loadEvents();
+            
+            // Show detailed sync results
+            let message = `✅ Successfully synced from Supabase!\n\n`;
+            message += `📊 Supabase events: ${result.count}\n`;
+            message += `📅 Upcoming events: ${result.upcomingCount || 0}\n`;
+            message += `📆 Past events: ${result.pastCount || 0}\n`;
+            
+            if (result.count > 0) {
+                alert(message);
+            } else {
+                // If no events in Supabase, offer to push local events
+                const localEvents = eventsManager.getAll();
+                const allLocalEvents = [...(localEvents.upcoming || []), ...(localEvents.past || [])];
+                if (allLocalEvents.length > 0) {
+                    const pushToSupabase = window.confirm(
+                        `${message}\n\nNo events found in Supabase. Would you like to upload ${allLocalEvents.length} local event(s) to Supabase?`
+                    );
+                    if (pushToSupabase) {
+                        const pushResult = await eventsManager.syncToSupabase();
+                        if (pushResult.synced) {
+                            alert(`✅ Successfully uploaded ${pushResult.syncedCount} event(s) to Supabase!`);
+                            loadEvents();
+                        } else {
+                            alert(`❌ Failed to upload events: ${pushResult.error?.message || 'Unknown error'}`);
+                        }
+                    }
+                } else {
+                    alert(message);
+                }
+            }
+        } else {
+            // Sync failed
+            if (result.error?.code === 'TABLE_NOT_FOUND') {
+                alert(`⚠️ Events table does not exist in Supabase.\n\nPlease create it using the SQL script from EVENTS_SUPABASE_SETUP.md`);
+            } else {
+                alert(`❌ Failed to sync: ${result.error?.message || result.error?.userMessage || 'Unknown error'}`);
+            }
+        }
     };
 
     const filteredCourses = courses.filter(course =>
@@ -422,16 +1516,271 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
         return matchesSearch && matchesStatus;
     });
 
-    const formStats = {
-        total: forms.length,
-        pending: forms.filter(f => f.status === 'pending').length,
-        approved: forms.filter(f => f.status === 'approved').length,
-        rejected: forms.filter(f => f.status === 'rejected').length
+    const filteredEventRegistrations = eventRegistrations.filter(registration => {
+        const matchesSearch = 
+            registration.fullName.toLowerCase().includes(eventSearchTerm.toLowerCase()) ||
+            registration.email.toLowerCase().includes(eventSearchTerm.toLowerCase()) ||
+            registration.phone.toLowerCase().includes(eventSearchTerm.toLowerCase()) ||
+            (registration.organization && registration.organization.toLowerCase().includes(eventSearchTerm.toLowerCase()));
+        
+        const matchesStatus = eventStatusFilter === 'all' || registration.status === eventStatusFilter;
+        
+        return matchesSearch && matchesStatus;
+    });
+
+    const filteredContactForms = contactForms.filter(form => {
+        const matchesSearch = 
+            form.name.toLowerCase().includes(contactSearchTerm.toLowerCase()) ||
+            form.email.toLowerCase().includes(contactSearchTerm.toLowerCase()) ||
+            form.subject.toLowerCase().includes(contactSearchTerm.toLowerCase()) ||
+            form.message.toLowerCase().includes(contactSearchTerm.toLowerCase());
+        
+        const matchesStatus = contactStatusFilter === 'all' || form.status === contactStatusFilter;
+        
+        return matchesSearch && matchesStatus;
+    });
+
+    const filteredReservations = reservations.filter(reservation => {
+        const matchesSearch = 
+            reservation.kidsName.toLowerCase().includes(reservationSearchTerm.toLowerCase()) ||
+            reservation.yourName.toLowerCase().includes(reservationSearchTerm.toLowerCase()) ||
+            reservation.phoneNumber.toLowerCase().includes(reservationSearchTerm.toLowerCase()) ||
+            (reservation.concern && reservation.concern.toLowerCase().includes(reservationSearchTerm.toLowerCase()));
+        
+        const matchesStatus = reservationStatusFilter === 'all' || reservation.status === reservationStatusFilter;
+        
+        return matchesSearch && matchesStatus;
+    });
+
+    const handleSaveEvent = async (eventData) => {
+        let savedEvent;
+        if (editingEvent) {
+            savedEvent = await eventsManager.update(editingEvent.id, eventData);
+        } else {
+            savedEvent = await eventsManager.add(eventData);
+        }
+        loadEvents();
+        
+        // Update URL to show the saved event
+        if (savedEvent && savedEvent.id) {
+            window.history.pushState({}, '', `/upcoming-events/${savedEvent.id}`);
+        }
+        
+        setEditingEvent(null);
+        setIsAddingEvent(false);
+    };
+
+    const handleDeleteEvent = async (id) => {
+        if (window.confirm('Are you sure you want to delete this event?')) {
+            await eventsManager.delete(id);
+            loadEvents();
+        }
+    };
+
+    const handleMoveToPast = async (id) => {
+        if (window.confirm('Move this event to past events? You can move it back later if needed.')) {
+            await eventsManager.moveToPast(id);
+            loadEvents();
+        }
+    };
+
+    const handleMoveToUpcoming = async (id) => {
+        if (window.confirm('Move this event back to upcoming events?')) {
+            await eventsManager.moveToUpcoming(id);
+            loadEvents();
+        }
+    };
+
+    const handleSaveArticle = async (articleData) => {
+        if (editingArticle) {
+            await articlesManager.update(editingArticle.id, articleData);
+        } else {
+            await articlesManager.add(articleData);
+        }
+        loadArticles();
+        setEditingArticle(null);
+        setIsAddingArticle(false);
+    };
+
+    const handleDeleteArticle = async (id) => {
+        if (window.confirm('Are you sure you want to delete this article?')) {
+            await articlesManager.delete(id);
+            loadArticles();
+        }
+    };
+
+    const handleSyncArticles = async () => {
+        // First, try to sync from Supabase (download)
+        const result = await articlesManager.syncFromSupabase();
+        if (result.synced) {
+            // Reload articles to reflect changes
+            loadArticles();
+            
+            // Show detailed sync results
+            let message = `✅ Successfully synced from Supabase!\n\n`;
+            message += `📊 Supabase articles: ${result.count}\n`;
+            
+            if (result.count > 0) {
+                alert(message);
+            } else {
+                // If no articles in Supabase, offer to push local articles
+                const localArticles = articlesManager.getAll();
+                if (localArticles.length > 0) {
+                    const pushToSupabase = window.confirm(
+                        `${message}\n\nNo articles found in Supabase. Would you like to upload ${localArticles.length} local article(s) to Supabase?`
+                    );
+                    if (pushToSupabase) {
+                        const pushResult = await articlesManager.syncToSupabase();
+                        if (pushResult.synced) {
+                            alert(`✅ Successfully uploaded ${pushResult.syncedCount} article(s) to Supabase!`);
+                            loadArticles();
+                        } else {
+                            alert(`❌ Failed to upload articles: ${pushResult.error?.message || 'Unknown error'}`);
+                        }
+                    }
+                } else {
+                    alert(message);
+                }
+            }
+        } else {
+            // Sync failed
+            if (result.error?.code === 'TABLE_NOT_FOUND') {
+                alert(`⚠️ Articles table does not exist in Supabase.\n\nPlease create it using the SQL script from ARTICLES_SUPABASE_SETUP.md`);
+            } else {
+                alert(`❌ Failed to sync: ${result.error?.message || result.error?.userMessage || 'Unknown error'}`);
+            }
+        }
+    };
+
+    const handleSaveTherapyProgram = async (programData) => {
+        if (editingTherapyProgram) {
+            await therapyProgramsManager.update(editingTherapyProgram.id, programData);
+        } else {
+            await therapyProgramsManager.add(programData);
+        }
+        loadTherapyPrograms();
+        setEditingTherapyProgram(null);
+        setIsAddingTherapyProgram(false);
+    };
+
+    const handleDeleteTherapyProgram = async (id) => {
+        if (window.confirm('Are you sure you want to delete this therapy program?')) {
+            await therapyProgramsManager.delete(id);
+            loadTherapyPrograms();
+        }
+    };
+
+    const handleSyncTherapyPrograms = async () => {
+        // First, try to sync from Supabase (download)
+        const result = await therapyProgramsManager.syncFromSupabase();
+        if (result.synced) {
+            // Reload programs to reflect changes
+            loadTherapyPrograms();
+            
+            // Show detailed sync results
+            let message = `✅ Successfully synced from Supabase!\n\n`;
+            message += `📊 Supabase therapy programs: ${result.count}\n`;
+            
+            if (result.count > 0) {
+                alert(message);
+            } else {
+                // If no programs in Supabase, offer to push local programs
+                const localPrograms = therapyProgramsManager.getAll();
+                if (localPrograms.length > 0) {
+                    const pushToSupabase = window.confirm(
+                        `${message}\n\nNo therapy programs found in Supabase. Would you like to upload ${localPrograms.length} local program(s) to Supabase?`
+                    );
+                    if (pushToSupabase) {
+                        const pushResult = await therapyProgramsManager.syncToSupabase();
+                        if (pushResult.synced) {
+                            alert(`✅ Successfully uploaded ${pushResult.syncedCount} program(s) to Supabase!`);
+                            loadTherapyPrograms();
+                        } else {
+                            alert(`❌ Failed to upload programs: ${pushResult.error?.message || 'Unknown error'}`);
+                        }
+                    }
+                } else {
+                    alert(message);
+                }
+            }
+        } else {
+            // Sync failed
+            if (result.error?.code === 'TABLE_NOT_FOUND') {
+                alert(`⚠️ Therapy programs table does not exist in Supabase.\n\nPlease create it using the SQL script from THERAPY_PROGRAMS_SUPABASE_SETUP.md`);
+            } else {
+                alert(`❌ Failed to sync: ${result.error?.message || result.error?.userMessage || 'Unknown error'}`);
+            }
+        }
+    };
+
+    const handleSaveForParent = async (articleData) => {
+        if (editingForParent) {
+            await forParentsManager.update(editingForParent.id, articleData);
+        } else {
+            await forParentsManager.add(articleData);
+        }
+        loadForParentsArticles();
+        setEditingForParent(null);
+        setIsAddingForParent(false);
+    };
+
+    const handleDeleteForParent = async (id) => {
+        if (window.confirm('Are you sure you want to delete this parent article?')) {
+            await forParentsManager.delete(id);
+            loadForParentsArticles();
+        }
+    };
+
+    const handleSyncForParents = async () => {
+        // First, try to sync from Supabase (download)
+        const result = await forParentsManager.syncFromSupabase();
+        if (result.synced) {
+            // Reload articles to reflect changes
+            loadForParentsArticles();
+            
+            // Show detailed sync results
+            let message = `✅ Successfully synced from Supabase!\n\n`;
+            message += `📊 Supabase for parents articles: ${result.count}\n`;
+            
+            if (result.count > 0) {
+                alert(message);
+            } else {
+                // If no articles in Supabase, offer to push local articles
+                const localArticles = forParentsManager.getAll();
+                if (localArticles.length > 0) {
+                    const pushToSupabase = window.confirm(
+                        `${message}\n\nNo for parents articles found in Supabase. Would you like to upload ${localArticles.length} local article(s) to Supabase?`
+                    );
+                    if (pushToSupabase) {
+                        const pushResult = await forParentsManager.syncToSupabase();
+                        if (pushResult.synced) {
+                            alert(`✅ Successfully uploaded ${pushResult.syncedCount} article(s) to Supabase!`);
+                            loadForParentsArticles();
+                        } else {
+                            alert(`❌ Failed to upload articles: ${pushResult.error?.message || 'Unknown error'}`);
+                        }
+                    }
+                } else {
+                    alert(message);
+                }
+            }
+        } else {
+            // Sync failed
+            if (result.error?.code === 'TABLE_NOT_FOUND') {
+                alert(`⚠️ For parents table does not exist in Supabase.\n\nPlease create it using the SQL script from FOR_PARENTS_SUPABASE_SETUP.md`);
+            } else {
+                alert(`❌ Failed to sync: ${result.error?.message || result.error?.userMessage || 'Unknown error'}`);
+            }
+        }
     };
 
     const menuItems = [
         { icon: BookOpen, label: "Courses", tab: "courses" },
         { icon: Users, label: "Members", tab: "members" },
+        { icon: Calendar, label: "Events", tab: "events" },
+        { icon: FileText, label: "Articles", tab: "articles" },
+        { icon: Brain, label: "Therapy Programs", tab: "therapy-programs" },
+        { icon: BookOpen, label: "For Parents", tab: "for-parents" },
         { icon: FileText, label: "Applications", tab: "applications" },
         { icon: Settings, label: "Settings", tab: "settings" },
     ];
@@ -497,13 +1846,21 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
                             <h1 className="text-3xl font-bold text-gray-800 mb-2">
                                 {activeTab === 'courses' ? 'Courses Management' :
                                     activeTab === 'members' ? 'Members Management' :
-                                    activeTab === 'applications' ? 'Member Applications' :
+                                    activeTab === 'events' ? 'Events Management' :
+                                    activeTab === 'articles' ? 'Articles Management' :
+                                    activeTab === 'therapy-programs' ? 'Therapy Programs Management' :
+                                    activeTab === 'for-parents' ? 'For Parents Management' :
+                                    activeTab === 'applications' ? 'All Applications' :
                                         'Settings'}
                             </h1>
                             <p className="text-gray-600">
                                 {activeTab === 'courses' ? 'Manage all courses on the website' :
                                     activeTab === 'members' ? 'Manage all members on the website' :
-                                    activeTab === 'applications' ? 'Review and manage membership applications' :
+                                    activeTab === 'events' ? 'Manage upcoming and past events' :
+                                    activeTab === 'articles' ? 'Manage articles and resources' :
+                                    activeTab === 'therapy-programs' ? 'Manage therapy programs and services' :
+                                    activeTab === 'for-parents' ? 'Manage articles and resources for parents' :
+                                    activeTab === 'applications' ? 'Review and manage all form submissions' :
                                         'Dashboard settings and configuration'}
                             </p>
                         </div>
@@ -524,6 +1881,76 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
                                 <Plus size={20} />
                                 Add Member
                             </button>
+                        )}
+                        {activeTab === 'therapy-programs' && (
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={loadTherapyPrograms}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                    title="Refresh Therapy Programs"
+                                >
+                                    <RefreshCw size={18} />
+                                </button>
+                                <button
+                                    onClick={handleSyncTherapyPrograms}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                                    title="Sync from Supabase"
+                                >
+                                    <RefreshCw size={18} />
+                                    Sync
+                                </button>
+                                <button
+                                    onClick={() => setIsAddingTherapyProgram(true)}
+                                    className="flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors shadow-md"
+                                >
+                                    <Plus size={20} />
+                                    Add Program
+                                </button>
+                            </div>
+                        )}
+                        {activeTab === 'for-parents' && (
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={loadForParentsArticles}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                    title="Refresh For Parents Articles"
+                                >
+                                    <RefreshCw size={18} />
+                                </button>
+                                <button
+                                    onClick={handleSyncForParents}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                                    title="Sync from Supabase"
+                                >
+                                    <RefreshCw size={18} />
+                                    Sync
+                                </button>
+                                <button
+                                    onClick={() => setIsAddingForParent(true)}
+                                    className="flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors shadow-md"
+                                >
+                                    <Plus size={20} />
+                                    Add Article
+                                </button>
+                            </div>
+                        )}
+                        {activeTab === 'events' && (
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={loadEvents}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                    title="Refresh Events"
+                                >
+                                    <RefreshCw size={18} />
+                                </button>
+                                <button
+                                    onClick={() => setIsAddingEvent(true)}
+                                    className="flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors shadow-md"
+                                >
+                                    <Plus size={20} />
+                                    Add Event
+                                </button>
+                            </div>
                         )}
                     </div>
 
@@ -614,13 +2041,23 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
                                     <p className="text-2xl font-bold text-gray-900">{filteredMembers.length}</p>
                                 </div>
                                 <div className="bg-white p-4 rounded-lg shadow-sm">
-                                    <button
-                                        onClick={loadMembers}
-                                        className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178]"
-                                    >
-                                        <RefreshCw size={16} />
-                                        Refresh Data
-                                    </button>
+                                    <p className="text-sm text-gray-600 mb-2">Actions</p>
+                                    <div className="flex flex-col gap-2">
+                                        <button
+                                            onClick={handleSyncMembers}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178]"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Sync from Supabase
+                                        </button>
+                                        <button
+                                            onClick={loadMembers}
+                                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh Local
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -645,154 +2082,1085 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
                         </div>
                     )}
 
-                    {/* Applications Tab */}
-                    {activeTab === 'applications' && (
+                    {/* Events Tab */}
+                    {activeTab === 'events' && (
                         <div>
-                            {/* Stats Cards */}
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                                <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-blue-500">
-                                    <p className="text-sm text-gray-600 mb-1">Total Applications</p>
-                                    <p className="text-3xl font-bold text-gray-900">{formStats.total}</p>
+                            {/* Stats */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div className="bg-white p-4 rounded-lg shadow-sm">
+                                    <p className="text-sm text-gray-600">Upcoming Events</p>
+                                    <p className="text-2xl font-bold text-gray-900">{events.upcoming?.length || 0}</p>
                                 </div>
-                                <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-yellow-500">
-                                    <p className="text-sm text-gray-600 mb-1">Pending Review</p>
-                                    <p className="text-3xl font-bold text-yellow-600">{formStats.pending}</p>
+                                <div className="bg-white p-4 rounded-lg shadow-sm">
+                                    <p className="text-sm text-gray-600">Past Events</p>
+                                    <p className="text-2xl font-bold text-gray-900">{events.past?.length || 0}</p>
                                 </div>
-                                <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-green-500">
-                                    <p className="text-sm text-gray-600 mb-1">Approved</p>
-                                    <p className="text-3xl font-bold text-green-600">{formStats.approved}</p>
-                                </div>
-                                <div className="bg-white p-6 rounded-lg shadow-sm border-l-4 border-red-500">
-                                    <p className="text-sm text-gray-600 mb-1">Rejected</p>
-                                    <p className="text-3xl font-bold text-red-600">{formStats.rejected}</p>
+                                <div className="bg-white p-4 rounded-lg shadow-sm">
+                                    <p className="text-sm text-gray-600 mb-2">Actions</p>
+                                    <div className="flex flex-col gap-2">
+                                        <button
+                                            onClick={handleSyncEvents}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178]"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Sync from Supabase
+                                        </button>
+                                        <button
+                                            onClick={loadEvents}
+                                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh Local
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Filters */}
-                            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {/* Search */}
-                                    <div className="relative">
-                                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                        <input
-                                            type="text"
-                                            placeholder="Search by name, email, or specialty..."
-                                            value={formSearchTerm}
-                                            onChange={(e) => setFormSearchTerm(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
-                                        />
-                                    </div>
-
-                                    {/* Status Filter */}
-                                    <div className="flex gap-2">
-                                        {['all', 'pending', 'approved', 'rejected'].map(status => (
-                                            <button
-                                                key={status}
-                                                onClick={() => setStatusFilter(status)}
-                                                className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
-                                                    statusFilter === status
-                                                        ? 'bg-[#4C9A8F] text-white'
-                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                                }`}
-                                            >
-                                                {status.charAt(0).toUpperCase() + status.slice(1)}
-                                            </button>
+                            {/* Upcoming Events */}
+                            <div className="mb-8">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-2xl font-bold text-gray-900">Upcoming Events</h2>
+                                    {events.upcoming && events.upcoming.length > 0 && (
+                                        <span className="text-sm text-gray-500">
+                                            {events.upcoming.length} event{events.upcoming.length !== 1 ? 's' : ''}
+                                        </span>
+                                    )}
+                                </div>
+                                {events.upcoming && events.upcoming.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {events.upcoming.map((event) => (
+                                            <div key={event.id} className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <h3 className="text-xl font-bold text-gray-900 flex-1">{event.title || 'Untitled Event'}</h3>
+                                                    <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs font-medium ml-2">
+                                                        Upcoming
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-gray-600 mb-4 line-clamp-2">{event.subtitle || 'No description'}</p>
+                                                <div className="space-y-2 mb-4">
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-gray-500">Member Fee:</span>
+                                                        <span className="font-semibold text-gray-900">{event.memberFee || 0} EGP</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-gray-500">Guest Fee:</span>
+                                                        <span className="font-semibold text-gray-900">{event.guestFee || 0} EGP</span>
+                                                    </div>
+                                                    {event.tracks && event.tracks.length > 0 && (
+                                                        <div className="flex items-center justify-between text-sm">
+                                                            <span className="text-gray-500">Tracks:</span>
+                                                            <span className="font-semibold text-gray-900">{event.tracks.length}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200">
+                                                    <button
+                                                        onClick={() => {
+                                                            setEditingEvent(event);
+                                                        }}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors text-sm font-medium"
+                                                    >
+                                                        <Edit size={16} />
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleMoveToPast(event.id)}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors text-sm font-medium"
+                                                    >
+                                                        <Archive size={16} />
+                                                        Archive
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteEvent(event.id)}
+                                                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                                                        title="Delete Event"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                                <div className="mt-3 pt-3 border-t border-gray-100">
+                                                    <a
+                                                        href={`/upcoming-events/${event.id}`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-xs text-[#4C9A8F] hover:text-[#3d8178] font-medium"
+                                                    >
+                                                        View Event Page →
+                                                    </a>
+                                                </div>
+                                            </div>
                                         ))}
                                     </div>
+                                ) : (
+                                    <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                                        <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                        <p className="text-gray-500 mb-2">No upcoming events</p>
+                                        <p className="text-sm text-gray-400 mb-4">Click "Add Event" to create your first upcoming event</p>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Past Events */}
+                            <div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-2xl font-bold text-gray-900">Past Events</h2>
+                                    <div className="flex items-center gap-2">
+                                        {events.past && events.past.length > 0 && (
+                                            <span className="text-sm text-gray-500">
+                                                {events.past.length} event{events.past.length !== 1 ? 's' : ''}
+                                            </span>
+                                        )}
+                                        {/* Debug info */}
+                                        <span className="text-xs text-gray-400">
+                                            (State: {events.past ? 'exists' : 'null'}, Length: {events.past?.length || 0})
+                                        </span>
+                                    </div>
+                                </div>
+                                {(() => {
+                                    console.log('Rendering Past Events section');
+                                    console.log('events.past:', events.past);
+                                    console.log('events.past type:', typeof events.past);
+                                    console.log('events.past is array:', Array.isArray(events.past));
+                                    console.log('events.past length:', events.past?.length);
+                                    return null;
+                                })()}
+                                {events.past && Array.isArray(events.past) && events.past.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {events.past.map((event) => (
+                                            <div key={event.id} className="bg-white rounded-lg shadow-md p-6 border border-gray-200 hover:shadow-lg transition-shadow">
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <h3 className="text-xl font-bold text-gray-900 flex-1">{event.title || 'Untitled Event'}</h3>
+                                                    <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs font-medium ml-2">
+                                                        Past
+                                                    </span>
+                                                </div>
+                                                <p className="text-sm text-gray-600 mb-4 line-clamp-2">{event.subtitle || 'No description'}</p>
+                                                <div className="space-y-2 mb-4">
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-gray-500">Member Fee:</span>
+                                                        <span className="font-semibold text-gray-900">{event.memberFee || 0} EGP</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-sm">
+                                                        <span className="text-gray-500">Guest Fee:</span>
+                                                        <span className="font-semibold text-gray-900">{event.guestFee || 0} EGP</span>
+                                                    </div>
+                                                    {event.tracks && event.tracks.length > 0 && (
+                                                        <div className="flex items-center justify-between text-sm">
+                                                            <span className="text-gray-500">Tracks:</span>
+                                                            <span className="font-semibold text-gray-900">{event.tracks.length}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200">
+                                                    <button
+                                                        onClick={() => setEditingEvent(event)}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors text-sm font-medium"
+                                                    >
+                                                        <Edit size={16} />
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleMoveToUpcoming(event.id)}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+                                                    >
+                                                        <Archive size={16} />
+                                                        Restore
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteEvent(event.id)}
+                                                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                                                        title="Delete Event"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                                        <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                                        <p className="text-gray-500">No past events</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Articles Tab */}
+                    {activeTab === 'articles' && (
+                        <div>
+                            {/* Header with Add Button */}
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-900">Articles</h2>
+                                    <p className="text-sm text-gray-600 mt-1">Manage articles and resources</p>
+                                </div>
+                                <button
+                                    onClick={() => setIsAddingArticle(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                >
+                                    <Plus size={20} />
+                                    Add Article
+                                </button>
+                            </div>
+
+                            {/* Stats */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div className="bg-white p-4 rounded-lg shadow-sm">
+                                    <p className="text-sm text-gray-600">Total Articles</p>
+                                    <p className="text-2xl font-bold text-gray-900">{articles.length}</p>
+                                </div>
+                                <div className="bg-white p-4 rounded-lg shadow-sm">
+                                    <p className="text-sm text-gray-600 mb-2">Actions</p>
+                                    <div className="flex flex-col gap-2">
+                                        <button
+                                            onClick={handleSyncArticles}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178]"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Sync from Supabase
+                                        </button>
+                                        <button
+                                            onClick={loadArticles}
+                                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh Local
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
-                            {/* Applications Table */}
-                            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full">
-                                        <thead className="bg-gray-50 border-b border-gray-200">
-                                            <tr>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                                    Applicant
-                                                </th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                                    Email
-                                                </th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                                    Specialty
-                                                </th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                                    Submitted
-                                                </th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                                    Status
-                                                </th>
-                                                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                                                    Actions
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-200">
-                                            {filteredForms.map((form) => (
-                                                <tr key={form.id} className="hover:bg-gray-50 transition-colors">
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="font-medium text-gray-900">{form.username}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-sm text-gray-600">{form.email}</div>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <div className="flex flex-wrap gap-1">
-                                                            {form.specialty.map((spec, idx) => (
-                                                                <span key={idx} className="px-2 py-1 bg-[#5A9B8E]/10 text-[#5A9B8E] text-xs rounded-full">
-                                                                    {spec.split(' ')[0]}...
-                                                                </span>
-                                                            ))}
+                            {/* Articles Grid */}
+                            {articles.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {articles.map((article) => (
+                                        <div key={article.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
+                                            {article.image && (
+                                                <div className="aspect-video bg-gray-100 overflow-hidden">
+                                                    <img
+                                                        src={article.image}
+                                                        alt={article.titleEn}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                            )}
+                                            <div className="p-4">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="px-2 py-0.5 bg-teal-50 text-[#4C9A8F] text-xs font-medium rounded-full">
+                                                        {article.categoryAr}
+                                                    </span>
+                                                </div>
+                                                <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-2">
+                                                    {article.titleAr}
+                                                </h3>
+                                                <p className="text-sm text-gray-600 mb-2 line-clamp-1">
+                                                    {article.titleEn}
+                                                </p>
+                                                <p className="text-gray-600 text-xs mb-3 line-clamp-2">
+                                                    {article.excerptAr}
+                                                </p>
+                                                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                                                    <span>{article.date}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
+                                                    <button
+                                                        onClick={() => setEditingArticle(article)}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors text-sm font-medium"
+                                                    >
+                                                        <Edit size={16} />
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteArticle(article.id)}
+                                                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                                                        title="Delete Article"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                                    <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Articles Yet</h3>
+                                    <p className="text-gray-600 mb-4">Get started by adding your first article</p>
+                                    <button
+                                        onClick={() => setIsAddingArticle(true)}
+                                        className="px-6 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                    >
+                                        Add Article
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Therapy Programs Tab */}
+                    {activeTab === 'therapy-programs' && (
+                        <div>
+                            {/* Header with Add Button */}
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-900">Therapy Programs</h2>
+                                    <p className="text-sm text-gray-600 mt-1">Manage therapy programs and services</p>
+                                </div>
+                                <button
+                                    onClick={() => setIsAddingTherapyProgram(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                >
+                                    <Plus size={20} />
+                                    Add Program
+                                </button>
+                            </div>
+
+                            {/* Stats */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div className="bg-white p-4 rounded-lg shadow-sm">
+                                    <p className="text-sm text-gray-600">Total Programs</p>
+                                    <p className="text-2xl font-bold text-gray-900">{therapyPrograms.length}</p>
+                                </div>
+                                <div className="bg-white p-4 rounded-lg shadow-sm">
+                                    <p className="text-sm text-gray-600 mb-2">Actions</p>
+                                    <div className="flex flex-col gap-2">
+                                        <button
+                                            onClick={handleSyncTherapyPrograms}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178]"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Sync from Supabase
+                                        </button>
+                                        <button
+                                            onClick={loadTherapyPrograms}
+                                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh Local
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Programs Grid */}
+                            {therapyPrograms.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {therapyPrograms.map((program) => {
+                                        const iconMap = {
+                                            MessageCircle: MessageCircle,
+                                            Users: Users,
+                                            Baby: Baby,
+                                            Brain: Brain,
+                                            ClipboardList: ClipboardList,
+                                        };
+                                        const Icon = iconMap[program.icon] || MessageCircle;
+                                        
+                                        return (
+                                            <div key={program.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
+                                                {program.image && (
+                                                    <div className="aspect-video bg-gray-100 overflow-hidden">
+                                                        <img
+                                                            src={program.image || program.imageUrl}
+                                                            alt={program.title}
+                                                            className="w-full h-full object-cover"
+                                                        />
+                                                    </div>
+                                                )}
+                                                <div className="p-4">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <div className="p-2 bg-teal-50 rounded-full">
+                                                            <Icon className="w-5 h-5 text-[#4C9A8F]" />
                                                         </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="text-sm text-gray-600">
-                                                            {new Date(form.submittedAt).toLocaleDateString()}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
-                                                            form.status === 'approved' ? 'bg-green-100 text-green-700' :
-                                                            form.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                                                            'bg-yellow-100 text-yellow-700'
-                                                        }`}>
-                                                            {form.status === 'approved' && <CheckCircle size={14} />}
-                                                            {form.status === 'rejected' && <XCircle size={14} />}
-                                                            {form.status === 'pending' && <Clock size={14} />}
-                                                            {form.status.charAt(0).toUpperCase() + form.status.slice(1)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <div className="flex items-center gap-2">
-                                                            <button
-                                                                onClick={() => setSelectedForm(form)}
-                                                                className="p-2 text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors"
-                                                                title="View Details"
-                                                            >
-                                                                <Eye size={18} />
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleDeleteForm(form.id)}
-                                                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                                title="Delete"
-                                                            >
-                                                                <XCircle size={18} />
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                                                    </div>
+                                                    <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2" dir="rtl">
+                                                        {program.title}
+                                                    </h3>
+                                                    <p className="text-gray-600 text-sm mb-3 line-clamp-3" dir="rtl">
+                                                        {program.description}
+                                                    </p>
+                                                    <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
+                                                        <button
+                                                            onClick={() => setEditingTherapyProgram(program)}
+                                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors text-sm font-medium"
+                                                        >
+                                                            <Edit size={16} />
+                                                            Edit
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDeleteTherapyProgram(program.id)}
+                                                            className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                                                            title="Delete Program"
+                                                        >
+                                                            <Trash2 size={16} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                                    <Brain className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No Therapy Programs Yet</h3>
+                                    <p className="text-gray-600 mb-4">Get started by adding your first therapy program</p>
+                                    <button
+                                        onClick={() => setIsAddingTherapyProgram(true)}
+                                        className="px-6 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                    >
+                                        Add Program
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* For Parents Tab */}
+                    {activeTab === 'for-parents' && (
+                        <div>
+                            {/* Header with Add Button */}
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <h2 className="text-2xl font-bold text-gray-900">For Parents Articles</h2>
+                                    <p className="text-sm text-gray-600 mt-1">Manage articles and resources for parents</p>
+                                </div>
+                                <button
+                                    onClick={() => setIsAddingForParent(true)}
+                                    className="flex items-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                >
+                                    <Plus size={20} />
+                                    Add Article
+                                </button>
+                            </div>
+
+                            {/* Stats */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                                <div className="bg-white p-4 rounded-lg shadow-sm">
+                                    <p className="text-sm text-gray-600">Total Articles</p>
+                                    <p className="text-2xl font-bold text-gray-900">{forParentsArticles.length}</p>
+                                </div>
+                                <div className="bg-white p-4 rounded-lg shadow-sm">
+                                    <p className="text-sm text-gray-600 mb-2">Actions</p>
+                                    <div className="flex flex-col gap-2">
+                                        <button
+                                            onClick={handleSyncForParents}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178]"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Sync from Supabase
+                                        </button>
+                                        <button
+                                            onClick={loadForParentsArticles}
+                                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh Local
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Articles Grid */}
+                            {forParentsArticles.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {forParentsArticles.map((article) => (
+                                        <div key={article.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
+                                            {article.image && (
+                                                <div className="aspect-video bg-gray-100 overflow-hidden">
+                                                    <img
+                                                        src={article.image || article.imageUrl}
+                                                        alt={article.title}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
+                                            )}
+                                            <div className="p-4">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <div className="p-2 bg-teal-50 rounded-full">
+                                                        <BookOpen className="w-5 h-5 text-[#4C9A8F]" />
+                                                    </div>
+                                                </div>
+                                                <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2" dir="rtl">
+                                                    {article.title}
+                                                </h3>
+                                                <p className="text-gray-600 text-sm mb-3 line-clamp-2" dir="rtl">
+                                                    {article.excerpt}
+                                                </p>
+                                                <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                                                    <span>{article.author}</span>
+                                                    <span>{article.date}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
+                                                    <button
+                                                        onClick={() => setEditingForParent(article)}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors text-sm font-medium"
+                                                    >
+                                                        <Edit size={16} />
+                                                        Edit
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteForParent(article.id)}
+                                                        className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm"
+                                                        title="Delete Article"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-12 bg-white rounded-lg border-2 border-dashed border-gray-300">
+                                    <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No For Parents Articles Yet</h3>
+                                    <p className="text-gray-600 mb-4">Get started by adding your first article for parents</p>
+                                    <button
+                                        onClick={() => setIsAddingForParent(true)}
+                                        className="px-6 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                    >
+                                        Add Article
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Applications Tab */}
+                    {activeTab === 'applications' && (
+                        <div className="space-y-8">
+                            {/* Section 1: Member Applications */}
+                            <div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-2xl font-bold text-gray-900">Member Applications</h2>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex gap-2 text-sm">
+                                            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {forms.length}</span>
+                                            <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {forms.filter(f => f.status === 'pending').length}</span>
+                                        </div>
+                                        <button
+                                            onClick={loadForms}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
+                                            title="Refresh Member Applications"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh
+                                        </button>
+                                    </div>
                                 </div>
 
-                                {filteredForms.length === 0 && (
-                                    <div className="text-center py-12">
-                                        <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                        <p className="text-gray-500">No applications found</p>
+                                {/* Filters */}
+                                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search by name, email, or specialty..."
+                                                value={formSearchTerm}
+                                                onChange={(e) => setFormSearchTerm(e.target.value)}
+                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {['all', 'pending', 'approved', 'rejected'].map(status => (
+                                                <button
+                                                    key={status}
+                                                    onClick={() => setStatusFilter(status)}
+                                                    className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
+                                                        statusFilter === status
+                                                            ? 'bg-[#4C9A8F] text-white'
+                                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                    }`}
+                                                >
+                                                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                                                </button>
+                                            ))}
+                                        </div>
                                     </div>
-                                )}
+                                </div>
+
+                                {/* Applications Table */}
+                                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead className="bg-gray-50 border-b border-gray-200">
+                                                <tr>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Applicant</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Specialty</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Submitted</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200">
+                                                {filteredForms.map((form) => (
+                                                    <tr key={form.id} className="hover:bg-gray-50 transition-colors">
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="font-medium text-gray-900">{form.username}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">{form.email}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {form.specialty.map((spec, idx) => (
+                                                                    <span key={idx} className="px-2 py-1 bg-[#5A9B8E]/10 text-[#5A9B8E] text-xs rounded-full">
+                                                                        {spec.split(' ')[0]}...
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">
+                                                                {new Date(form.submittedAt).toLocaleDateString()}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                                                                form.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                                                form.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                                'bg-yellow-100 text-yellow-700'
+                                                            }`}>
+                                                                {form.status === 'approved' && <CheckCircle size={14} />}
+                                                                {form.status === 'rejected' && <XCircle size={14} />}
+                                                                {form.status === 'pending' && <Clock size={14} />}
+                                                                {form.status.charAt(0).toUpperCase() + form.status.slice(1)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="flex items-center gap-2">
+                                                                <button
+                                                                    onClick={() => setSelectedForm(form)}
+                                                                    className="p-2 text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors"
+                                                                    title="View Details"
+                                                                >
+                                                                    <Eye size={18} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteForm(form.id)}
+                                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                                    title="Delete"
+                                                                >
+                                                                    <XCircle size={18} />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {filteredForms.length === 0 && (
+                                        <div className="text-center py-12">
+                                            <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                            <p className="text-gray-500">No member applications found</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Section 2: Event Registrations */}
+                            <div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-2xl font-bold text-gray-900">Event Registrations</h2>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex gap-2 text-sm">
+                                            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {eventRegistrations.length}</span>
+                                            <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {eventRegistrations.filter(r => r.status === 'pending').length}</span>
+                                        </div>
+                                        <button
+                                            onClick={loadEventRegistrations}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
+                                            title="Refresh Event Registrations"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Filters */}
+                                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search by name, email, phone, or organization..."
+                                                value={eventSearchTerm}
+                                                onChange={(e) => setEventSearchTerm(e.target.value)}
+                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {['all', 'pending', 'approved', 'rejected'].map(status => (
+                                                <button
+                                                    key={status}
+                                                    onClick={() => setEventStatusFilter(status)}
+                                                    className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
+                                                        eventStatusFilter === status
+                                                            ? 'bg-[#4C9A8F] text-white'
+                                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                    }`}
+                                                >
+                                                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Event Registrations Table */}
+                                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead className="bg-gray-50 border-b border-gray-200">
+                                                <tr>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Phone</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Membership Type</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Fee</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200">
+                                                {filteredEventRegistrations.map((registration) => (
+                                                    <tr key={registration.id} className="hover:bg-gray-50 transition-colors">
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="font-medium text-gray-900">{registration.fullName}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">{registration.email}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">{registration.phone}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">
+                                                                {registration.membershipType === 'member' ? 'Member' : 'Guest'}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm font-medium text-gray-900">{registration.registrationFee} EGP</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                                                                registration.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                                                registration.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                                'bg-yellow-100 text-yellow-700'
+                                                            }`}>
+                                                                {registration.status === 'approved' && <CheckCircle size={14} />}
+                                                                {registration.status === 'rejected' && <XCircle size={14} />}
+                                                                {registration.status === 'pending' && <Clock size={14} />}
+                                                                {registration.status.charAt(0).toUpperCase() + registration.status.slice(1)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="flex items-center gap-2">
+                                                                <button
+                                                                    onClick={() => setSelectedEventRegistration(registration)}
+                                                                    className="p-2 text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors"
+                                                                    title="View Details"
+                                                                >
+                                                                    <Eye size={18} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteEventRegistration(registration.id)}
+                                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                                    title="Delete"
+                                                                >
+                                                                    <XCircle size={18} />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {filteredEventRegistrations.length === 0 && (
+                                        <div className="text-center py-12">
+                                            <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                            <p className="text-gray-500">No event registrations found</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Section 3: Contact Forms */}
+                            <div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-2xl font-bold text-gray-900">Contact Messages</h2>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex gap-2 text-sm">
+                                            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {contactForms.length}</span>
+                                            <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {contactForms.filter(f => f.status === 'pending').length}</span>
+                                        </div>
+                                        <button
+                                            onClick={loadContactForms}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
+                                            title="Refresh Contact Messages"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Filters */}
+                                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search by name, email, subject, or message..."
+                                                value={contactSearchTerm}
+                                                onChange={(e) => setContactSearchTerm(e.target.value)}
+                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {['all', 'pending', 'approved', 'rejected'].map(status => (
+                                                <button
+                                                    key={status}
+                                                    onClick={() => setContactStatusFilter(status)}
+                                                    className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
+                                                        contactStatusFilter === status
+                                                            ? 'bg-[#4C9A8F] text-white'
+                                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                    }`}
+                                                >
+                                                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Contact Forms Table */}
+                                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead className="bg-gray-50 border-b border-gray-200">
+                                                <tr>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Name</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Subject</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Submitted</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200">
+                                                {filteredContactForms.map((form) => (
+                                                    <tr key={form.id} className="hover:bg-gray-50 transition-colors">
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="font-medium text-gray-900">{form.name}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">{form.email}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="text-sm text-gray-900 max-w-xs truncate">{form.subject}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">
+                                                                {new Date(form.submittedAt).toLocaleDateString()}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                                                                form.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                                                form.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                                'bg-yellow-100 text-yellow-700'
+                                                            }`}>
+                                                                {form.status === 'approved' && <CheckCircle size={14} />}
+                                                                {form.status === 'rejected' && <XCircle size={14} />}
+                                                                {form.status === 'pending' && <Clock size={14} />}
+                                                                {form.status.charAt(0).toUpperCase() + form.status.slice(1)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="flex items-center gap-2">
+                                                                <button
+                                                                    onClick={() => setSelectedContactForm(form)}
+                                                                    className="p-2 text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors"
+                                                                    title="View Details"
+                                                                >
+                                                                    <Eye size={18} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteContactForm(form.id)}
+                                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                                    title="Delete"
+                                                                >
+                                                                    <XCircle size={18} />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {filteredContactForms.length === 0 && (
+                                        <div className="text-center py-12">
+                                            <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                            <p className="text-gray-500">No contact messages found</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Section 4: Reservations */}
+                            <div>
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-2xl font-bold text-gray-900">Assessment Reservations</h2>
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex gap-2 text-sm">
+                                            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {reservations.length}</span>
+                                            <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {reservations.filter(r => r.status === 'pending').length}</span>
+                                        </div>
+                                        <button
+                                            onClick={loadReservations}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
+                                            title="Refresh Reservations"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Filters */}
+                                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="relative">
+                                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                                            <input
+                                                type="text"
+                                                placeholder="Search by child's name, parent name, phone, or concern..."
+                                                value={reservationSearchTerm}
+                                                onChange={(e) => setReservationSearchTerm(e.target.value)}
+                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                                            />
+                                        </div>
+                                        <div className="flex gap-2">
+                                            {['all', 'pending', 'approved', 'rejected'].map(status => (
+                                                <button
+                                                    key={status}
+                                                    onClick={() => setReservationStatusFilter(status)}
+                                                    className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
+                                                        reservationStatusFilter === status
+                                                            ? 'bg-[#4C9A8F] text-white'
+                                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                    }`}
+                                                >
+                                                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Reservations Table */}
+                                <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full">
+                                            <thead className="bg-gray-50 border-b border-gray-200">
+                                                <tr>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Child's Name</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Parent/Guardian</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Phone</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Assessments</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Submitted</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200">
+                                                {filteredReservations.map((reservation) => (
+                                                    <tr key={reservation.id} className="hover:bg-gray-50 transition-colors">
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="font-medium text-gray-900">{reservation.kidsName}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">{reservation.yourName}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">{reservation.phoneNumber}</div>
+                                                        </td>
+                                                        <td className="px-6 py-4">
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {reservation.selectedAssessments && reservation.selectedAssessments.length > 0 ? (
+                                                                    reservation.selectedAssessments.slice(0, 2).map((assessment, idx) => (
+                                                                        <span key={idx} className="px-2 py-1 bg-[#5A9B8E]/10 text-[#5A9B8E] text-xs rounded-full">
+                                                                            {assessment.substring(0, 15)}...
+                                                                        </span>
+                                                                    ))
+                                                                ) : (
+                                                                    <span className="text-xs text-gray-400">None</span>
+                                                                )}
+                                                                {reservation.selectedAssessments && reservation.selectedAssessments.length > 2 && (
+                                                                    <span className="text-xs text-gray-500">+{reservation.selectedAssessments.length - 2} more</span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">
+                                                                {new Date(reservation.submittedAt).toLocaleDateString()}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                                                                reservation.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                                                reservation.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                                'bg-yellow-100 text-yellow-700'
+                                                            }`}>
+                                                                {reservation.status === 'approved' && <CheckCircle size={14} />}
+                                                                {reservation.status === 'rejected' && <XCircle size={14} />}
+                                                                {reservation.status === 'pending' && <Clock size={14} />}
+                                                                {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="flex items-center gap-2">
+                                                                <button
+                                                                    onClick={() => setSelectedReservation(reservation)}
+                                                                    className="p-2 text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors"
+                                                                    title="View Details"
+                                                                >
+                                                                    <Eye size={18} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDeleteReservation(reservation.id)}
+                                                                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                                    title="Delete"
+                                                                >
+                                                                    <XCircle size={18} />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    {filteredReservations.length === 0 && (
+                                        <div className="text-center py-12">
+                                            <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                                            <p className="text-gray-500">No reservations found</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     )}
@@ -840,6 +3208,71 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
                 />
             )}
 
+            {/* Event Edit Form Modal */}
+            {(isAddingEvent || editingEvent) && (
+                <EventEditForm
+                    event={editingEvent}
+                    onSave={(eventData) => {
+                        handleSaveEvent(eventData);
+                        // After saving, update URL to show the event being edited
+                        if (editingEvent && editingEvent.id) {
+                            setTimeout(() => {
+                                window.history.pushState({}, '', `/upcoming-events/${editingEvent.id}`);
+                            }, 100);
+                        } else {
+                            // For new events, wait for the event to be saved and get its ID
+                            setTimeout(() => {
+                                const allEvents = eventsManager.getAll();
+                                const latestEvent = allEvents.upcoming[allEvents.upcoming.length - 1];
+                                if (latestEvent && latestEvent.id) {
+                                    window.history.pushState({}, '', `/upcoming-events/${latestEvent.id}`);
+                                }
+                            }, 200);
+                        }
+                    }}
+                    onCancel={() => {
+                        setEditingEvent(null);
+                        setIsAddingEvent(false);
+                    }}
+                />
+            )}
+
+            {/* Article Edit Form Modal */}
+            {(isAddingArticle || editingArticle) && (
+                <ArticleEditForm
+                    article={editingArticle}
+                    onSave={handleSaveArticle}
+                    onCancel={() => {
+                        setEditingArticle(null);
+                        setIsAddingArticle(false);
+                    }}
+                />
+            )}
+
+            {/* Therapy Program Edit Form */}
+            {(isAddingTherapyProgram || editingTherapyProgram) && (
+                <TherapyProgramEditForm
+                    program={editingTherapyProgram}
+                    onSave={handleSaveTherapyProgram}
+                    onCancel={() => {
+                        setEditingTherapyProgram(null);
+                        setIsAddingTherapyProgram(false);
+                    }}
+                />
+            )}
+
+            {/* For Parent Edit Form */}
+            {(isAddingForParent || editingForParent) && (
+                <ForParentEditForm
+                    article={editingForParent}
+                    onSave={handleSaveForParent}
+                    onCancel={() => {
+                        setEditingForParent(null);
+                        setIsAddingForParent(false);
+                    }}
+                />
+            )}
+
             {/* Form Details Modal */}
             {selectedForm && (
                 <FormDetailsModal
@@ -847,6 +3280,36 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
                     onClose={() => setSelectedForm(null)}
                     onApprove={handleApproveForm}
                     onReject={handleRejectForm}
+                />
+            )}
+
+            {/* Event Registration Details Modal */}
+            {selectedEventRegistration && (
+                <EventRegistrationModal
+                    registration={selectedEventRegistration}
+                    onClose={() => setSelectedEventRegistration(null)}
+                    onApprove={handleApproveEventRegistration}
+                    onReject={handleRejectEventRegistration}
+                />
+            )}
+
+            {/* Contact Form Details Modal */}
+            {selectedContactForm && (
+                <ContactFormModal
+                    form={selectedContactForm}
+                    onClose={() => setSelectedContactForm(null)}
+                    onApprove={handleApproveContactForm}
+                    onReject={handleRejectContactForm}
+                />
+            )}
+
+            {/* Reservation Details Modal */}
+            {selectedReservation && (
+                <ReservationModal
+                    reservation={selectedReservation}
+                    onClose={() => setSelectedReservation(null)}
+                    onApprove={handleApproveReservation}
+                    onReject={handleRejectReservation}
                 />
             )}
         </div>

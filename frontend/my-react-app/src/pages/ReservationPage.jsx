@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Phone, Mail, Clock, Send, ArrowLeft } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, ArrowLeft, CheckCircle } from 'lucide-react';
 
 const ReservationPage = () => {
   const [formData, setFormData] = useState({
@@ -13,20 +13,64 @@ const ReservationPage = () => {
     concern: ''
   });
 
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [submittedData, setSubmittedData] = useState(null);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Get selected assessments
+    const selectedAssessments = [];
+    if (formData.speechAssessment) selectedAssessments.push('تقييم النطق');
+    if (formData.skillsAssessment) selectedAssessments.push('تقييم المهارات');
+    if (formData.academicAssessment) selectedAssessments.push('التقييم الأكاديمي');
+    if (formData.iqTests) selectedAssessments.push('اختبار الذكاء أو اختبارات أخرى');
+
+    // Create form submission object
+    const formSubmission = {
+      id: Date.now().toString(),
+      type: 'reservation',
+      kidsName: formData.kidsName,
+      yourName: formData.yourName,
+      phoneNumber: formData.phoneNumber,
+      selectedAssessments: selectedAssessments,
+      concern: formData.concern,
+      submittedAt: new Date().toISOString(),
+      status: 'pending'
+    };
+
+    // Get existing reservations from localStorage
+    let existingReservations = [];
+    try {
+      const stored = localStorage.getItem('reservations');
+      existingReservations = stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      console.error('Error reading from localStorage:', error);
+      existingReservations = [];
+    }
+    
+    // Add new submission
+    existingReservations.push(formSubmission);
+    
+    // Save back to localStorage
+    try {
+      localStorage.setItem('reservations', JSON.stringify(existingReservations));
+      // Dispatch event to notify dashboard
+      window.dispatchEvent(new CustomEvent('reservationsUpdated', { detail: existingReservations }));
+    } catch (error) {
+      console.error('Error saving reservation:', error);
+      alert('Failed to save your reservation. Please try again.');
+      return;
+    }
+    
     console.log('Reservation submitted:', formData);
-    alert('شكراً لك! سنتواصل معك قريباً لتأكيد موعدك.');
-    setFormData({
-      kidsName: '',
-      yourName: '',
-      phoneNumber: '',
-      speechAssessment: false,
-      skillsAssessment: false,
-      academicAssessment: false,
-      iqTests: false,
-      concern: ''
+    setSubmittedData({
+      kidsName: formData.kidsName,
+      yourName: formData.yourName,
+      phoneNumber: formData.phoneNumber,
+      selectedAssessments: selectedAssessments
     });
+    setIsSubmitted(true);
   };
 
   const handleChange = (e) => {
@@ -63,6 +107,40 @@ const ReservationPage = () => {
       link: 'mailto:info@eacsl.net'
     }
   ];
+
+  if (isSubmitted) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-xl p-8 md:p-12 max-w-2xl w-full text-center">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle className="w-12 h-12 text-green-600" />
+          </div>
+          <h2 className="text-3xl font-bold text-gray-900 mb-4">Reservation Submitted Successfully!</h2>
+          <p className="text-gray-600 mb-6 leading-relaxed">
+            شكراً لك! سنتواصل معك قريباً لتأكيد موعدك.
+          </p>
+          <div className="bg-teal-50 border-l-4 border-[#4C9A8F] p-4 mb-6">
+            <p className="text-sm text-gray-700">
+              <strong>Child's Name:</strong> {submittedData?.kidsName}<br />
+              <strong>Your Name:</strong> {submittedData?.yourName}<br />
+              <strong>Phone:</strong> {submittedData?.phoneNumber}<br />
+              {submittedData?.selectedAssessments && submittedData.selectedAssessments.length > 0 && (
+                <>
+                  <strong>Requested Assessments:</strong> {submittedData.selectedAssessments.join(', ')}
+                </>
+              )}
+            </p>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-8 py-3 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200"
+          >
+            Back to Reservation Page
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

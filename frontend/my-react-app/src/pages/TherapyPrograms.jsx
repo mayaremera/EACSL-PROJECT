@@ -1,45 +1,40 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Calendar, MessageCircle, Users, Baby, Brain, ClipboardList } from 'lucide-react';
+import { therapyProgramsManager } from '../utils/dataManager';
 
 const TherapyPrograms = () => {
-  const programs = [
-    {
-      icon: MessageCircle,
-      title: "جلسات علاج النطق للأطفال",
-      description: "توفير جلسات للأطفال لعلاج مجموعة متنوعة من الاضطرابات والإعاقات باستخدام تقنيات حديثة مثل التوحد واضطرابات السمع والشلل الدماغي ومتلازمة داون",
-      image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80"
-    },
-    {
-      icon: Users,
-      title: "جلسات علاج النطق للبالغين",
-      description: "توفير جلسات علاج النطق للبالغين الذين يعانون من اضطرابات النطق والطلاقة",
-      image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=600&q=80"
-    },
-    {
-      icon: Brain,
-      title: "تنمية المهارات",
-      description: "العمل مع الأطفال لتعزيز الذاكرة والانتباه والمهارات البصرية ومهارات الحياة والمهارات الأكاديمية",
-      image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&q=80"
-    },
-    {
-      icon: Baby,
-      title: "التدخل المبكر",
-      description: "توفير التدخل المبكر لتحسين إنتاج الكلام والمهارات العامة للأطفال",
-      image: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=600&q=80"
-    },
-    {
-      icon: Users,
-      title: "الدعم النفسي والأسري",
-      description: "نحن نقدم لك الدعم الذي تحتاجه لتحسين حياتك وحياة طفلك خاصة من يعانون من تحديات سلوكية",
-      image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80"
-    },
-    {
-      icon: ClipboardList,
-      title: "الاختبارات والتقييمات",
-      description: "نحن نجري أنواعًا مختلفة من التقييمات والاختبارات مثل اختبار الذكاء واختبار CARS والمزيد",
-      image: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&q=80"
-    }
-  ];
+  const [programs, setPrograms] = useState([]);
+
+  useEffect(() => {
+    const loadPrograms = () => {
+      const allPrograms = therapyProgramsManager.getAll();
+      setPrograms(allPrograms);
+    };
+
+    loadPrograms();
+
+    // Listen for updates
+    const handleProgramsUpdate = () => {
+      loadPrograms();
+    };
+
+    window.addEventListener('therapyProgramsUpdated', handleProgramsUpdate);
+    return () => {
+      window.removeEventListener('therapyProgramsUpdated', handleProgramsUpdate);
+    };
+  }, []);
+
+  // Map icon string to component
+  const getIconComponent = (iconName) => {
+    const iconMap = {
+      MessageCircle,
+      Users,
+      Baby,
+      Brain,
+      ClipboardList,
+    };
+    return iconMap[iconName] || MessageCircle;
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -75,17 +70,17 @@ const TherapyPrograms = () => {
       {/* Programs Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {programs.map((program, index) => {
-            const Icon = program.icon;
+          {programs.map((program) => {
+            const Icon = getIconComponent(program.icon);
             return (
               <div
-                key={index}
+                key={program.id}
                 className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition-all duration-300"
               >
                 {/* Image */}
                 <div className="relative h-48 overflow-hidden">
                   <img
-                    src={program.image}
+                    src={program.image || program.imageUrl || "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80"}
                     alt={program.title}
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                   />

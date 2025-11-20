@@ -276,95 +276,32 @@
 
 
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BookOpen, X, ExternalLink, Calendar, User } from 'lucide-react';
+import { forParentsManager } from '../utils/dataManager';
 
 const ForParentsPage = () => {
   const [selectedArticle, setSelectedArticle] = useState(null);
+  const [articles, setArticles] = useState([]);
 
-  const articles = [
-    {
-      id: 1,
-      title: "كيفية تعزيز الثقة بالنفس لدى الأطفال",
-      excerpt: "نصائح عملية لبناء ثقة طفلك بنفسه منذ الصغر",
-      image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80",
-      date: "15 أكتوبر 2024",
-      author: "د. سارة أحمد",
-      articleUrl: "https://www.example.com/article1"
-    },
-    {
-      id: 2,
-      title: "التواصل الفعال مع الأطفال",
-      excerpt: "أساليب التواصل الصحيحة التي تبني علاقة قوية مع طفلك",
-      image: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=600&q=80",
-      date: "10 أكتوبر 2024",
-      author: "د. محمد حسن",
-      articleUrl: "https://www.example.com/article2"
-    },
-    {
-      id: 3,
-      title: "التعامل مع نوبات الغضب عند الأطفال",
-      excerpt: "استراتيجيات فعالة للتعامل مع الغضب والانفعالات",
-      image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&q=80",
-      date: "5 أكتوبر 2024",
-      author: "د. ليلى إبراهيم",
-      articleUrl: "https://www.example.com/article3"
-    },
-    {
-      id: 4,
-      title: "أهمية اللعب في نمو الطفل",
-      excerpt: "كيف يساهم اللعب في التطور المعرفي والاجتماعي للطفل",
-      image: "https://images.unsplash.com/photo-1587616211892-c1c8c6b76d4c?w=600&q=80",
-      date: "1 أكتوبر 2024",
-      author: "د. فاطمة علي",
-      articleUrl: "https://www.example.com/article4"
-    },
-    {
-      id: 5,
-      title: "تنمية المهارات اللغوية للطفل",
-      excerpt: "طرق فعالة لتطوير مهارات النطق واللغة عند الأطفال",
-      image: "https://images.unsplash.com/photo-1609220136736-443140cffec6?w=600&q=80",
-      date: "28 سبتمبر 2024",
-      author: "د. خالد محمود",
-      articleUrl: "https://www.example.com/article5"
-    },
-    {
-      id: 6,
-      title: "التربية الإيجابية وأثرها على الطفل",
-      excerpt: "مبادئ التربية الإيجابية وكيفية تطبيقها في حياتك اليومية",
-      image: "https://images.unsplash.com/photo-1491013516836-7db643ee125a?w=600&q=80",
-      date: "25 سبتمبر 2024",
-      author: "د. منى سالم",
-      articleUrl: "https://www.example.com/article6"
-    },
-    {
-      id: 7,
-      title: "كيفية بناء روتين يومي صحي للأطفال",
-      excerpt: "أهمية الروتين اليومي وكيفية إنشائه بطريقة فعالة",
-      image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80",
-      date: "20 سبتمبر 2024",
-      author: "د. أحمد يوسف",
-      articleUrl: "https://www.example.com/article7"
-    },
-    {
-      id: 8,
-      title: "التعامل مع التنمر والتحديات الاجتماعية",
-      excerpt: "كيف تحمي طفلك من التنمر وتعزز مهاراته الاجتماعية",
-      image: "https://images.unsplash.com/photo-1588392382834-a891154bca4d?w=600&q=80",
-      date: "15 سبتمبر 2024",
-      author: "د. نادية فريد",
-      articleUrl: "https://www.example.com/article8"
-    },
-    {
-      id: 9,
-      title: "تطوير الذكاء العاطفي عند الأطفال",
-      excerpt: "طرق لمساعدة طفلك على فهم وإدارة مشاعره بشكل صحي",
-      image: "https://images.unsplash.com/photo-1571442463800-1337d7af9d2f?w=600&q=80",
-      date: "10 سبتمبر 2024",
-      author: "د. طارق سمير",
-      articleUrl: "https://www.example.com/article9"
-    }
-  ];
+  useEffect(() => {
+    const loadArticles = () => {
+      const allArticles = forParentsManager.getAll();
+      setArticles(allArticles);
+    };
+
+    loadArticles();
+
+    // Listen for updates
+    const handleArticlesUpdate = () => {
+      loadArticles();
+    };
+
+    window.addEventListener('forParentsUpdated', handleArticlesUpdate);
+    return () => {
+      window.removeEventListener('forParentsUpdated', handleArticlesUpdate);
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -403,7 +340,7 @@ const ForParentsPage = () => {
               {/* Image */}
               <div className="relative h-48 overflow-hidden">
                 <img
-                  src={article.image}
+                  src={article.image || article.imageUrl || "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80"}
                   alt={article.title}
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                 />
@@ -479,7 +416,7 @@ const ForParentsPage = () => {
             {/* Modal Content */}
             <div className="p-6">
               <img
-                src={selectedArticle.image}
+                src={selectedArticle.image || selectedArticle.imageUrl || "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80"}
                 alt={selectedArticle.title}
                 className="w-full h-64 object-cover rounded-xl mb-6"
               />

@@ -43,15 +43,39 @@ const Footer = () => {
     },
     {
       title: 'Company Info',
-      links: ['About Us', 'Carrier', 'We are hiring', 'Blog']
+      links: [
+        { name: 'Home', href: '/' },
+        { name: 'About Us', href: '/about' },
+        { name: 'Contact', href: '/contact' },
+        { name: 'Gallery', href: '/gallery' }
+      ]
     },
     {
-      title: 'Features',
-      links: ['Business Marketing', 'User Analytic', 'Live Chat', 'Unlimited Support']
+      title: 'Events',
+      links: [
+        { name: 'Upcoming Events', href: '/upcoming-events' },
+        { name: 'Past Events', href: '/past-events' },
+        { name: 'Registration', href: '/registration' },
+      ]
     },
     {
-      title: 'Resources',
-      links: ['Gallery', 'IOS & Android', 'Watch a Demo', 'Customers', 'API']
+      title: 'Members & Education',
+      links: [
+        { name: 'Active Members', href: '/active-members' },
+        { name: 'Become a Member', href: '/apply-membership' },
+        { name: 'Members Overview', href: '/members-overview' },
+        { name: 'Online Courses', href: '/online-courses' },
+        { name: 'Articles', href: '/articles' },
+        { name: 'Education', href: '/education' }
+      ]
+    },
+    {
+      title: 'Services',
+      links: [
+        { name: 'Therapy Programs', href: '/therapy-programs' },
+        { name: 'For Parents', href: '/for-parents' },
+        { name: 'Reservation', href: '/reservation' }
+      ]
     }
   ];
 
@@ -94,7 +118,7 @@ const Footer = () => {
             </div>
           </div>
 
-          {/* Company Info and Features Row */}
+          {/* Company Info and Events Row */}
           <div className="grid grid-cols-2 gap-8 mb-8">
             {footerSections.slice(1, 3).map((section, index) => (
               <div key={index} className="text-left">
@@ -105,10 +129,10 @@ const Footer = () => {
                   {section.links.map((link, linkIndex) => (
                     <li key={linkIndex}>
                       <a 
-                        href="#" 
+                        href={link.href} 
                         className="text-white/80 text-base hover:text-white hover:translate-x-1 inline-block transition-all duration-300"
                       >
-                        {link}
+                        {link.name}
                       </a>
                     </li>
                   ))}
@@ -117,28 +141,32 @@ const Footer = () => {
             ))}
           </div>
 
-          {/* Resources Row */}
-          <div className="text-left">
-            <h3 className="text-white text-xl font-bold mb-6">
-              {footerSections[3].title}
-            </h3>
-            <ul className="space-y-3">
-              {footerSections[3].links.map((link, linkIndex) => (
-                <li key={linkIndex}>
-                  <a 
-                    href={link === 'Gallery' ? '/gallery' : '#'} 
-                    className="text-white/80 text-base hover:text-white hover:translate-x-1 inline-block transition-all duration-300"
-                  >
-                    {link}
-                  </a>
-                </li>
-              ))}
-            </ul>
+          {/* Members & Education and Services Row */}
+          <div className="grid grid-cols-2 gap-8 mb-8">
+            {footerSections.slice(3, 5).map((section, index) => (
+              <div key={index} className="text-left">
+                <h3 className="text-white text-xl font-bold mb-6">
+                  {section.title}
+                </h3>
+                <ul className="space-y-3">
+                  {section.links.map((link, linkIndex) => (
+                    <li key={linkIndex}>
+                      <a 
+                        href={link.href} 
+                        className="text-white/80 text-base hover:text-white hover:translate-x-1 inline-block transition-all duration-300"
+                      >
+                        {link.name}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Desktop Layout - Original Grid */}
-        <div className="hidden lg:grid lg:grid-cols-4 gap-12">
+        {/* Desktop Layout - Grid with 5 columns */}
+        <div className="hidden lg:grid lg:grid-cols-5 gap-8">
           {footerSections.map((section, index) => (
             <div key={index}>
               {section.title && (
@@ -154,10 +182,10 @@ const Footer = () => {
                   {section.links.map((link, linkIndex) => (
                     <li key={linkIndex}>
                       <a 
-                        href={link === 'Gallery' ? '/gallery' : '#'} 
+                        href={link.href} 
                         className="text-white/80 text-base hover:text-white hover:translate-x-1 inline-block transition-all duration-300"
                       >
-                        {link}
+                        {link.name}
                       </a>
                     </li>
                   ))}

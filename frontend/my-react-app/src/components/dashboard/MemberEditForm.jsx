@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Loader, Upload, Check } from 'lucide-react';
+import { X, Save, Loader, Upload, Check, AlertCircle } from 'lucide-react';
+import { membersManager } from '../../utils/dataManager';
 
 const MemberEditForm = ({ member, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -21,6 +22,8 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState({});
   const [imagePreview, setImagePreview] = useState(null);
+  const [emailExistsError, setEmailExistsError] = useState(null); // null, 'member', or 'pending'
+  const [createAuthAccount, setCreateAuthAccount] = useState(false); // Checkbox for creating auth account
 
   // Cleanup object URLs on unmount
   useEffect(() => {
@@ -64,6 +67,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         linkedin: member.linkedin || '',
         image: member.image || ''
       });
+      setEmailExistsError(null); // Reset error when editing existing member
     } else {
       // Reset to defaults when adding new member
       setFormData({
@@ -81,6 +85,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         linkedin: '',
         image: ''
       });
+      setEmailExistsError(null); // Reset error when adding new member
     }
   }, [member]);
 
@@ -92,6 +97,10 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+    // Reset email error when email changes
+    if (name === 'email') {
+      setEmailExistsError(null);
+    }
   };
 
   const handleAddCertificate = () => {
@@ -180,7 +189,50 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    setEmailExistsError(null); // Reset error state
+    
     try {
+      // Check if email already exists (only when adding new member, not editing)
+      if (!member) {
+        console.log('Checking if email exists before adding member...');
+        
+        // Check in existing members
+        const existingMembers = membersManager.getAll();
+        const existingMember = existingMembers.find(m => 
+          m.email && m.email.toLowerCase() === formData.email.toLowerCase()
+        );
+        
+        if (existingMember) {
+          console.log('Email already exists in members:', existingMember);
+          setIsLoading(false);
+          setEmailExistsError('member');
+          return;
+        }
+        
+        // Check in pending applications (localStorage)
+        try {
+          const stored = localStorage.getItem('memberForms');
+          if (stored) {
+            const existingForms = JSON.parse(stored);
+            const pendingApplication = existingForms.find(
+              form => form.email && 
+              form.email.toLowerCase() === formData.email.toLowerCase() &&
+              form.status === 'pending'
+            );
+            
+            if (pendingApplication) {
+              console.log('Email already has pending application:', pendingApplication);
+              setIsLoading(false);
+              setEmailExistsError('pending');
+              return;
+            }
+          }
+        } catch (error) {
+          console.warn('Error checking pending applications:', error);
+          // Continue with save if we can't check
+        }
+      }
+
       // Convert File object to data URL
       const imageDataUrl = formData.image instanceof File
         ? await fileToDataURL(formData.image)
@@ -200,7 +252,8 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         location: formData.location || '',
         website: formData.website || '',
         linkedin: formData.linkedin || '',
-        image: imageDataUrl
+        image: imageDataUrl,
+        createAuthAccount: !member && createAuthAccount // Only for new members
       };
       await onSave(dataToSave);
     } finally {
@@ -269,8 +322,37 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 value={formData.email}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none ${
+                  emailExistsError ? 'border-red-500' : 'border-gray-300'
+                }`}
               />
+              {emailExistsError && (
+                <div className={`mt-3 p-4 rounded-lg border flex gap-3 ${
+                  emailExistsError === 'member' 
+                    ? 'bg-amber-50 border-amber-500' 
+                    : 'bg-blue-50 border-blue-500'
+                }`}>
+                  <AlertCircle className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
+                    emailExistsError === 'member' ? 'text-amber-600' : 'text-blue-600'
+                  }`} />
+                  <div className="flex-1">
+                    <p className={`font-medium text-sm ${
+                      emailExistsError === 'member' ? 'text-amber-800' : 'text-blue-800'
+                    }`}>
+                      {emailExistsError === 'member' 
+                        ? 'Email Already Exists' 
+                        : 'Pending Application Exists'}
+                    </p>
+                    <p className={`text-sm mt-1 ${
+                      emailExistsError === 'member' ? 'text-amber-700' : 'text-blue-700'
+                    }`}>
+                      {emailExistsError === 'member' 
+                        ? `An account with email ${formData.email} already exists in our system. If you already have an account, please sign in instead. If you believe this is an error, please contact support.`
+                        : `You already have a pending application with email ${formData.email}. Please wait for your current application to be reviewed before submitting again.`}
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Phone */}
@@ -543,6 +625,28 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               </div>
             </div>
           </div>
+
+          {/* Create Authentication Account Checkbox (only for new members) */}
+          {!member && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={createAuthAccount}
+                  onChange={(e) => setCreateAuthAccount(e.target.checked)}
+                  className="mt-1 w-4 h-4 text-[#4C9A8F] border-gray-300 rounded focus:ring-[#4C9A8F]"
+                />
+                <div className="flex-1">
+                  <div className="font-semibold text-blue-900 text-sm">
+                    Create Authentication Account
+                  </div>
+                  <div className="text-blue-700 text-xs mt-1">
+                    Check this to create a login account for this member. They will receive an email to set their password and can then log in to the website.
+                  </div>
+                </div>
+              </label>
+            </div>
+          )}
 
           <div className="flex justify-end gap-4 pt-4 border-t">
             <button

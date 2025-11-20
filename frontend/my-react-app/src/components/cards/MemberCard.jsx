@@ -95,7 +95,7 @@ const MemberCard = ({
                     <img
                         src={image}
                         alt={name}
-                        className="w-full h-full object-cover object-top"
+                        className="w-full h-full object-cover"
                     />
                 </div>
 
