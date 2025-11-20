@@ -104,7 +104,7 @@ const AboutPage = () => {
             <div className="lg:col-span-1 flex flex-col items-center">
               <div className="w-full max-w-xs overflow-hidden rounded-xl shadow-lg mb-4 aspect-[3/4] bg-gray-100">
                 <img 
-                  src="https://images.unsplash.com/photo-1556157382-97eda2d62296?w=300&h=400&fit=crop"
+                  src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=314,h=314,fit=crop/m5KvEjaDo4UxePa2/wael-egypt-YZ9bbVKwprs7Ekrr.jpg"
                   alt="Dr. Wael A. Al-Dakroury"
                   className="w-full h-full object-cover object-center"
                 />

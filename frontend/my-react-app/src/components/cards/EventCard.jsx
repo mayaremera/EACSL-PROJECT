@@ -1,4 +1,5 @@
 import React from "react";
+import speechTherapy from "../../src/assets/speech-therapy.png"
 
 const EventCard = () => {
     return (
@@ -6,7 +7,7 @@ const EventCard = () => {
             {/* Image Section */}
             <div className="relative">
                 <img
-                    src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800&q=80"
+                    src={speechTherapy}
                     alt="Workspace"
                     className="w-full h-[300px] object-cover rounded-2xl"
                 />
