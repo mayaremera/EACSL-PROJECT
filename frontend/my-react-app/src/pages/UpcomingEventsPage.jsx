@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Clock, Users, DollarSign, CheckCircle, User, Mail, Phone, Building2 } from 'lucide-react';
 import { eventsManager } from '../utils/dataManager';
+import { supabase } from '../lib/supabase';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 
@@ -113,51 +114,137 @@ const UpcomingEventsPage = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Create form submission object
-    const formSubmission = {
-      id: Date.now().toString(),
-      type: 'eventRegistration',
-      fullName: formData.fullName,
-      email: formData.email,
-      phone: formData.phone,
-      organization: formData.organization,
-      membershipType: formData.membershipType,
-      selectedTracks: formData.selectedTracks,
-      specialRequirements: formData.specialRequirements,
-      registrationFee: currentFee,
-      submittedAt: new Date().toISOString(),
-      status: 'pending'
-    };
-
-    // Get existing registrations from localStorage
-    let existingRegistrations = [];
-    try {
-      const stored = localStorage.getItem('eventRegistrations');
-      existingRegistrations = stored ? JSON.parse(stored) : [];
-    } catch (error) {
-      console.error('Error reading from localStorage:', error);
-      existingRegistrations = [];
-    }
-    
-    // Add new submission
-    existingRegistrations.push(formSubmission);
-    
-    // Save back to localStorage
-    try {
-      localStorage.setItem('eventRegistrations', JSON.stringify(existingRegistrations));
-      // Dispatch event to notify dashboard
-      window.dispatchEvent(new CustomEvent('eventRegistrationsUpdated', { detail: existingRegistrations }));
-    } catch (error) {
-      console.error('Error saving registration:', error);
-      alert('Failed to save registration. Please try again.');
+    // Validate required fields
+    if (!formData.fullName || !formData.email || !formData.phone) {
+      alert('Please fill in all required fields (Name, Email, Phone).');
       return;
     }
     
-    console.log('Registration submitted:', formData);
-    setIsSubmitted(true);
+    try {
+      // Prepare data for Supabase
+      const registrationData = {
+        event_id: eventData.id && typeof eventData.id === 'number' ? eventData.id : null,
+        full_name: formData.fullName.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        organization: formData.organization?.trim() || null,
+        membership_type: formData.membershipType,
+        selected_tracks: formData.selectedTracks || [],
+        special_requirements: formData.specialRequirements?.trim() || null,
+        registration_fee: currentFee,
+        status: 'pending'
+      };
+
+      console.log('Submitting registration to Supabase:', registrationData);
+
+      // Insert into Supabase
+      const { data, error } = await supabase
+        .from('event_registrations')
+        .insert([registrationData])
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error saving registration to Supabase:', error);
+        console.error('Error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        
+        // Check if table doesn't exist
+        if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
+          alert(
+            'Registration table not found. Please create the event_registrations table in Supabase first.\n\n' +
+            'See CREATE_EVENT_REGISTRATIONS_TABLE.sql for instructions.'
+          );
+          return;
+        }
+        
+        // Check for RLS policy errors
+        if (error.code === '42501' || error.message?.includes('permission denied') || error.message?.includes('new row violates row-level security')) {
+          alert(
+            'Permission denied. The event_registrations table may have incorrect RLS policies.\n\n' +
+            'Please ensure the "Allow public insert" policy is enabled in Supabase.\n\n' +
+            'Falling back to localStorage for now.'
+          );
+        }
+        
+        // Fallback to localStorage if Supabase fails
+        console.warn('Falling back to localStorage due to Supabase error');
+        const formSubmission = {
+          id: Date.now().toString(),
+          type: 'eventRegistration',
+          fullName: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          organization: formData.organization,
+          membershipType: formData.membershipType,
+          selectedTracks: formData.selectedTracks,
+          specialRequirements: formData.specialRequirements,
+          registrationFee: currentFee,
+          submittedAt: new Date().toISOString(),
+          status: 'pending'
+        };
+
+        let existingRegistrations = [];
+        try {
+          const stored = localStorage.getItem('eventRegistrations');
+          existingRegistrations = stored ? JSON.parse(stored) : [];
+        } catch (err) {
+          console.error('Error reading from localStorage:', err);
+        }
+        
+        existingRegistrations.push(formSubmission);
+        localStorage.setItem('eventRegistrations', JSON.stringify(existingRegistrations));
+        window.dispatchEvent(new CustomEvent('eventRegistrationsUpdated', { detail: existingRegistrations }));
+        
+        // Still show success message even if Supabase failed (since we saved to localStorage)
+        setIsSubmitted(true);
+        return;
+      } else {
+        // Successfully saved to Supabase
+        console.log('Registration submitted to Supabase:', data);
+        
+        // Also dispatch event to notify dashboard
+        window.dispatchEvent(new CustomEvent('eventRegistrationsUpdated'));
+        
+        // Optionally save to localStorage as backup
+        try {
+          const formSubmission = {
+            id: data.id.toString(),
+            type: 'eventRegistration',
+            fullName: formData.fullName,
+            email: formData.email,
+            phone: formData.phone,
+            organization: formData.organization,
+            membershipType: formData.membershipType,
+            selectedTracks: formData.selectedTracks,
+            specialRequirements: formData.specialRequirements,
+            registrationFee: currentFee,
+            submittedAt: data.submitted_at,
+            status: 'pending'
+          };
+
+          let existingRegistrations = [];
+          const stored = localStorage.getItem('eventRegistrations');
+          existingRegistrations = stored ? JSON.parse(stored) : [];
+          existingRegistrations.push(formSubmission);
+          localStorage.setItem('eventRegistrations', JSON.stringify(existingRegistrations));
+        } catch (err) {
+          console.warn('Could not save to localStorage backup:', err);
+        }
+      }
+      
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error('Unexpected error submitting registration:', error);
+      alert('Failed to submit registration. Please try again.');
+    }
   };
 
   if (!eventData) {

@@ -24,6 +24,7 @@ import {
     ClipboardList,
 } from "lucide-react";
 import { coursesManager, membersManager, eventsManager, articlesManager, therapyProgramsManager, forParentsManager, initializeData } from '../utils/dataManager';
+import { supabase } from '../lib/supabase';
 import CourseCard from '../components/cards/CourseCard';
 import MemberCard from '../components/cards/MemberCard';
 import CourseEditForm from '../components/dashboard/CourseEditForm';
@@ -84,7 +85,64 @@ const formsManager = {
 const eventRegistrationsManager = {
     data: [],
     
-    getAll() {
+    // Map Supabase data to local format
+    mapSupabaseToLocal(supabaseReg) {
+        return {
+            id: supabaseReg.id.toString(),
+            type: 'eventRegistration',
+            eventId: supabaseReg.event_id,
+            fullName: supabaseReg.full_name,
+            email: supabaseReg.email,
+            phone: supabaseReg.phone,
+            organization: supabaseReg.organization || '',
+            membershipType: supabaseReg.membership_type,
+            selectedTracks: supabaseReg.selected_tracks || [],
+            specialRequirements: supabaseReg.special_requirements || '',
+            registrationFee: parseFloat(supabaseReg.registration_fee),
+            status: supabaseReg.status,
+            submittedAt: supabaseReg.submitted_at,
+            reviewedAt: supabaseReg.reviewed_at,
+            reviewNotes: supabaseReg.review_notes || '',
+            reviewedBy: supabaseReg.reviewed_by
+        };
+    },
+    
+    async getAll() {
+        try {
+            // Try to fetch from Supabase first
+            const { data, error } = await supabase
+                .from('event_registrations')
+                .select('*')
+                .order('submitted_at', { ascending: false });
+
+            if (error) {
+                // If table doesn't exist, fall back to localStorage
+                if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
+                    console.warn('Event registrations table not found in Supabase. Using localStorage fallback.');
+                    return this.getAllFromLocalStorage();
+                }
+                console.error('Error fetching event registrations from Supabase:', error);
+                return this.getAllFromLocalStorage();
+            }
+
+            // Map Supabase data to local format
+            this.data = data ? data.map(reg => this.mapSupabaseToLocal(reg)) : [];
+            
+            // Also sync to localStorage as backup
+            try {
+                localStorage.setItem('eventRegistrations', JSON.stringify(this.data));
+            } catch (e) {
+                console.warn('Could not save to localStorage backup:', e);
+            }
+            
+            return this.data;
+        } catch (err) {
+            console.error('Exception fetching event registrations:', err);
+            return this.getAllFromLocalStorage();
+        }
+    },
+    
+    getAllFromLocalStorage() {
         const stored = localStorage.getItem('eventRegistrations');
         if (stored) {
             try {
@@ -107,19 +165,79 @@ const eventRegistrationsManager = {
         window.dispatchEvent(new CustomEvent('eventRegistrationsUpdated', { detail: this.data }));
     },
     
-    updateStatus(id, status, notes = '') {
-        const registration = this.data.find(r => r.id === id);
-        if (registration) {
-            registration.status = status;
-            registration.reviewNotes = notes;
-            registration.reviewedAt = new Date().toISOString();
-            this.save();
+    async updateStatus(id, status, notes = '') {
+        try {
+            // Update in Supabase
+            const { error } = await supabase
+                .from('event_registrations')
+                .update({
+                    status: status,
+                    review_notes: notes || null,
+                    reviewed_at: new Date().toISOString()
+                })
+                .eq('id', parseInt(id));
+
+            if (error) {
+                console.error('Error updating registration status in Supabase:', error);
+                // Fall back to localStorage
+                const registration = this.data.find(r => r.id === id);
+                if (registration) {
+                    registration.status = status;
+                    registration.reviewNotes = notes;
+                    registration.reviewedAt = new Date().toISOString();
+                    this.save();
+                }
+            } else {
+                // Update local data
+                const registration = this.data.find(r => r.id === id);
+                if (registration) {
+                    registration.status = status;
+                    registration.reviewNotes = notes;
+                    registration.reviewedAt = new Date().toISOString();
+                    this.save();
+                }
+                // Refresh from Supabase to get latest data
+                await this.getAll();
+                window.dispatchEvent(new CustomEvent('eventRegistrationsUpdated', { detail: this.data }));
+            }
+        } catch (err) {
+            console.error('Exception updating registration status:', err);
+            // Fall back to localStorage
+            const registration = this.data.find(r => r.id === id);
+            if (registration) {
+                registration.status = status;
+                registration.reviewNotes = notes;
+                registration.reviewedAt = new Date().toISOString();
+                this.save();
+            }
         }
     },
     
-    delete(id) {
-        this.data = this.data.filter(r => r.id !== id);
-        this.save();
+    async delete(id) {
+        try {
+            // Delete from Supabase
+            const { error } = await supabase
+                .from('event_registrations')
+                .delete()
+                .eq('id', parseInt(id));
+
+            if (error) {
+                console.error('Error deleting registration from Supabase:', error);
+                // Fall back to localStorage
+                this.data = this.data.filter(r => r.id !== id);
+                this.save();
+            } else {
+                // Update local data
+                this.data = this.data.filter(r => r.id !== id);
+                this.save();
+                window.dispatchEvent(new CustomEvent('eventRegistrationsUpdated', { detail: this.data }));
+            }
+        } catch (err) {
+            console.error('Exception deleting registration:', err);
+            // Fall back to localStorage
+            this.data = this.data.filter(r => r.id !== id);
+            this.save();
+        }
     }
 };
 
@@ -1029,6 +1147,14 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             console.warn('Could not sync events on initial load:', err);
         });
 
+        // Sync event registrations from Supabase on initial load (silently fail if table doesn't exist)
+        setTimeout(() => {
+            loadEventRegistrations().catch(err => {
+                // Silently handle errors on initial load
+                console.warn('Could not load event registrations on initial load:', err);
+            });
+        }, 600);
+
         // Sync articles from Supabase on initial load (silently fail if table doesn't exist)
         articlesManager.syncFromSupabase().then((result) => {
             if (result.synced) {
@@ -1130,8 +1256,15 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         setForms(e.detail);
     };
 
-    const handleEventRegistrationsUpdate = (e) => {
-        setEventRegistrations(e.detail);
+    const handleEventRegistrationsUpdate = async (e) => {
+        // If detail is provided, use it (for localStorage fallback)
+        // Otherwise, refresh from Supabase
+        if (e.detail) {
+            setEventRegistrations(e.detail);
+        } else {
+            // Refresh from Supabase
+            await loadEventRegistrations();
+        }
     };
 
     const handleContactFormsUpdate = (e) => {
@@ -1194,9 +1327,25 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         setForms(allForms);
     };
 
-    const loadEventRegistrations = () => {
-        const allRegistrations = eventRegistrationsManager.getAll();
+    const loadEventRegistrations = async () => {
+        const allRegistrations = await eventRegistrationsManager.getAll();
         setEventRegistrations(allRegistrations);
+    };
+
+    const [isSyncingEventRegistrations, setIsSyncingEventRegistrations] = useState(false);
+
+    const handleSyncEventRegistrations = async () => {
+        setIsSyncingEventRegistrations(true);
+        try {
+            await loadEventRegistrations();
+            // Show success message
+            alert('Event registrations synced successfully from Supabase!');
+        } catch (error) {
+            console.error('Error syncing event registrations:', error);
+            alert('Failed to sync event registrations. Please check the console for details.');
+        } finally {
+            setIsSyncingEventRegistrations(false);
+        }
     };
 
     const loadContactForms = () => {
@@ -1332,20 +1481,20 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         }
     };
 
-    const handleApproveEventRegistration = (id, notes) => {
-        eventRegistrationsManager.updateStatus(id, 'approved', notes);
-        loadEventRegistrations();
+    const handleApproveEventRegistration = async (id, notes) => {
+        await eventRegistrationsManager.updateStatus(id, 'approved', notes);
+        await loadEventRegistrations();
     };
 
-    const handleRejectEventRegistration = (id, notes) => {
-        eventRegistrationsManager.updateStatus(id, 'rejected', notes);
-        loadEventRegistrations();
+    const handleRejectEventRegistration = async (id, notes) => {
+        await eventRegistrationsManager.updateStatus(id, 'rejected', notes);
+        await loadEventRegistrations();
     };
 
-    const handleDeleteEventRegistration = (id) => {
+    const handleDeleteEventRegistration = async (id) => {
         if (window.confirm('Are you sure you want to delete this event registration?')) {
-            eventRegistrationsManager.delete(id);
-            loadEventRegistrations();
+            await eventRegistrationsManager.delete(id);
+            await loadEventRegistrations();
         }
     };
 
@@ -2775,6 +2924,22 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                         >
                                             <RefreshCw size={16} />
                                             Refresh
+                                        </button>
+                                        <button
+                                            onClick={handleSyncEventRegistrations}
+                                            disabled={isSyncingEventRegistrations}
+                                            className={`flex items-center gap-2 text-sm text-white px-4 py-2 rounded-lg transition-colors ${
+                                                isSyncingEventRegistrations
+                                                    ? 'bg-gray-400 cursor-not-allowed'
+                                                    : 'bg-[#4C9A8F] hover:bg-[#3d8178]'
+                                            }`}
+                                            title="Sync from Supabase"
+                                        >
+                                            <RefreshCw 
+                                                size={16} 
+                                                className={isSyncingEventRegistrations ? 'animate-spin' : ''} 
+                                            />
+                                            {isSyncingEventRegistrations ? 'Syncing...' : 'Sync from Supabase'}
                                         </button>
                                     </div>
                                 </div>
