@@ -179,6 +179,36 @@ const EventCard = () => {
 // HERO SECTION (updated)
 // ----------------------------
 const HeroSection = () => {
+  const [currentEvent, setCurrentEvent] = React.useState(null);
+
+  React.useEffect(() => {
+    const loadEvent = () => {
+      const upcomingEvents = eventsManager.getUpcoming();
+      if (upcomingEvents && upcomingEvents.length > 0) {
+        setCurrentEvent(upcomingEvents[0]);
+      }
+    };
+
+    loadEvent();
+
+    // Listen for event updates
+    const handleEventsUpdate = () => {
+      loadEvent();
+    };
+
+    window.addEventListener('eventsUpdated', handleEventsUpdate);
+    return () => {
+      window.removeEventListener('eventsUpdated', handleEventsUpdate);
+    };
+  }, []);
+
+  const getEnrollUrl = () => {
+    if (currentEvent && currentEvent.id) {
+      return `/upcoming-events/${currentEvent.id}`;
+    }
+    return '/upcoming-events';
+  };
+
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-[#f7f8fa] py-20">
       {/* Container */}
@@ -203,6 +233,7 @@ const HeroSection = () => {
             className="text-sm md:text-base px-8 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] font-semibold rounded-md hover:bg-[#5A9B8E] hover:text-white transition-all duration-300 w-fit"
             href="/upcoming-events"
           >
+          <a className="text-sm md:text-base px-8 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] font-semibold rounded-md hover:bg-[#5A9B8E] hover:text-white transition-all duration-300 w-fit" href={getEnrollUrl()}>
             Enroll Now
           </a>
         </div>

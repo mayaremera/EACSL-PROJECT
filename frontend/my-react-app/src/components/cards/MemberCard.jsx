@@ -92,11 +92,17 @@ const MemberCard = ({
                 )}
                 {/* Member Image */}
                 <div className="relative h-40 overflow-hidden">
-                    <img
-                        src={image}
-                        alt={name}
-                        className="w-full h-full object-cover"
-                    />
+                    {image ? (
+                        <img
+                            src={image}
+                            alt={name}
+                            className="w-full h-full object-cover"
+                        />
+                    ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                            <span className="text-gray-400 text-4xl font-bold">{name?.charAt(0)?.toUpperCase() || 'M'}</span>
+                        </div>
+                    )}
                 </div>
 
                 {/* Card Content */}
@@ -191,11 +197,17 @@ const MemberCard = ({
                             {/* Member Header */}
                             <div className="flex flex-col sm:flex-row gap-6 mb-6">
                                 <div className="w-32 h-32 rounded-full overflow-hidden flex-shrink-0 shadow-lg mx-auto sm:mx-0">
-                                    <img
-                                        src={image}
-                                        alt={name}
-                                        className="w-full h-full object-cover object-top"
-                                    />
+                                    {image ? (
+                                        <img
+                                            src={image}
+                                            alt={name}
+                                            className="w-full h-full object-cover object-top"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                                            <span className="text-gray-400 text-4xl font-bold">{name?.charAt(0)?.toUpperCase() || 'M'}</span>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="flex-1 text-center sm:text-left">
                                     <div className="flex items-center gap-3 justify-center sm:justify-start mb-2 flex-wrap">

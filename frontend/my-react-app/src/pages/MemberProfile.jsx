@@ -12,9 +12,12 @@ import {
     Calendar,
     Download,
     BookOpen,
-    CheckCircle
+    CheckCircle,
+    User
 } from 'lucide-react';
 import { membersManager, initializeData } from '../utils/dataManager';
+import PageHero from '../components/ui/PageHero';
+import Breadcrumbs from '../components/ui/Breadcrumbs';
 
 function MemberProfile() {
     const { memberId } = useParams();
@@ -99,13 +102,22 @@ function MemberProfile() {
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Cover Image */}
-            <div className="relative h-64 bg-teal-600">
-            </div>
+            {/* Hero Section */}
+            <PageHero
+                title={profile.name || "Member Profile"}
+                subtitle={profile.title || "Professional Profile"}
+                icon={<User className="w-12 h-12" />}
+            />
+
+            {/* Breadcrumb */}
+            <Breadcrumbs items={[
+                { label: 'Our Members', path: '/members' },
+                { label: profile.name || 'Member Profile' }
+            ]} />
 
             {/* Profile Header */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="relative -mt-20 mb-8">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="relative mb-8">
                     <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8">
                         <div className="flex flex-col md:flex-row gap-6">
                             {/* Profile Picture */}

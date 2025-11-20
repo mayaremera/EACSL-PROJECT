@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { BookOpen, X, Tag, ExternalLink, Search, Filter } from 'lucide-react';
 import { articlesManager } from '../utils/dataManager';
+import PageHero from '../components/ui/PageHero';
+import Breadcrumbs from '../components/ui/Breadcrumbs';
 
 const ArticlesPage = () => {
   const [selectedArticle, setSelectedArticle] = useState(null);
@@ -51,30 +53,14 @@ const ArticlesPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <div className="flex justify-center mb-3">
-              <BookOpen className="w-12 h-12" />
-            </div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-3">Articles & Resources</h1>
-            <p className="text-base md:text-lg text-teal-50 max-w-2xl mx-auto">
-              مقالات ومصادر علمية | Scientific Articles and Resources
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHero
+        title="Articles & Resources"
+        subtitle="مقالات ومصادر علمية | Scientific Articles and Resources"
+        icon={<BookOpen className="w-12 h-12" />}
+      />
 
       {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center text-sm text-gray-600">
-            <a href="#" className="hover:text-[#4C9A8F] transition-colors">Home</a>
-            <span className="mx-2">/</span>
-            <span className="text-gray-900 font-medium">Articles</span>
-          </div>
-        </div>
-      </div>
+      <Breadcrumbs items={[{ label: 'Articles' }]} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Search and Filter Section - New Elegant Design */}

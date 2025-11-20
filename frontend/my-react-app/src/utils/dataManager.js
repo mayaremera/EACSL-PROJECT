@@ -220,6 +220,11 @@ export const membersManager = {
       website: updatedMember.website || "",
       linkedin: updatedMember.linkedin || "",
       image: updatedMember.image || "",
+      totalMoneySpent: updatedMember.totalMoneySpent !== undefined ? updatedMember.totalMoneySpent : (members[index].totalMoneySpent || '0 EGP'),
+      coursesEnrolled: updatedMember.coursesEnrolled !== undefined ? updatedMember.coursesEnrolled : (members[index].coursesEnrolled || 0),
+      totalHoursLearned: updatedMember.totalHoursLearned !== undefined ? updatedMember.totalHoursLearned : (members[index].totalHoursLearned || 0),
+      activeCourses: updatedMember.activeCourses !== undefined ? updatedMember.activeCourses : (members[index].activeCourses || []),
+      completedCourses: updatedMember.completedCourses !== undefined ? updatedMember.completedCourses : (members[index].completedCourses || []),
     };
 
     // Save to local storage first for immediate UI update

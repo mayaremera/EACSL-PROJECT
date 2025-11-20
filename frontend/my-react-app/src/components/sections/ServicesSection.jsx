@@ -1,5 +1,4 @@
 import React from "react";
-import { ArrowRight } from "lucide-react";
 import ServiceCard1 from "../../assets/servicecard1.png";
 import ServiceCard2 from "../../assets/servicecard2.png";
 import ServiceCard3 from "../../assets/servicecard3.png";
@@ -16,17 +15,6 @@ const ServicesSection = () => {
               <br />
               services!
             </h2>
-
-            <a
-              href="#"
-              className="inline-flex items-center gap-2 text-[#5A9B8E] text-lg font-semibold group"
-            >
-              <a className="relative" href="/services">
-                View All Services
-                <span className="absolute left-0 bottom-0 w-0 h-0.5 bg-[#5A9B8E] group-hover:w-full transition-all duration-300"></span>
-              </a>
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform duration-300" />
-            </a>
           </div>
 
           {/* Right Images Container */}

@@ -1,8 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Calendar, MessageCircle, Users, Baby, Brain, ClipboardList } from 'lucide-react';
 import { therapyProgramsManager } from '../utils/dataManager';
+import PageHero from '../components/ui/PageHero';
+import Breadcrumbs from '../components/ui/Breadcrumbs';
+import { useNavigate } from 'react-router-dom';
 
 const TherapyPrograms = () => {
+  const navigate = useNavigate();
   const [programs, setPrograms] = useState([]);
 
   useEffect(() => {
@@ -39,33 +43,13 @@ const TherapyPrograms = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Therapy Programs</h1>
-            <p className="text-lg md:text-xl text-teal-50 max-w-2xl mx-auto">
-              برامج العلاج والخدمات المتخصصة
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHero
+        title="Therapy Programs"
+        subtitle="برامج العلاج والخدمات المتخصصة"
+      />
 
       {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center text-sm text-gray-600">
-              <a href="#" className="hover:text-[#4C9A8F] transition-colors">Home</a>
-              <span className="mx-2">/</span>
-              <span className="text-gray-900 font-medium">Therapy Programs</span>
-            </div>
-            <button className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] font-semibold transition-colors">
-              <ArrowLeft size={16} />
-              <span>Back to Services</span>
-            </button>
-          </div>
-        </div>
-      </div>
+      <Breadcrumbs items={[{ label: 'Services', path: '/services' }, { label: 'Therapy Programs' }]} />
 
       {/* Programs Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -111,7 +95,10 @@ const TherapyPrograms = () => {
             <Calendar size={20} />
             <span>Book Appointment</span>
           </button>
-          <button className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 border-2 border-[#4C9A8F] text-[#4C9A8F] hover:bg-[#4C9A8F] hover:text-white font-semibold rounded-lg transition-colors duration-200">
+          <button 
+            onClick={() => navigate('/services')}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 border-2 border-[#4C9A8F] text-[#4C9A8F] hover:bg-[#4C9A8F] hover:text-white font-semibold rounded-lg transition-colors duration-200"
+          >
             <ArrowLeft size={20} />
             <span>Back to Services</span>
           </button>

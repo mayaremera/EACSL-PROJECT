@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { BookOpen, Clock, Users, Calendar, Award, CheckCircle, PlayCircle, FileText, Globe, Video } from 'lucide-react';
 import { coursesManager, initializeData } from '../utils/dataManager';
+import PageHero from '../components/ui/PageHero';
+import Breadcrumbs from '../components/ui/Breadcrumbs';
 
 const CourseDetailPage = () => {
     const { courseId } = useParams();
@@ -228,28 +230,17 @@ const CourseDetailPage = () => {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Hero Section */}
-            <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-16">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center">
-                        <div className="flex justify-center mb-4">
-                        </div>
-                        <h1 className="text-4xl md:text-5xl font-bold">COURSE DETAILS</h1>
-                    </div>
-                </div>
-            </div>
+            <PageHero
+                title="Course Details"
+                subtitle={courseData.titleEn || "Course Information"}
+            />
 
             {/* Breadcrumb */}
-            <div className="bg-white border-b">
-                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-                    <div className="flex items-center text-sm text-gray-600">
-                        <Link to="/" className="hover:text-[#4C9A8F]">Homepage</Link>
-                        <span className="mx-2">/</span>
-                        <Link to="/online-courses" className="hover:text-[#4C9A8F]">Courses</Link>
-                        <span className="mx-2">/</span>
-                        <span className="text-gray-900">{courseData.titleEn}</span>
-                    </div>
-                </div>
-            </div>
+            <Breadcrumbs items={[
+                { label: 'Education', path: '/education' },
+                { label: 'Courses', path: '/online-courses' },
+                { label: courseData.titleEn || 'Course Details' }
+            ]} />
 
             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
