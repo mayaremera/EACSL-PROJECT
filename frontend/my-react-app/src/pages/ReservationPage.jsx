@@ -3,6 +3,7 @@ import { MapPin, Phone, Mail, Clock, Send, ArrowLeft, CheckCircle } from 'lucide
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import { useNavigate } from 'react-router-dom';
+import { reservationsService } from '../services/reservationsService';
 
 const ReservationPage = () => {
   const navigate = useNavigate();
@@ -18,63 +19,82 @@ const ReservationPage = () => {
   });
 
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedData, setSubmittedData] = useState(null);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Get selected assessments
-    const selectedAssessments = [];
-    if (formData.speechAssessment) selectedAssessments.push('تقييم النطق');
-    if (formData.skillsAssessment) selectedAssessments.push('تقييم المهارات');
-    if (formData.academicAssessment) selectedAssessments.push('التقييم الأكاديمي');
-    if (formData.iqTests) selectedAssessments.push('اختبار الذكاء أو اختبارات أخرى');
-
-    // Create form submission object
-    const formSubmission = {
-      id: Date.now().toString(),
-      type: 'reservation',
-      kidsName: formData.kidsName,
-      yourName: formData.yourName,
-      phoneNumber: formData.phoneNumber,
-      selectedAssessments: selectedAssessments,
-      concern: formData.concern,
-      submittedAt: new Date().toISOString(),
-      status: 'pending'
-    };
-
-    // Get existing reservations from localStorage
-    let existingReservations = [];
-    try {
-      const stored = localStorage.getItem('reservations');
-      existingReservations = stored ? JSON.parse(stored) : [];
-    } catch (error) {
-      console.error('Error reading from localStorage:', error);
-      existingReservations = [];
-    }
-    
-    // Add new submission
-    existingReservations.push(formSubmission);
-    
-    // Save back to localStorage
-    try {
-      localStorage.setItem('reservations', JSON.stringify(existingReservations));
-      // Dispatch event to notify dashboard
-      window.dispatchEvent(new CustomEvent('reservationsUpdated', { detail: existingReservations }));
-    } catch (error) {
-      console.error('Error saving reservation:', error);
-      alert('Failed to save your reservation. Please try again.');
+    // Prevent duplicate submissions
+    if (isSubmitting) {
       return;
     }
     
-    console.log('Reservation submitted:', formData);
-    setSubmittedData({
-      kidsName: formData.kidsName,
-      yourName: formData.yourName,
-      phoneNumber: formData.phoneNumber,
-      selectedAssessments: selectedAssessments
-    });
-    setIsSubmitted(true);
+    setIsSubmitting(true);
+    
+    try {
+      // Get selected assessments
+      const selectedAssessments = [];
+      if (formData.speechAssessment) selectedAssessments.push('تقييم النطق');
+      if (formData.skillsAssessment) selectedAssessments.push('تقييم المهارات');
+      if (formData.academicAssessment) selectedAssessments.push('التقييم الأكاديمي');
+      if (formData.iqTests) selectedAssessments.push('اختبار الذكاء أو اختبارات أخرى');
+
+      // Prepare form submission data
+      const formSubmission = {
+        kidsName: formData.kidsName,
+        yourName: formData.yourName,
+        phoneNumber: formData.phoneNumber,
+        selectedAssessments: selectedAssessments,
+        concern: formData.concern,
+        submittedAt: new Date().toISOString(),
+        status: 'pending'
+      };
+
+      // Save to Supabase instead of localStorage
+      const result = await reservationsService.add(formSubmission);
+
+      if (result.error) {
+        // Handle specific errors
+        if (result.error.code === 'TABLE_NOT_FOUND') {
+          alert(
+            '❌ Database Table Not Found\n\n' +
+            'The reservations table does not exist in Supabase.\n\n' +
+            'To fix this:\n' +
+            '1. Go to Supabase Dashboard → SQL Editor\n' +
+            '2. Run the SQL script from CREATE_RESERVATIONS_TABLE.sql\n' +
+            '3. Try submitting again\n\n' +
+            'See RESERVATIONS_SUPABASE_SETUP.md for detailed instructions.'
+          );
+          setIsSubmitting(false);
+          return;
+        }
+
+        throw new Error(
+          result.error.message || 'Failed to save your reservation. Please try again.'
+        );
+      }
+
+      // Dispatch event to notify dashboard
+      window.dispatchEvent(new CustomEvent('reservationsUpdated', { detail: [result.data] }));
+      
+      console.log('Reservation submitted successfully:', result.data);
+      setSubmittedData({
+        kidsName: formData.kidsName,
+        yourName: formData.yourName,
+        phoneNumber: formData.phoneNumber,
+        selectedAssessments: selectedAssessments
+      });
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error('Error submitting reservation:', error);
+      alert(
+        `Failed to save your reservation: ${error.message || 'Unknown error'}\n\n` +
+        'Please try again or contact support if the issue persists.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -293,9 +313,22 @@ const ReservationPage = () => {
 
               <button
                 onClick={handleSubmit}
-                className="w-full bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                disabled={isSubmitting}
+                className={`w-full bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg ${
+                  isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                إرسال الطلب
+                {isSubmitting ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    جاري الإرسال...
+                  </>
+                ) : (
+                  <>
+                    <Send size={20} />
+                    إرسال الطلب
+                  </>
+                )}
               </button>
             </div>
           </div>
