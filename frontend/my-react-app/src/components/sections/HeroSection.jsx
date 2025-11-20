@@ -229,10 +229,6 @@ const HeroSection = () => {
             swallowing, language disorders, and audiology.
           </p>
 
-          <a
-            className="text-sm md:text-base px-8 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] font-semibold rounded-md hover:bg-[#5A9B8E] hover:text-white transition-all duration-300 w-fit"
-            href="/upcoming-events"
-          >
           <a className="text-sm md:text-base px-8 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] font-semibold rounded-md hover:bg-[#5A9B8E] hover:text-white transition-all duration-300 w-fit" href={getEnrollUrl()}>
             Enroll Now
           </a>
