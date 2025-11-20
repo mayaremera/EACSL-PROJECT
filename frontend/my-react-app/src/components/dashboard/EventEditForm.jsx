@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Plus, Trash2 } from 'lucide-react';
+import { X, Save, Plus, Trash2, Upload } from 'lucide-react';
+import { eventsService } from '../../services/eventsService';
 
 const EventEditForm = ({ event, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -24,6 +25,10 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
     day1Title: 'Day One - Knowledge and Innovation',
     day2Title: 'Day Two - Collaboration and Future Directions'
   });
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [dragActive, setDragActive] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (event) {
@@ -39,6 +44,10 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
         day1Title: event.day1Title || 'Day One - Knowledge and Innovation',
         day2Title: event.day2Title || 'Day Two - Collaboration and Future Directions'
       });
+      // Set preview if image exists
+      if (event.heroImageUrl) {
+        setImagePreview(event.heroImageUrl);
+      }
     }
   }, [event]);
 
@@ -106,9 +115,105 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleFileChange = (file) => {
+    if (file) {
+      // Check if it's an image file
+      const isValidImage = file.type.startsWith('image/') || 
+                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(file.name);
+      
+      if (isValidImage) {
+        // Clean up old preview URL if it exists
+        if (imagePreview && imagePreview.startsWith('blob:')) {
+          URL.revokeObjectURL(imagePreview);
+        }
+        
+        // Create preview URL for the uploaded file
+        const previewUrl = URL.createObjectURL(file);
+        setImagePreview(previewUrl);
+        setImageFile(file);
+      } else {
+        alert('Please upload only image files (JPG, PNG, GIF, etc.)');
+      }
+    }
+  };
+
+  const handleDrag = (e) => {
     e.preventDefault();
-    onSave(formData);
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      handleFileChange(file);
+    }
+  };
+
+  const handleFileInput = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFileChange(e.target.files[0]);
+    }
+  };
+
+  const removeImage = () => {
+    // Clean up preview URL
+    if (imagePreview && imagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreview);
+    }
+    setImagePreview(null);
+    setImageFile(null);
+    setFormData(prev => ({
+      ...prev,
+      heroImageUrl: ''
+    }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsUploading(true);
+    
+    try {
+      let finalImageUrl = formData.heroImageUrl;
+
+      // If a new file was uploaded, upload it to EventBucket
+      if (imageFile) {
+        const uploadResult = await eventsService.uploadImage(imageFile, imageFile.name);
+        if (uploadResult.data && !uploadResult.error) {
+          finalImageUrl = uploadResult.data.url;
+        } else {
+          alert('Failed to upload image. Please try again.');
+          setIsUploading(false);
+          return;
+        }
+      }
+
+      // Clean up preview URL if it was a blob
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
+
+      // Prepare data to save
+      const dataToSave = {
+        ...formData,
+        heroImageUrl: finalImageUrl
+      };
+
+      await onSave(dataToSave);
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -193,18 +298,64 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
               </div>
             </div>
 
+            {/* Hero Image Upload - Drag and Drop */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Hero Image URL (optional)
+                Hero Image (optional)
               </label>
-              <input
-                type="url"
-                name="heroImageUrl"
-                value={formData.heroImageUrl}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
-                placeholder="https://images.unsplash.com/..."
-              />
+              
+              {/* Drag and Drop Area */}
+              <div
+                className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                  dragActive
+                    ? 'border-[#4C9A8F] bg-[#4C9A8F]/5'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+              >
+                {imagePreview ? (
+                  <div className="relative">
+                    <img
+                      src={imagePreview}
+                      alt="Preview"
+                      className="w-full h-64 object-cover rounded-lg border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 mb-2">
+                      Drag and drop an image here, or click to select
+                    </p>
+                    <p className="text-sm text-gray-400 mb-4">
+                      Supports: JPG, PNG, GIF, WebP
+                    </p>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleFileInput}
+                      className="hidden"
+                      id="hero-image-upload"
+                    />
+                    <label
+                      htmlFor="hero-image-upload"
+                      className="inline-block px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors cursor-pointer"
+                    >
+                      Select Image
+                    </label>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -373,10 +524,11 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
             </button>
             <button
               type="submit"
-              className="px-6 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors flex items-center gap-2"
+              disabled={isUploading}
+              className="px-6 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save size={18} />
-              Save Event
+              {isUploading ? 'Uploading...' : 'Save Event'}
             </button>
           </div>
         </form>

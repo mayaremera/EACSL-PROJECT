@@ -296,7 +296,7 @@ const UpcomingEventsPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="relative bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-20 overflow-hidden">
+      <div className="relative bg-black/90 text-white py-20 overflow-hidden">
         {eventData.heroImageUrl && (
           <div className="absolute inset-0 opacity-10">
             <div className="absolute inset-0" style={{
