@@ -4,6 +4,7 @@ import { BookOpen, Clock, Users, Calendar, Award, CheckCircle, PlayCircle, FileT
 import { coursesManager, initializeData } from '../utils/dataManager';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
+import ImagePlaceholder from '../components/ui/ImagePlaceholder';
 
 const CourseDetailPage = () => {
     const { courseId } = useParams();
@@ -105,7 +106,7 @@ const CourseDetailPage = () => {
                         <h2 className="text-2xl font-bold text-gray-900 mb-2">Course Not Found</h2>
                     <p className="text-gray-600 mb-4">The course you're looking for doesn't exist.</p>
                     <button
-                        onClick={() => navigate('/online-courses')}
+                        onClick={() => navigate('/online-courses', { replace: true })}
                         className="bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-2 rounded-lg font-semibold transition-colors"
                     >
                         Back to Courses
@@ -197,9 +198,10 @@ const CourseDetailPage = () => {
                     <div>
                         <h3 className="text-xl font-bold text-gray-900 mb-6">About the Instructor</h3>
                         <div className="flex items-start gap-6 mb-6">
-                            <img
+                            <ImagePlaceholder
                                 src={courseData.instructorImage}
                                 alt={courseData.instructor}
+                                name={courseData.instructor}
                                 className="w-24 h-24 rounded-full object-cover"
                             />
                             <div className="flex-1">
@@ -252,9 +254,10 @@ const CourseDetailPage = () => {
                                 {courseData.titleEn}
                             </h2>
                             <div className="flex items-center gap-2 mt-4">
-                                <img
+                                <ImagePlaceholder
                                     src={courseData.instructorImage}
                                     alt={courseData.instructor}
+                                    name={courseData.instructor}
                                     className="w-10 h-10 rounded-full object-cover"
                                 />
                                 <span className="font-semibold text-gray-900">{courseData.instructor}</span>
@@ -297,9 +300,10 @@ const CourseDetailPage = () => {
                         <div className="bg-white rounded-lg shadow-sm p-6 sticky top-6">
                             {/* Course Image in Sidebar */}
                             <div className="mb-6">
-                                <img
+                                <ImagePlaceholder
                                     src={courseData.image}
                                     alt={courseData.titleEn}
+                                    name={courseData.titleEn}
                                     className="w-full h-48 object-cover rounded-lg"
                                 />
                             </div>

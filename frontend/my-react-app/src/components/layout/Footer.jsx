@@ -1,5 +1,6 @@
 import React from 'react';
 import { Facebook, Instagram, Twitter } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import whiteLogo from '../../assets/white-eacsl-logo.png';
 
 const Footer = () => {
@@ -8,13 +9,13 @@ const Footer = () => {
       title: null,
       content: (
         <>
-          <a className="mb-6 lg:mb-5 flex justify-center lg:justify-start" href='/'>
+          <Link to="/" className="mb-6 lg:mb-5 flex justify-center lg:justify-start">
             <img 
               src={whiteLogo} 
               alt="Company Logo" 
               className="h-16 sm:h-20 w-auto lg:h-16 lg:w-auto"
             />
-          </a> 
+          </Link> 
           <div className="flex gap-4 justify-center lg:justify-start">
             <a 
               href="#" 
@@ -128,12 +129,12 @@ const Footer = () => {
                 <ul className="space-y-3">
                   {section.links.map((link, linkIndex) => (
                     <li key={linkIndex}>
-                      <a 
-                        href={link.href} 
+                      <Link 
+                        to={link.href} 
                         className="text-white/80 text-base hover:text-white hover:translate-x-1 inline-block transition-all duration-300"
                       >
                         {link.name}
-                      </a>
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -151,12 +152,12 @@ const Footer = () => {
                 <ul className="space-y-3">
                   {section.links.map((link, linkIndex) => (
                     <li key={linkIndex}>
-                      <a 
-                        href={link.href} 
+                      <Link 
+                        to={link.href} 
                         className="text-white/80 text-base hover:text-white hover:translate-x-1 inline-block transition-all duration-300"
                       >
                         {link.name}
-                      </a>
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -181,12 +182,12 @@ const Footer = () => {
                 <ul className="space-y-3">
                   {section.links.map((link, linkIndex) => (
                     <li key={linkIndex}>
-                      <a 
-                        href={link.href} 
+                      <Link 
+                        to={link.href} 
                         className="text-white/80 text-base hover:text-white hover:translate-x-1 inline-block transition-all duration-300"
                       >
                         {link.name}
-                      </a>
+                      </Link>
                     </li>
                   ))}
                 </ul>

@@ -19,9 +19,8 @@ export const membersService = {
           error.message?.includes("does not exist") ||
           error.message?.includes("schema cache")
         ) {
-          console.warn(
-            "Members table does not exist in Supabase. Please run the SQL script from SUPABASE_SETUP.md"
-          );
+          // Table doesn't exist - this is expected if table hasn't been created yet
+          // App works fine with localStorage, so this is just informational
           return {
             data: [],
             error: {
@@ -106,9 +105,7 @@ export const membersService = {
           error.message?.includes("does not exist") ||
           error.message?.includes("schema cache")
         ) {
-          console.warn(
-            "Members table does not exist in Supabase. Member saved locally only."
-          );
+          // Table doesn't exist - this is expected if table hasn't been created yet
           return {
             data: null,
             error: {
@@ -153,9 +150,8 @@ export const membersService = {
           error.message?.includes("does not exist") ||
           error.message?.includes("schema cache")
         ) {
-          console.warn(
-            "Members table does not exist in Supabase. Member updated locally only."
-          );
+          // Table doesn't exist - this is expected if table hasn't been created yet
+          // Don't log as warning, just return the error code for handling
           return {
             data: null,
             error: {
@@ -192,9 +188,7 @@ export const membersService = {
           error.message?.includes("does not exist") ||
           error.message?.includes("schema cache")
         ) {
-          console.warn(
-            "Members table does not exist in Supabase. Member deleted locally only."
-          );
+          // Table doesn't exist - this is expected if table hasn't been created yet
           return {
             error: {
               message:
@@ -290,5 +284,106 @@ export const membersService = {
       active_courses: localMember.activeCourses || [],
       completed_courses: localMember.completedCourses || [],
     };
+  },
+
+  // Upload image to dashboardmemberimages bucket
+  async uploadImage(file, fileName) {
+    try {
+      if (!file || !(file instanceof File)) {
+        console.error('Invalid file provided to uploadImage');
+        return { data: null, error: { message: 'Invalid file' } };
+      }
+
+      const fileExt = fileName.split('.').pop() || 'png';
+      // Upload directly to bucket root (no folder) for dashboardmemberimages
+      const filePath = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+      console.log('📤 Uploading file to dashboardmemberimages:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        filePath: filePath,
+        bucket: 'dashboardmemberimages'
+      });
+
+      const { data, error } = await supabase.storage
+        .from('dashboardmemberimages')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('❌ Error uploading image to dashboardmemberimages:', error);
+        console.error('Error details:', {
+          message: error.message,
+          statusCode: error.statusCode,
+          error: error.error,
+          code: error.code
+        });
+        return { data: null, error };
+      }
+
+      if (!data) {
+        console.error('❌ Upload returned no data');
+        return { data: null, error: { message: 'Upload returned no data' } };
+      }
+
+      console.log('✅ Upload successful, data:', data);
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('dashboardmemberimages')
+        .getPublicUrl(filePath);
+
+      const publicUrl = urlData?.publicUrl;
+      console.log('✅ Public URL generated:', publicUrl);
+
+      if (!publicUrl) {
+        console.error('❌ Failed to get public URL');
+        return { data: null, error: { message: 'Failed to get public URL' } };
+      }
+
+      return { 
+        data: { 
+          path: filePath, 
+          url: publicUrl 
+        }, 
+        error: null 
+      };
+    } catch (err) {
+      console.error('❌ Exception uploading image:', err);
+      return { data: null, error: err };
+    }
+  },
+
+  // Delete image from dashboardmemberimages bucket
+  async deleteImage(filePath) {
+    try {
+      // Extract just the filename from the path or URL
+      let pathToDelete = filePath;
+      
+      // If it's a full URL, extract the path
+      if (filePath.includes('dashboardmemberimages')) {
+        const urlParts = filePath.split('dashboardmemberimages/');
+        if (urlParts.length > 1) {
+          pathToDelete = urlParts[1].split('?')[0]; // Remove query params if any
+        }
+      }
+
+      const { error } = await supabase.storage
+        .from('dashboardmemberimages')
+        .remove([pathToDelete]);
+
+      if (error) {
+        console.error('Error deleting image from dashboardmemberimages:', error);
+        return { error };
+      }
+
+      return { error: null };
+    } catch (err) {
+      console.error('Exception deleting image:', err);
+      return { error: err };
+    }
   },
 };

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { getFeaturedCourses } from '../../data/courses';
 import { coursesManager } from '../../utils/dataManager';
 import CourseCard from '../cards/CourseCard';
@@ -7,6 +7,7 @@ import CourseCard from '../cards/CourseCard';
 const CoursesSection = () => {
     const [courses, setCourses] = useState([]);
     const navigate = useNavigate();
+    const location = useLocation();
 
     useEffect(() => {
         const loadCourses = () => {
@@ -49,7 +50,7 @@ const CoursesSection = () => {
                         <CourseCard
                             key={course.id}
                             course={course}
-                            onClick={() => navigate(`/course-details/${course.id}`)}
+                            onClick={() => navigate(`/course-details/${course.id}`, { replace: location.pathname !== '/' })}
                         />
                     ))}
                 </div>

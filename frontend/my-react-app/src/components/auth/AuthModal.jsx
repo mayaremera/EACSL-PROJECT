@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X, Mail, Lock, AlertCircle, CheckCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const AuthModal = ({ isOpen, onClose }) => {
@@ -9,6 +10,7 @@ const AuthModal = ({ isOpen, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState('');
 
+  const navigate = useNavigate();
   const { signIn } = useAuth();
 
   if (!isOpen) return null;
@@ -153,7 +155,7 @@ const AuthModal = ({ isOpen, onClose }) => {
                 onClick={(e) => {
                   e.preventDefault();
                   onClose();
-                  window.location.href = '/apply-membership';
+                  navigate('/apply-membership', { replace: true });
                 }}
                 className="text-[#4C9A8F] hover:text-[#57A79B] font-semibold transition-colors"
               >

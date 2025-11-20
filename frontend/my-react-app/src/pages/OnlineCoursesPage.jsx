@@ -1,14 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { BookOpen, X, Clock, Users, Search, ChevronDown, ArrowRight, Filter } from 'lucide-react';
 import { getCategories, getLevels } from '../data/courses';
 import { coursesManager } from '../utils/dataManager';
 import CourseCard from '../components/cards/CourseCard';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
+import ImagePlaceholder from '../components/ui/ImagePlaceholder';
 
 const OnlineCoursesPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedLevel, setSelectedLevel] = useState('all');
@@ -143,7 +145,7 @@ const OnlineCoursesPage = () => {
             <CourseCard
               key={course.id}
               course={course}
-              onClick={() => navigate(`/course-details/${course.id}`)}
+              onClick={() => navigate(`/course-details/${course.id}`, { replace: location.pathname !== '/' })}
             />
           ))}
         </div>
@@ -168,9 +170,10 @@ const OnlineCoursesPage = () => {
             </button>
 
             <div className="relative h-56 overflow-hidden">
-              <img
+              <ImagePlaceholder
                 src={selectedCourse.image}
                 alt={selectedCourse.title}
+                name={selectedCourse.title}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -210,9 +213,10 @@ const OnlineCoursesPage = () => {
 
               <div className="border-t pt-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <img
+                  <ImagePlaceholder
                     src={selectedCourse.instructorImage}
                     alt={selectedCourse.instructor}
+                    name={selectedCourse.instructor}
                     className="w-10 h-10 rounded-full object-cover"
                   />
                   <div>
@@ -225,7 +229,7 @@ const OnlineCoursesPage = () => {
                   <button 
                     onClick={() => {
                       setSelectedCourse(null);
-                      navigate(`/course-details/${selectedCourse.id}`);
+                      navigate(`/course-details/${selectedCourse.id}`, { replace: location.pathname !== '/' });
                     }}
                     className="mt-2 bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
                   >
@@ -249,9 +253,9 @@ const OnlineCoursesPage = () => {
             <p className="text-teal-50 mb-5">
               Start your professional development journey today
             </p>
-            <button className="bg-white text-[#4C9A8F] hover:bg-gray-50 px-6 py-2.5 rounded-lg font-semibold transition-colors">
+            <a href="/apply-membership" className="bg-white text-[#4C9A8F] hover:bg-gray-50 px-6 py-2.5 rounded-lg font-semibold transition-colors">
               Become a Member
-            </button>
+            </a>
           </div>
         </div>
       </div>

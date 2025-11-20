@@ -36,7 +36,7 @@ function DashboardCourseEditorPage() {
 
     const handleMenuClick = (item) => {
         setActiveItem(item.label);
-        navigate(item.path);
+        navigate(item.path, { replace: true });
     };
 
   return (

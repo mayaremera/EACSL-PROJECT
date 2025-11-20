@@ -84,7 +84,7 @@ const SetPasswordPage = () => {
 
       // Redirect to home page after 2 seconds
       setTimeout(() => {
-        navigate('/');
+        navigate('/', { replace: true });
       }, 2000);
 
     } catch (err) {

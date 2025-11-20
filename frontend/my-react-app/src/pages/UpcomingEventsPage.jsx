@@ -30,7 +30,7 @@ const UpcomingEventsPage = () => {
         event = eventsManager.getById(parseInt(eventId));
         // If event is found but it's a past event, redirect to past events
         if (event && event.status === 'past') {
-          navigate(`/past-events`);
+          navigate(`/past-events`, { replace: true });
           return;
         }
       }

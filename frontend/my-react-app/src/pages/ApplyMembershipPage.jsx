@@ -17,8 +17,11 @@ const ApplyMembershipPage = () => {
       const uniqueFileName = `${fileName}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `${folder}/${uniqueFileName}`;
 
+      // Use dashboardmemberimages bucket for profile images, MemberBucket for other documents
+      const bucketName = folder === 'profile-images' ? 'dashboardmemberimages' : 'MemberBucket';
+
       const { data, error } = await supabase.storage
-        .from('MemberBucket')
+        .from(bucketName)
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false
@@ -26,9 +29,22 @@ const ApplyMembershipPage = () => {
 
       if (error) {
         // Check for specific error types
-        if (error.message?.includes('bucket') || error.message?.includes('not found')) {
-          console.warn('Supabase Storage bucket not found:', error);
-          return null;
+        if (error.message?.includes('bucket') || 
+            error.message?.includes('not found') ||
+            error.message?.includes('Bucket not found') ||
+            error.code === '404') {
+          console.warn(`Supabase Storage bucket "${bucketName}" not found:`, error);
+          console.warn(`Please create the "${bucketName}" bucket in Supabase Storage and set it to Public.`);
+          // Return error info so caller can handle it
+          return {
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            uploaded: false,
+            error: 'BUCKET_NOT_FOUND',
+            errorMessage: `Bucket "${bucketName}" not found. Please create it in Supabase Storage.`,
+            bucketName: bucketName
+          };
         }
         if (error.message?.includes('new row violates row-level security') || 
             error.message?.includes('RLS') ||
@@ -48,8 +64,9 @@ const ApplyMembershipPage = () => {
           // File already exists, try with different name
           const retryFileName = `${fileName}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
           const retryPath = `${folder}/${retryFileName}`;
+          
           const { data: retryData, error: retryError } = await supabase.storage
-            .from('MemberBucket')
+            .from(bucketName)
             .upload(retryPath, file, { cacheControl: '3600', upsert: false });
           
           if (retryError) {
@@ -58,7 +75,7 @@ const ApplyMembershipPage = () => {
           }
           
           const { data: urlData } = supabase.storage
-            .from('MemberBucket')
+            .from(bucketName)
             .getPublicUrl(retryPath);
           
           return {
@@ -76,7 +93,7 @@ const ApplyMembershipPage = () => {
 
       // Get public URL
       const { data: urlData } = supabase.storage
-        .from('MemberBucket')
+        .from(bucketName)
         .getPublicUrl(filePath);
 
       return {
@@ -140,6 +157,25 @@ const ApplyMembershipPage = () => {
         storageUploadFailed = true;
       }
 
+      // Check if we have bucket not found errors
+      const hasBucketError = [profileImage, idImage, graduationCert, cv].some(
+        file => file?.error === 'BUCKET_NOT_FOUND'
+      );
+      
+      if (hasBucketError) {
+        const missingBucket = profileImage?.bucketName || idImage?.bucketName || 'dashboardmemberimages or MemberBucket';
+        throw new Error(
+          `❌ Storage Bucket Not Found\n\n` +
+          `The bucket "${missingBucket}" does not exist in Supabase Storage.\n\n` +
+          `To fix this:\n` +
+          `1. Go to Supabase Dashboard → Storage\n` +
+          `2. Create a new bucket named: "${missingBucket}"\n` +
+          `3. Set it to Public\n` +
+          `4. Try submitting again\n\n` +
+          `See DASHBOARD_MEMBER_IMAGES_SETUP.md for detailed instructions.`
+        );
+      }
+
       // Check if we have RLS policy errors
       const hasRLSError = [profileImage, idImage, graduationCert, cv].some(
         file => file?.error === 'RLS_POLICY_REQUIRED'
@@ -148,7 +184,7 @@ const ApplyMembershipPage = () => {
       if (hasRLSError) {
         throw new Error(
           `❌ Storage Upload Failed: Row-Level Security (RLS) Policy Required\n\n` +
-          `Your MemberBucket has RLS enabled but doesn't allow public uploads.\n\n` +
+          `Your storage bucket has RLS enabled but doesn't allow public uploads.\n\n` +
           `To fix this, choose ONE of these options:\n\n` +
           `OPTION 1 (Easiest):\n` +
           `1. Go to Supabase Dashboard → Storage\n` +

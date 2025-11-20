@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Briefcase, X, Award, Calendar, Edit, Trash2, CheckCircle } from 'lucide-react';
+import ImagePlaceholder from '../ui/ImagePlaceholder';
 
 const MemberCard = ({
     image,
@@ -30,11 +31,19 @@ const MemberCard = ({
         if (e.target.closest('.dashboard-actions')) {
             return;
         }
+        // In dashboard, never navigate - only call onClick if provided
+        if (isDashboard) {
+            if (onClick) {
+                onClick();
+            }
+            return; // Never navigate in dashboard
+        }
+        // Outside dashboard, navigate to profile or call onClick
         if (onClick) {
             onClick();
-        } else if (!isDashboard && id) {
+        } else if (id) {
             // Navigate to member profile page
-            navigate(`/member-profile/${id}`);
+            navigate(`/member-profile/${id}`, { replace: true });
         }
     };
 
@@ -92,17 +101,12 @@ const MemberCard = ({
                 )}
                 {/* Member Image */}
                 <div className="relative h-40 overflow-hidden">
-                    {image ? (
-                        <img
-                            src={image}
-                            alt={name}
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                            <span className="text-gray-400 text-4xl font-bold">{name?.charAt(0)?.toUpperCase() || 'M'}</span>
-                        </div>
-                    )}
+                    <ImagePlaceholder
+                        src={image}
+                        alt={name}
+                        name={name}
+                        className="w-full h-full object-cover"
+                    />
                 </div>
 
                 {/* Card Content */}
@@ -149,8 +153,8 @@ const MemberCard = ({
                     </div>
 
                     {/* Description */}
-                    <p className="text-sm text-gray-600 line-clamp-3 mb-4">
-                        {description}
+                    <p className="text-sm text-gray-600 line-clamp-3 mb-4 min-h-[4.5rem]">
+                        {description || '\u00A0'}
                     </p>
 
                     {/* View More Button */}
@@ -159,7 +163,7 @@ const MemberCard = ({
                             if (onClick) {
                                 onClick();
                             } else if (id) {
-                                navigate(`/member-profile/${id}`);
+                                navigate(`/member-profile/${id}`, { replace: true });
                             } else {
                                 setIsModalOpen(true);
                             }
@@ -197,17 +201,12 @@ const MemberCard = ({
                             {/* Member Header */}
                             <div className="flex flex-col sm:flex-row gap-6 mb-6">
                                 <div className="w-32 h-32 rounded-full overflow-hidden flex-shrink-0 shadow-lg mx-auto sm:mx-0">
-                                    {image ? (
-                                        <img
-                                            src={image}
-                                            alt={name}
-                                            className="w-full h-full object-cover object-top"
-                                        />
-                                    ) : (
-                                        <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                                            <span className="text-gray-400 text-4xl font-bold">{name?.charAt(0)?.toUpperCase() || 'M'}</span>
-                                        </div>
-                                    )}
+                                    <ImagePlaceholder
+                                        src={image}
+                                        alt={name}
+                                        name={name}
+                                        className="w-full h-full object-cover object-top"
+                                    />
                                 </div>
                                 <div className="flex-1 text-center sm:text-left">
                                     <div className="flex items-center gap-3 justify-center sm:justify-start mb-2 flex-wrap">

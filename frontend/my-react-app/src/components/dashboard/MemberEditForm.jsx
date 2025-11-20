@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Loader, Upload, Check, AlertCircle, BookOpen, Plus, Trash2 } from 'lucide-react';
 import { membersManager, coursesManager } from '../../utils/dataManager';
+import { membersService } from '../../services/membersService';
+import ImagePlaceholder from '../ui/ImagePlaceholder';
 
 const MemberEditForm = ({ member, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -16,7 +18,12 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
     location: '',
     website: '',
     linkedin: '',
-    image: ''
+    image: '',
+    totalMoneySpent: '0 EGP',
+    coursesEnrolled: 0,
+    totalHoursLearned: 0,
+    activeCourses: [],
+    completedCourses: []
   });
   const [certificateInput, setCertificateInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -221,14 +228,33 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
     }
   };
 
-  const removeFile = (field, e) => {
+  const removeFile = async (field, e) => {
     e.stopPropagation();
+    e.preventDefault();
+    
+    // Immediately update UI to prevent "stuck" feeling
+    setFormData(prev => ({ ...prev, [field]: '' }));
+    
     // Clean up object URL if it exists
     if (imagePreview) {
       URL.revokeObjectURL(imagePreview);
       setImagePreview(null);
     }
-    setFormData(prev => ({ ...prev, [field]: null }));
+    
+    // Delete from storage in background (don't block UI)
+    if (field === 'image' && member && member.image) {
+      if (member.image.includes('dashboardmemberimages')) {
+        // Image is in storage - delete it (async, don't wait)
+        membersService.deleteImage(member.image)
+          .then(() => {
+            console.log('✅ Deleted image from storage');
+          })
+          .catch((deleteError) => {
+            console.warn('Could not delete image from storage:', deleteError);
+            // Don't show error to user - image is already removed from form
+          });
+      }
+    }
   };
 
   // Helper function to convert File to data URL
@@ -249,6 +275,9 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
     e.preventDefault();
     setIsLoading(true);
     setEmailExistsError(null); // Reset error state
+    
+    console.log('Form submitted with data:', formData);
+    console.log('Member being edited:', member);
     
     try {
       // Check if email already exists (only when adding new member, not editing)
@@ -292,10 +321,97 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         }
       }
 
-      // Convert File object to data URL
-      const imageDataUrl = formData.image instanceof File
-        ? await fileToDataURL(formData.image)
-        : (formData.image || '');
+      // Handle image upload - try Supabase Storage first, fallback to base64
+      let imageDataUrl = '';
+      if (formData.image instanceof File) {
+        // New file uploaded - try to upload to Supabase Storage
+        try {
+          console.log('📤 Uploading image to Supabase Storage...');
+          console.log('File details:', {
+            name: formData.image.name,
+            size: formData.image.size,
+            type: formData.image.type
+          });
+          
+          const uploadResult = await membersService.uploadImage(formData.image, formData.image.name);
+          
+          console.log('Upload result:', uploadResult);
+          
+          if (uploadResult.data && uploadResult.data.url) {
+            // Successfully uploaded to Supabase Storage
+            imageDataUrl = uploadResult.data.url;
+            console.log('✅ Image uploaded to Supabase Storage:', imageDataUrl);
+            console.log('✅ Image path:', uploadResult.data.path);
+            
+            // If member had an old image, delete it (from storage or it will be replaced in localStorage)
+            if (member && member.image) {
+              if (member.image.includes('dashboardmemberimages')) {
+                // Old image is in storage - delete it
+                try {
+                  await membersService.deleteImage(member.image);
+                  console.log('✅ Deleted old image from storage');
+                } catch (deleteError) {
+                  console.warn('Could not delete old image from storage:', deleteError);
+                }
+              } else if (member.image.startsWith('data:image')) {
+                // Old image is base64 - it will be replaced in localStorage (no need to delete separately)
+                console.log('✅ Old base64 image will be replaced in localStorage');
+              }
+            }
+          } else {
+            // Storage upload failed - check error type
+            const error = uploadResult.error;
+            const errorMessage = error?.message || error?.error || 'Unknown error';
+            
+            console.error('Upload failed. Full error:', error);
+            
+            if (errorMessage.includes('Bucket not found') || 
+                errorMessage.includes('not found') ||
+                error?.statusCode === 404) {
+              console.warn('Supabase Storage bucket "dashboardmemberimages" not found.');
+              alert('⚠️ Storage bucket not found.\n\nTo fix:\n1. Go to Supabase Dashboard → Storage\n2. Create bucket "dashboardmemberimages"\n3. Set it to Public\n4. Try uploading again');
+              imageDataUrl = '';
+            } else if (errorMessage.includes('row-level security') || 
+                       errorMessage.includes('RLS') ||
+                       errorMessage.includes('policy') ||
+                       error?.statusCode === 403) {
+              console.warn('RLS policy blocking upload.');
+              alert('⚠️ Upload blocked: Bucket is Private\n\nTo fix:\n1. Go to Supabase Dashboard → Storage\n2. Find "dashboardmemberimages" bucket\n3. Click Settings icon (⚙️) next to the bucket\n4. Toggle "Public bucket" to ON\n5. Click Save\n6. Refresh and try again\n\nSee FIX_RLS_ERROR.md for detailed steps.');
+              imageDataUrl = '';
+            } else {
+              // Other error - show the actual error
+              console.warn('Failed to upload to Supabase Storage:', error);
+              alert(`⚠️ Upload failed: ${errorMessage}\n\nPlease check:\n1. Bucket "dashboardmemberimages" exists\n2. Bucket is set to Public\n3. Check browser console for details`);
+              imageDataUrl = '';
+            }
+          }
+        } catch (uploadError) {
+          console.error('Exception uploading image. Image will not be saved:', uploadError);
+          // Don't save to avoid localStorage quota issues
+          alert('⚠️ Error uploading image. Please create the "dashboardmemberimages" bucket in Supabase Storage.\n\nImage will show placeholder.');
+          imageDataUrl = '';
+        }
+      } else if (formData.image === '') {
+        // Image was explicitly removed - delete from storage if it exists
+        if (member && member.image && member.image.includes('dashboardmemberimages')) {
+          try {
+            await membersService.deleteImage(member.image);
+            console.log('✅ Deleted removed image from storage');
+          } catch (deleteError) {
+            console.warn('Could not delete removed image from storage:', deleteError);
+          }
+        }
+        imageDataUrl = '';
+      } else if (formData.image && typeof formData.image === 'string' && formData.image.trim() !== '') {
+        // Existing image (data URL or URL) - keep it
+        imageDataUrl = formData.image.trim();
+      } else if (member && member.image) {
+        // No new image provided, but member has existing image - preserve it
+        imageDataUrl = member.image;
+      } else {
+        // No image at all
+        imageDataUrl = '';
+      }
 
       // Ensure all fields are properly saved, especially isActive as boolean
       const dataToSave = {
@@ -311,7 +427,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         location: formData.location || '',
         website: formData.website || '',
         linkedin: formData.linkedin || '',
-        image: imageDataUrl,
+        image: imageDataUrl, // Always include image, even if empty
         totalMoneySpent: formData.totalMoneySpent || '0 EGP',
         coursesEnrolled: formData.coursesEnrolled || 0,
         totalHoursLearned: formData.totalHoursLearned || 0,
@@ -319,7 +435,10 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         completedCourses: formData.completedCourses || [],
         createAuthAccount: !member && createAuthAccount // Only for new members
       };
+      
+      console.log('Data to save:', dataToSave);
       await onSave(dataToSave);
+      console.log('Save completed');
     } finally {
       setIsLoading(false);
     }
@@ -350,7 +469,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               <input
                 type="text"
                 name="name"
-                value={formData.name}
+                value={formData.name ?? ''}
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
@@ -364,7 +483,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               </label>
               <select
                 name="role"
-                value={formData.role}
+                value={formData.role ?? 'Member'}
                 onChange={handleChange}
                 required
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
@@ -383,7 +502,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               <input
                 type="email"
                 name="email"
-                value={formData.email}
+                value={formData.email ?? ''}
                 onChange={handleChange}
                 required
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none ${
@@ -427,7 +546,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               <input
                 type="tel"
                 name="phone"
-                value={formData.phone}
+                value={formData.phone ?? ''}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
               />
@@ -441,7 +560,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               <input
                 type="text"
                 name="location"
-                value={formData.location}
+                value={formData.location ?? ''}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
               />
@@ -455,7 +574,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               <input
                 type="text"
                 name="activeTill"
-                value={formData.activeTill}
+                value={formData.activeTill ?? ''}
                 onChange={handleChange}
                 placeholder="e.g., 2025"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
@@ -521,7 +640,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                   document.getElementById('member-image').click();
                 }}
               >
-                {(formData.image instanceof File || (typeof formData.image === 'string' && formData.image)) ? (
+                {(formData.image instanceof File || (typeof formData.image === 'string' && formData.image.trim() !== '')) ? (
                   <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm">
                     <div className="flex items-center gap-3">
                       {formData.image instanceof File ? (
@@ -541,13 +660,11 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                         </>
                       ) : (
                         <>
-                          <img 
-                            src={formData.image} 
-                            alt="Preview" 
-                            className="w-16 h-16 object-cover rounded-lg"
-                            onError={(e) => {
-                              e.target.style.display = 'none';
-                            }}
+                          <ImagePlaceholder
+                            src={formData.image}
+                            alt="Preview"
+                            name={formData.name || 'Member'}
+                            className="w-16 h-16 rounded-lg"
                           />
                           <div className="text-left">
                             <p className="text-sm text-gray-700 font-medium">Current Image</p>
@@ -559,16 +676,19 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                     <button
                       onClick={(e) => removeFile('image', e)}
                       className="text-red-500 hover:text-red-700 transition-colors p-2 hover:bg-red-50 rounded-full"
+                      title="Remove image"
                     >
                       <X className="w-5 h-5" />
                     </button>
                   </div>
                 ) : (
                   <>
-                    <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
-                      dragActive['image'] ? 'bg-[#4C9A8F]/20' : 'bg-gray-200'
-                    }`}>
-                      <Upload className={`w-8 h-8 ${dragActive['image'] ? 'text-[#4C9A8F]' : 'text-gray-500'}`} />
+                    <div className="w-16 h-16 mx-auto mb-4 rounded-lg overflow-hidden">
+                      <ImagePlaceholder
+                        text={formData.name || 'Member'}
+                        className="w-full h-full"
+                        textClassName="text-2xl"
+                      />
                     </div>
                     <p className={`text-sm mb-1 font-medium ${dragActive['image'] ? 'text-[#4C9A8F]' : 'text-gray-700'}`}>
                       {dragActive['image'] ? 'Drop your image here' : 'Drag and drop your image here'}
@@ -599,7 +719,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               <input
                 type="url"
                 name="website"
-                value={formData.website}
+                value={formData.website ?? ''}
                 onChange={handleChange}
                 placeholder="www.example.com"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
@@ -614,7 +734,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               <input
                 type="text"
                 name="linkedin"
-                value={formData.linkedin}
+                value={formData.linkedin ?? ''}
                 onChange={handleChange}
                 placeholder="linkedin.com/in/username"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
@@ -628,7 +748,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               </label>
               <textarea
                 name="description"
-                value={formData.description}
+                value={formData.description ?? ''}
                 onChange={handleChange}
                 required
                 rows="2"
@@ -643,7 +763,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               </label>
               <textarea
                 name="fullDescription"
-                value={formData.fullDescription}
+                value={formData.fullDescription ?? ''}
                 onChange={handleChange}
                 required
                 rows="4"
@@ -706,7 +826,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 <input
                   type="text"
                   name="totalMoneySpent"
-                  value={formData.totalMoneySpent}
+                  value={formData.totalMoneySpent ?? '0 EGP'}
                   onChange={handleChange}
                   placeholder="0 EGP"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
@@ -721,7 +841,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 <input
                   type="number"
                   name="coursesEnrolled"
-                  value={formData.coursesEnrolled}
+                  value={formData.coursesEnrolled ?? 0}
                   onChange={handleChange}
                   min="0"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
@@ -736,7 +856,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 <input
                   type="number"
                   name="totalHoursLearned"
-                  value={formData.totalHoursLearned}
+                  value={formData.totalHoursLearned ?? 0}
                   onChange={handleChange}
                   min="0"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"

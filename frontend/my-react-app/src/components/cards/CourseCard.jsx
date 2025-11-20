@@ -1,5 +1,6 @@
 import React from 'react';
 import { BookOpen, Clock, Users, Edit, Trash2 } from 'lucide-react';
+import ImagePlaceholder from '../ui/ImagePlaceholder';
 
 const CourseCard = ({
   course,
@@ -51,9 +52,10 @@ const CourseCard = ({
         </div>
       )}
       <div className="relative h-40 overflow-hidden">
-        <img
+        <ImagePlaceholder
           src={course.image}
           alt={course.title}
+          name={course.title}
           className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute top-3 left-3">
@@ -93,9 +95,10 @@ const CourseCard = ({
 
         <div className="border-t pt-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img
+            <ImagePlaceholder
               src={course.instructorImage}
               alt={course.instructor}
+              name={course.instructor}
               className="w-7 h-7 rounded-full object-cover"
             />
             <span className="text-xs font-semibold text-gray-900">{course.instructor}</span>

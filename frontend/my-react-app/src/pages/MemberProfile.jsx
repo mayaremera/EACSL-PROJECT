@@ -18,6 +18,7 @@ import {
 import { membersManager, initializeData } from '../utils/dataManager';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
+import ImagePlaceholder from '../components/ui/ImagePlaceholder';
 
 function MemberProfile() {
     const { memberId } = useParams();
@@ -65,7 +66,7 @@ function MemberProfile() {
                     <h1 className="text-2xl font-bold text-gray-900 mb-4">Member Not Found</h1>
                     <p className="text-gray-600 mb-6">The member profile you're looking for doesn't exist.</p>
                     <button
-                        onClick={() => navigate('/active-members')}
+                        onClick={() => navigate('/active-members', { replace: true })}
                         className="px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors"
                     >
                         Back to Members
@@ -123,9 +124,10 @@ function MemberProfile() {
                             {/* Profile Picture */}
                             <div className="flex-shrink-0">
                                 <div className="w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-4 border-white shadow-xl mx-auto md:mx-0">
-                                    <img
+                                    <ImagePlaceholder
                                         src={profile.image}
                                         alt={profile.name}
+                                        name={profile.name}
                                         className="w-full h-full object-cover object-top"
                                     />
                                 </div>

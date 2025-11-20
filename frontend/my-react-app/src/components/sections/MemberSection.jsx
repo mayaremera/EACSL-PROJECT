@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useActiveMembersCount } from '../../hooks/useActiveMembersCount';
 
 const MemberSection = () => {
@@ -30,9 +31,9 @@ const MemberSection = () => {
                     Want to become a member<br />of EACSL?
                 </h2>
 
-                <a className="text-[1rem] lg:text-lg px-10 py-4 bg-[#5A9B8E] text-white font-semibold rounded-md hover:bg-[#4A8B7E] transition-all duration-300 shadow-lg" href='/apply-membership'>
+                <Link to="/apply-membership" className="text-[1rem] lg:text-lg px-10 py-4 bg-[#5A9B8E] text-white font-semibold rounded-md hover:bg-[#4A8B7E] transition-all duration-300 shadow-lg">
                     Become a member
-                </a>
+                </Link>
             </div>
         </section>
     );

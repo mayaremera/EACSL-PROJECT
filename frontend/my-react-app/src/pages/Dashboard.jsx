@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams, useLocation } from "react-router-dom";
 import {
     BookOpen,
     Users,
@@ -31,6 +32,7 @@ import EventEditForm from '../components/dashboard/EventEditForm';
 import ArticleEditForm from '../components/dashboard/ArticleEditForm';
 import TherapyProgramEditForm from '../components/dashboard/TherapyProgramEditForm';
 import ForParentEditForm from '../components/dashboard/ForParentEditForm';
+import ImagePlaceholder from '../components/ui/ImagePlaceholder';
 
 // Forms manager for member applications
 const formsManager = {
@@ -907,7 +909,44 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
 };
 
     const Dashboard = () => {
-    const [activeTab, setActiveTab] = useState("courses");
+    const [searchParams, setSearchParams] = useSearchParams();
+    const location = useLocation();
+    
+    // Get tab from URL, default to "courses"
+    const getTabFromURL = () => {
+        const tab = searchParams.get('tab');
+        const validTabs = ['courses', 'members', 'events', 'articles', 'therapy-programs', 'for-parents', 'applications', 'settings'];
+        return tab && validTabs.includes(tab) ? tab : 'courses';
+    };
+    
+    const [activeTab, setActiveTab] = useState(getTabFromURL());
+    
+    // Update URL when tab changes (but don't push to history to avoid back button issues)
+    const handleTabChange = (newTab) => {
+        setActiveTab(newTab);
+        // Update URL without adding to history stack
+        const newSearchParams = new URLSearchParams(searchParams);
+        newSearchParams.set('tab', newTab);
+        // Use replace to avoid adding to history
+        window.history.replaceState({}, '', `${location.pathname}?${newSearchParams.toString()}`);
+    };
+    
+    // Set initial URL if no tab param exists (only on mount)
+    useEffect(() => {
+        if (!searchParams.get('tab')) {
+            const newSearchParams = new URLSearchParams();
+            newSearchParams.set('tab', activeTab);
+            window.history.replaceState({}, '', `${location.pathname}?${newSearchParams.toString()}`);
+        }
+    }, []); // Only run on mount
+    
+    // Restore tab from URL when URL changes (e.g., browser back/forward or refresh)
+    useEffect(() => {
+        const tabFromURL = getTabFromURL();
+        if (tabFromURL !== activeTab) {
+            setActiveTab(tabFromURL);
+        }
+    }, [searchParams]);
     const [courses, setCourses] = useState([]);
     const [members, setMembers] = useState([]);
     const [forms, setForms] = useState([]);
@@ -961,17 +1000,21 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         loadForParentsArticles();
         
         // Sync members from Supabase on initial load (silently fail if table doesn't exist)
-        membersManager.syncFromSupabase().then((result) => {
-            if (result.synced) {
-                loadMembers();
-            } else if (result.error?.code === 'TABLE_NOT_FOUND') {
-                // Table doesn't exist yet - this is okay, just log a warning
-                console.info('Supabase members table not found. Members will be stored locally only until the table is created.');
-            }
-        }).catch(err => {
-            // Silently handle errors on initial load
-            console.warn('Could not sync members on initial load:', err);
-        });
+        // IMPORTANT: Delay sync to ensure any pending local changes are saved first
+        // This prevents sync from overwriting recent local changes
+        setTimeout(() => {
+            membersManager.syncFromSupabase().then((result) => {
+                if (result.synced) {
+                    loadMembers();
+                } else if (result.error?.code === 'TABLE_NOT_FOUND') {
+                    // Table doesn't exist yet - this is okay, just log a warning
+                    console.info('Supabase members table not found. Members will be stored locally only until the table is created.');
+                }
+            }).catch(err => {
+                // Silently handle errors on initial load
+                console.warn('Could not sync members on initial load:', err);
+            });
+        }, 500); // Small delay to ensure localStorage writes complete
 
         // Sync events from Supabase on initial load (silently fail if table doesn't exist)
         eventsManager.syncFromSupabase().then((result) => {
@@ -1350,47 +1393,79 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     };
 
     const handleSaveMember = async (memberData) => {
+        console.log('handleSaveMember called with:', memberData);
+        console.log('Editing member:', editingMember);
+        
         const { createAuthAccount, ...memberDataWithoutFlag } = memberData;
         
-        if (editingMember) {
-            await membersManager.update(editingMember.id, memberDataWithoutFlag);
-        } else {
-            // Add the member first
-            const createdMember = await membersManager.add(memberDataWithoutFlag);
-            
-            // If createAuthAccount is checked, create auth account and send password email
-            if (createAuthAccount && memberData.email) {
-                try {
-                    const { memberAuthService } = await import('../services/memberAuthService');
-                    const result = await memberAuthService.createAuthAccountAndSendPasswordEmail(
-                        memberData.email,
-                        memberData.name
-                    );
-                    
-                    if (result.success && result.userId) {
-                        // Link the auth account to the member
-                        const updatedMember = {
-                            ...createdMember,
-                            supabaseUserId: result.userId
-                        };
-                        await membersManager.update(createdMember.id, updatedMember);
+        try {
+            if (editingMember) {
+                console.log('Updating member with ID:', editingMember.id);
+                console.log('Update data:', memberDataWithoutFlag);
+                const result = await membersManager.update(editingMember.id, memberDataWithoutFlag);
+                console.log('Update result:', result);
+                
+                // Force reload to ensure UI updates
+                const updatedMembers = membersManager.getAll();
+                console.log('Updated members count:', updatedMembers.length);
+                setMembers(updatedMembers);
+            } else {
+                // Add the member first
+                const createdMember = await membersManager.add(memberDataWithoutFlag);
+                
+                // If createAuthAccount is checked, create auth account and send password email
+                if (createAuthAccount && memberData.email) {
+                    try {
+                        const { memberAuthService } = await import('../services/memberAuthService');
+                        const result = await memberAuthService.createAuthAccountAndSendPasswordEmail(
+                            memberData.email,
+                            memberData.name
+                        );
                         
-                        // Show success message
-                        alert(`✅ Member created successfully!\n\n${result.message || 'Authentication account created and password setup email sent.'}`);
-                    } else if (result.success && result.warning) {
-                        // Account created but email failed
-                        alert(`✅ Member created successfully!\n\n⚠️ ${result.warning}`);
-                    } else {
-                        // Auth account creation failed
-                        alert(`✅ Member created successfully!\n\n⚠️ Failed to create authentication account: ${result.error || 'Unknown error'}\n\nThe member can still use "Forgot Password" to set up their account later.`);
+                        if (result.success && result.userId) {
+                            // Link the auth account to the member
+                            const updatedMember = {
+                                ...createdMember,
+                                supabaseUserId: result.userId
+                            };
+                            await membersManager.update(createdMember.id, updatedMember);
+                            
+                            // Force reload to ensure UI updates
+                            const updatedMembers = membersManager.getAll();
+                            setMembers(updatedMembers);
+                            
+                            // Show success message
+                            alert(`✅ Member created successfully!\n\n${result.message || 'Authentication account created and password setup email sent.'}`);
+                        } else if (result.success && result.warning) {
+                            // Account created but email failed
+                            alert(`✅ Member created successfully!\n\n⚠️ ${result.warning}`);
+                        } else {
+                            // Auth account creation failed
+                            alert(`✅ Member created successfully!\n\n⚠️ Failed to create authentication account: ${result.error || 'Unknown error'}\n\nThe member can still use "Forgot Password" to set up their account later.`);
+                        }
+                    } catch (error) {
+                        console.error('Error creating auth account:', error);
+                        alert(`✅ Member created successfully!\n\n⚠️ Failed to create authentication account. The member can use "Forgot Password" to set up their account later.`);
                     }
-                } catch (error) {
-                    console.error('Error creating auth account:', error);
-                    alert(`✅ Member created successfully!\n\n⚠️ Failed to create authentication account. The member can use "Forgot Password" to set up their account later.`);
+                } else {
+                    // Force reload to ensure UI updates
+                    const updatedMembers = membersManager.getAll();
+                    setMembers(updatedMembers);
                 }
             }
+        } catch (error) {
+            console.error('Error saving member:', error);
+            alert('Failed to save member. Please try again.');
+            return;
         }
+        
+        // Reload members and close form
         loadMembers();
+        
+        // Dispatch event to update all listeners
+        const allMembers = membersManager.getAll();
+        window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
+        
         setEditingMember(null);
         setIsAddingMember(false);
     };
@@ -1563,7 +1638,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         
         // Update URL to show the saved event
         if (savedEvent && savedEvent.id) {
-            window.history.pushState({}, '', `/upcoming-events/${savedEvent.id}`);
+            // Don't navigate away from dashboard - keep user in dashboard
+            // window.history.pushState({}, '', `/upcoming-events/${savedEvent.id}`);
         }
         
         setEditingEvent(null);
@@ -1805,7 +1881,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             return (
                                 <li key={item.tab}>
                                     <button
-                                        onClick={() => setActiveTab(item.tab)}
+                                        onClick={() => handleTabChange(item.tab)}
                                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
                                                 ? "bg-teal-50 text-[#4C9A8F] font-medium"
                                                 : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
@@ -1865,22 +1941,74 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             </p>
                         </div>
                         {activeTab === 'courses' && (
-                            <button
-                                onClick={() => setIsAddingCourse(true)}
-                                className="flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors shadow-md"
-                            >
-                                <Plus size={20} />
-                                Add Course
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={loadCourses}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                    title="Refresh Courses"
+                                >
+                                    <RefreshCw size={18} />
+                                </button>
+                                <button
+                                    onClick={() => setIsAddingCourse(true)}
+                                    className="flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors shadow-md"
+                                >
+                                    <Plus size={20} />
+                                    Add Course
+                                </button>
+                            </div>
                         )}
                         {activeTab === 'members' && (
-                            <button
-                                onClick={() => setIsAddingMember(true)}
-                                className="flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors shadow-md"
-                            >
-                                <Plus size={20} />
-                                Add Member
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={loadMembers}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                    title="Refresh Members"
+                                >
+                                    <RefreshCw size={18} />
+                                </button>
+                                <button
+                                    onClick={handleSyncMembers}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                                    title="Sync from Supabase"
+                                >
+                                    <RefreshCw size={18} />
+                                    Sync
+                                </button>
+                                <button
+                                    onClick={() => setIsAddingMember(true)}
+                                    className="flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors shadow-md"
+                                >
+                                    <Plus size={20} />
+                                    Add Member
+                                </button>
+                            </div>
+                        )}
+                        {activeTab === 'articles' && (
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={loadArticles}
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                    title="Refresh Articles"
+                                >
+                                    <RefreshCw size={18} />
+                                </button>
+                                <button
+                                    onClick={handleSyncArticles}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                                    title="Sync from Supabase"
+                                >
+                                    <RefreshCw size={18} />
+                                    Sync
+                                </button>
+                                <button
+                                    onClick={() => setIsAddingArticle(true)}
+                                    className="flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors shadow-md"
+                                >
+                                    <Plus size={20} />
+                                    Add Article
+                                </button>
+                            </div>
                         )}
                         {activeTab === 'therapy-programs' && (
                             <div className="flex items-center gap-3">
@@ -1944,6 +2072,14 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                     <RefreshCw size={18} />
                                 </button>
                                 <button
+                                    onClick={handleSyncEvents}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                                    title="Sync from Supabase"
+                                >
+                                    <RefreshCw size={18} />
+                                    Sync
+                                </button>
+                                <button
                                     onClick={() => setIsAddingEvent(true)}
                                     className="flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors shadow-md"
                                 >
@@ -1972,7 +2108,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             </div>
 
                             {/* Stats */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                 <div className="bg-white p-4 rounded-lg shadow-sm">
                                     <p className="text-sm text-gray-600">Total Courses</p>
                                     <p className="text-2xl font-bold text-gray-900">{courses.length}</p>
@@ -1980,15 +2116,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 <div className="bg-white p-4 rounded-lg shadow-sm">
                                     <p className="text-sm text-gray-600">Filtered Results</p>
                                     <p className="text-2xl font-bold text-gray-900">{filteredCourses.length}</p>
-                                </div>
-                                <div className="bg-white p-4 rounded-lg shadow-sm">
-                                    <button
-                                        onClick={loadCourses}
-                                        className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178]"
-                                    >
-                                        <RefreshCw size={16} />
-                                        Refresh Data
-                                    </button>
                                 </div>
                             </div>
 
@@ -2031,7 +2158,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             </div>
 
                             {/* Stats */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                 <div className="bg-white p-4 rounded-lg shadow-sm">
                                     <p className="text-sm text-gray-600">Total Members</p>
                                     <p className="text-2xl font-bold text-gray-900">{members.length}</p>
@@ -2039,25 +2166,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 <div className="bg-white p-4 rounded-lg shadow-sm">
                                     <p className="text-sm text-gray-600">Filtered Results</p>
                                     <p className="text-2xl font-bold text-gray-900">{filteredMembers.length}</p>
-                                </div>
-                                <div className="bg-white p-4 rounded-lg shadow-sm">
-                                    <p className="text-sm text-gray-600 mb-2">Actions</p>
-                                    <div className="flex flex-col gap-2">
-                                        <button
-                                            onClick={handleSyncMembers}
-                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178]"
-                                        >
-                                            <RefreshCw size={16} />
-                                            Sync from Supabase
-                                        </button>
-                                        <button
-                                            onClick={loadMembers}
-                                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
-                                        >
-                                            <RefreshCw size={16} />
-                                            Refresh Local
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
 
@@ -2086,7 +2194,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                     {activeTab === 'events' && (
                         <div>
                             {/* Stats */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                                 <div className="bg-white p-4 rounded-lg shadow-sm">
                                     <p className="text-sm text-gray-600">Upcoming Events</p>
                                     <p className="text-2xl font-bold text-gray-900">{events.upcoming?.length || 0}</p>
@@ -2094,25 +2202,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 <div className="bg-white p-4 rounded-lg shadow-sm">
                                     <p className="text-sm text-gray-600">Past Events</p>
                                     <p className="text-2xl font-bold text-gray-900">{events.past?.length || 0}</p>
-                                </div>
-                                <div className="bg-white p-4 rounded-lg shadow-sm">
-                                    <p className="text-sm text-gray-600 mb-2">Actions</p>
-                                    <div className="flex flex-col gap-2">
-                                        <button
-                                            onClick={handleSyncEvents}
-                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178]"
-                                        >
-                                            <RefreshCw size={16} />
-                                            Sync from Supabase
-                                        </button>
-                                        <button
-                                            onClick={loadEvents}
-                                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
-                                        >
-                                            <RefreshCw size={16} />
-                                            Refresh Local
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
 
@@ -2290,45 +2379,11 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                     {/* Articles Tab */}
                     {activeTab === 'articles' && (
                         <div>
-                            {/* Header with Add Button */}
-                            <div className="flex items-center justify-between mb-6">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-gray-900">Articles</h2>
-                                    <p className="text-sm text-gray-600 mt-1">Manage articles and resources</p>
-                                </div>
-                                <button
-                                    onClick={() => setIsAddingArticle(true)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
-                                >
-                                    <Plus size={20} />
-                                    Add Article
-                                </button>
-                            </div>
-
                             {/* Stats */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                                 <div className="bg-white p-4 rounded-lg shadow-sm">
                                     <p className="text-sm text-gray-600">Total Articles</p>
                                     <p className="text-2xl font-bold text-gray-900">{articles.length}</p>
-                                </div>
-                                <div className="bg-white p-4 rounded-lg shadow-sm">
-                                    <p className="text-sm text-gray-600 mb-2">Actions</p>
-                                    <div className="flex flex-col gap-2">
-                                        <button
-                                            onClick={handleSyncArticles}
-                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178]"
-                                        >
-                                            <RefreshCw size={16} />
-                                            Sync from Supabase
-                                        </button>
-                                        <button
-                                            onClick={loadArticles}
-                                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
-                                        >
-                                            <RefreshCw size={16} />
-                                            Refresh Local
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
 
@@ -2337,15 +2392,14 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {articles.map((article) => (
                                         <div key={article.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
-                                            {article.image && (
-                                                <div className="aspect-video bg-gray-100 overflow-hidden">
-                                                    <img
-                                                        src={article.image}
-                                                        alt={article.titleEn}
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                </div>
-                                            )}
+                                            <div className="aspect-video bg-gray-100 overflow-hidden">
+                                                <ImagePlaceholder
+                                                    src={article.image}
+                                                    alt={article.titleEn}
+                                                    name={article.titleEn}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
                                             <div className="p-4">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <span className="px-2 py-0.5 bg-teal-50 text-[#4C9A8F] text-xs font-medium rounded-full">
@@ -2403,45 +2457,11 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                     {/* Therapy Programs Tab */}
                     {activeTab === 'therapy-programs' && (
                         <div>
-                            {/* Header with Add Button */}
-                            <div className="flex items-center justify-between mb-6">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-gray-900">Therapy Programs</h2>
-                                    <p className="text-sm text-gray-600 mt-1">Manage therapy programs and services</p>
-                                </div>
-                                <button
-                                    onClick={() => setIsAddingTherapyProgram(true)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
-                                >
-                                    <Plus size={20} />
-                                    Add Program
-                                </button>
-                            </div>
-
                             {/* Stats */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                                 <div className="bg-white p-4 rounded-lg shadow-sm">
                                     <p className="text-sm text-gray-600">Total Programs</p>
                                     <p className="text-2xl font-bold text-gray-900">{therapyPrograms.length}</p>
-                                </div>
-                                <div className="bg-white p-4 rounded-lg shadow-sm">
-                                    <p className="text-sm text-gray-600 mb-2">Actions</p>
-                                    <div className="flex flex-col gap-2">
-                                        <button
-                                            onClick={handleSyncTherapyPrograms}
-                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178]"
-                                        >
-                                            <RefreshCw size={16} />
-                                            Sync from Supabase
-                                        </button>
-                                        <button
-                                            onClick={loadTherapyPrograms}
-                                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
-                                        >
-                                            <RefreshCw size={16} />
-                                            Refresh Local
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
 
@@ -2460,15 +2480,14 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                         
                                         return (
                                             <div key={program.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
-                                                {program.image && (
-                                                    <div className="aspect-video bg-gray-100 overflow-hidden">
-                                                        <img
-                                                            src={program.image || program.imageUrl}
-                                                            alt={program.title}
-                                                            className="w-full h-full object-cover"
-                                                        />
-                                                    </div>
-                                                )}
+                                                <div className="aspect-video bg-gray-100 overflow-hidden">
+                                                    <ImagePlaceholder
+                                                        src={program.image || program.imageUrl}
+                                                        alt={program.title}
+                                                        name={program.title}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                </div>
                                                 <div className="p-4">
                                                     <div className="flex items-center gap-2 mb-2">
                                                         <div className="p-2 bg-teal-50 rounded-full">
@@ -2521,45 +2540,11 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                     {/* For Parents Tab */}
                     {activeTab === 'for-parents' && (
                         <div>
-                            {/* Header with Add Button */}
-                            <div className="flex items-center justify-between mb-6">
-                                <div>
-                                    <h2 className="text-2xl font-bold text-gray-900">For Parents Articles</h2>
-                                    <p className="text-sm text-gray-600 mt-1">Manage articles and resources for parents</p>
-                                </div>
-                                <button
-                                    onClick={() => setIsAddingForParent(true)}
-                                    className="flex items-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
-                                >
-                                    <Plus size={20} />
-                                    Add Article
-                                </button>
-                            </div>
-
                             {/* Stats */}
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                                 <div className="bg-white p-4 rounded-lg shadow-sm">
                                     <p className="text-sm text-gray-600">Total Articles</p>
                                     <p className="text-2xl font-bold text-gray-900">{forParentsArticles.length}</p>
-                                </div>
-                                <div className="bg-white p-4 rounded-lg shadow-sm">
-                                    <p className="text-sm text-gray-600 mb-2">Actions</p>
-                                    <div className="flex flex-col gap-2">
-                                        <button
-                                            onClick={handleSyncForParents}
-                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178]"
-                                        >
-                                            <RefreshCw size={16} />
-                                            Sync from Supabase
-                                        </button>
-                                        <button
-                                            onClick={loadForParentsArticles}
-                                            className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900"
-                                        >
-                                            <RefreshCw size={16} />
-                                            Refresh Local
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
 
@@ -2568,15 +2553,14 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {forParentsArticles.map((article) => (
                                         <div key={article.id} className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow">
-                                            {article.image && (
-                                                <div className="aspect-video bg-gray-100 overflow-hidden">
-                                                    <img
-                                                        src={article.image || article.imageUrl}
-                                                        alt={article.title}
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                </div>
-                                            )}
+                                            <div className="aspect-video bg-gray-100 overflow-hidden">
+                                                <ImagePlaceholder
+                                                    src={article.image || article.imageUrl}
+                                                    alt={article.title}
+                                                    name={article.title}
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
                                             <div className="p-4">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <div className="p-2 bg-teal-50 rounded-full">
@@ -3217,7 +3201,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                         // After saving, update URL to show the event being edited
                         if (editingEvent && editingEvent.id) {
                             setTimeout(() => {
-                                window.history.pushState({}, '', `/upcoming-events/${editingEvent.id}`);
+                                // Don't navigate away from dashboard - keep user in dashboard
+                                // window.history.pushState({}, '', `/upcoming-events/${editingEvent.id}`);
                             }, 100);
                         } else {
                             // For new events, wait for the event to be saved and get its ID
@@ -3225,7 +3210,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 const allEvents = eventsManager.getAll();
                                 const latestEvent = allEvents.upcoming[allEvents.upcoming.length - 1];
                                 if (latestEvent && latestEvent.id) {
-                                    window.history.pushState({}, '', `/upcoming-events/${latestEvent.id}`);
+                                    // Don't navigate away from dashboard - keep user in dashboard
+                                    // window.history.pushState({}, '', `/upcoming-events/${latestEvent.id}`);
                                 }
                             }, 200);
                         }

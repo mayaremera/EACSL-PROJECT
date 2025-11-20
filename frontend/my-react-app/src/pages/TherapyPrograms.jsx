@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Calendar, MessageCircle, Users, Baby, Brain, ClipboardList } from 'lucide-react';
+import { Calendar, MessageCircle, Users, Baby, Brain, ClipboardList } from 'lucide-react';
 import { therapyProgramsManager } from '../utils/dataManager';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import { useNavigate } from 'react-router-dom';
+import ImagePlaceholder from '../components/ui/ImagePlaceholder';
 
 const TherapyPrograms = () => {
   const navigate = useNavigate();
@@ -63,9 +64,10 @@ const TherapyPrograms = () => {
               >
                 {/* Image */}
                 <div className="relative h-48 overflow-hidden">
-                  <img
-                    src={program.image || program.imageUrl || "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80"}
+                  <ImagePlaceholder
+                    src={program.image || program.imageUrl}
                     alt={program.title}
+                    name={program.title}
                     className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
                   />
                   <div className="absolute top-4 right-4">
@@ -91,16 +93,12 @@ const TherapyPrograms = () => {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12">
-          <button className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg">
+          <button 
+            onClick={() => navigate('/reservation', { replace: true })}
+            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+          >
             <Calendar size={20} />
             <span>Book Appointment</span>
-          </button>
-          <button 
-            onClick={() => navigate('/services')}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 border-2 border-[#4C9A8F] text-[#4C9A8F] hover:bg-[#4C9A8F] hover:text-white font-semibold rounded-lg transition-colors duration-200"
-          >
-            <ArrowLeft size={20} />
-            <span>Back to Services</span>
           </button>
         </div>
       </div>
@@ -115,9 +113,9 @@ const TherapyPrograms = () => {
             <p className="text-teal-50 mb-6 max-w-2xl mx-auto">
               Become a member and be part of our growing professional community
             </p>
-            <button className="bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg">
+            <a href="/apply-membership" className="bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg">
               Become a Member
-            </button>
+            </a>
           </div>
         </div>
       </div>

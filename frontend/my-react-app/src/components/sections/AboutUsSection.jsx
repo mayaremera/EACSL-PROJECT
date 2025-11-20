@@ -78,6 +78,7 @@
 
 
 import React from "react";
+import { Link } from "react-router-dom";
 import halfCircle from "../../assets/halfLogo.png";
 import aboutPageImage from "../../assets/aboutpagesectionimage.png";
 
@@ -124,12 +125,12 @@ const AboutUsSection = () => {
             </div>
 
             {/* Learn More Button */}
-            <a
+            <Link
+              to="/about"
               className="text-[0.8rem] px-8 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] font-semibold rounded-md hover:bg-[#5A9B8E] hover:text-white transition-all duration-300 mx-auto block lg:mx-0 lg:inline-block"
-              href="/about"
             >
               Learn More
-            </a>
+            </Link>
           </div>
 
           {/* Right Image — Updated Styling */}

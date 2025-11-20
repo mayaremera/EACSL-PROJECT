@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, Menu, X, ChevronDown, LogOut, User, Calendar, UserCircle, BookOpen, Users, FileText, GraduationCap, Brain, Baby, Loader2 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 import AuthModal from '../auth/AuthModal';
 import { useAuth } from '../../contexts/AuthContext';
@@ -99,7 +99,7 @@ const Header = () => {
   const handleSearchResultClick = (url) => {
     setShowSearchDropdown(false);
     setSearchQuery('');
-    navigate(url);
+    navigate(url, { replace: true });
   };
 
   // Get category icon
@@ -180,21 +180,21 @@ const Header = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
-          <a href="/" className="flex items-center">
+          <Link to="/" className="flex items-center">
             <img src={logo} alt="EACSL Logo" className="h-12" />
-          </a>
+          </Link>
 
           {/* Desktop Navigation */}
           <nav className="hidden lg:flex items-center space-x-8" ref={dropdownRef}>
             {navLinks.map((link) => (
               <div key={link.name} className="relative group">
                 {!link.dropdown ? (
-                  <a
-                    href={link.href}
+                  <Link
+                    to={link.href}
                     className="text-gray-700 hover:text-teal-600 transition-colors duration-200 text-base font-semibold"
                   >
                     {link.name}
-                  </a>
+                  </Link>
                 ) : (
                   <>
                     <button
@@ -214,13 +214,14 @@ const Header = () => {
                     {activeDropdown === link.name && (
                       <div className="absolute left-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg py-2 w-56">
                         {link.dropdown.map((item) => (
-                          <a
+                          <Link
                             key={item.name}
-                            href={item.href}
+                            to={item.href}
+                            onClick={() => setActiveDropdown(null)}
                             className="block px-4 py-2 text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-colors text-sm font-medium"
                           >
                             {item.name}
-                          </a>
+                          </Link>
                         ))}
                       </div>
                     )}
@@ -506,30 +507,22 @@ const Header = () => {
                     </div>
                     {memberData && (
                       <>
-                        <a
-                          href={`/member-profile/${memberData.id}`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            navigate(`/member-profile/${memberData.id}`);
-                            setUserDropdownOpen(false);
-                          }}
+                        <Link
+                          to={`/member-profile/${memberData.id}`}
+                          onClick={() => setUserDropdownOpen(false)}
                           className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-colors"
                         >
                           <UserCircle size={16} />
                           <span>Profile</span>
-                        </a>
-                        <a
-                          href={`/continuing-education/${memberData.id}`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            navigate(`/continuing-education/${memberData.id}`);
-                            setUserDropdownOpen(false);
-                          }}
+                        </Link>
+                        <Link
+                          to={`/continuing-education/${memberData.id}`}
+                          onClick={() => setUserDropdownOpen(false)}
                           className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-colors"
                         >
                           <BookOpen size={16} />
                           <span>Continuing Education</span>
-                        </a>
+                        </Link>
                         {memberData.activeTill && (
                           <div className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-600">
                             <Calendar size={16} />
@@ -574,12 +567,13 @@ const Header = () => {
               {navLinks.map((link) => (
                 <div key={link.name}>
                   {!link.dropdown ? (
-                    <a
-                      href={link.href}
+                    <Link
+                      to={link.href}
+                      onClick={() => setIsMenuOpen(false)}
                       className="text-gray-700 hover:text-teal-600 transition-colors duration-200 text-base font-medium py-2 block"
                     >
                       {link.name}
-                    </a>
+                    </Link>
                   ) : (
                     <details className="group">
                       <summary className="cursor-pointer text-gray-700 hover:text-teal-600 text-base font-medium flex justify-between items-center py-2">
@@ -588,13 +582,14 @@ const Header = () => {
                       </summary>
                       <div className="pl-4 mt-2 space-y-2">
                         {link.dropdown.map((item) => (
-                          <a
+                          <Link
                             key={item.name}
-                            href={item.href}
+                            to={item.href}
+                            onClick={() => setIsMenuOpen(false)}
                             className="block text-gray-600 hover:text-teal-600 text-sm font-medium transition-colors"
                           >
                             {item.name}
-                          </a>
+                          </Link>
                         ))}
                       </div>
                     </details>
@@ -659,30 +654,22 @@ const Header = () => {
                     </div>
                     {memberData && (
                       <>
-                        <a
-                          href={`/member-profile/${memberData.id}`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            navigate(`/member-profile/${memberData.id}`);
-                            setIsMenuOpen(false);
-                          }}
+                        <Link
+                          to={`/member-profile/${memberData.id}`}
+                          onClick={() => setIsMenuOpen(false)}
                           className="w-full flex items-center justify-center space-x-2 bg-teal-50 hover:bg-teal-100 text-teal-600 px-6 py-2.5 rounded-lg font-medium transition-colors duration-200"
                         >
                           <UserCircle size={18} />
                           <span>Profile</span>
-                        </a>
-                        <a
-                          href={`/continuing-education/${memberData.id}`}
-                          onClick={(e) => {
-                            e.preventDefault();
-                            navigate(`/continuing-education/${memberData.id}`);
-                            setIsMenuOpen(false);
-                          }}
+                        </Link>
+                        <Link
+                          to={`/continuing-education/${memberData.id}`}
+                          onClick={() => setIsMenuOpen(false)}
                           className="w-full flex items-center justify-center space-x-2 bg-teal-50 hover:bg-teal-100 text-teal-600 px-6 py-2.5 rounded-lg font-medium transition-colors duration-200"
                         >
                           <BookOpen size={18} />
                           <span>Continuing Education</span>
-                        </a>
+                        </Link>
                         {memberData.activeTill && (
                           <div className="px-4 py-2 bg-gray-50 rounded-lg">
                             <div className="flex items-center space-x-2 text-sm text-gray-600">

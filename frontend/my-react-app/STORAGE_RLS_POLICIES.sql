@@ -1,42 +1,26 @@
--- SQL Script to Enable Public Uploads to MemberBucket
--- Run this in Supabase SQL Editor if your bucket is Private
-
--- First, check if bucket exists and is Private
--- If bucket is Public, you don't need these policies
-
--- Policy 1: Allow public to INSERT (upload) files
-CREATE POLICY "Allow public uploads to MemberBucket"
-ON storage.objects
-FOR INSERT
-TO public
-WITH CHECK (bucket_id = 'MemberBucket');
-
--- Policy 2: Allow public to SELECT (read/download) files
-CREATE POLICY "Allow public reads from MemberBucket"
-ON storage.objects
-FOR SELECT
-TO public
-USING (bucket_id = 'MemberBucket');
-
--- Policy 3: Allow public to UPDATE files (optional, for replacing files)
-CREATE POLICY "Allow public updates to MemberBucket"
-ON storage.objects
-FOR UPDATE
-TO public
-USING (bucket_id = 'MemberBucket')
-WITH CHECK (bucket_id = 'MemberBucket');
-
--- Policy 4: Allow public to DELETE files (optional, for cleanup)
--- Uncomment if you want to allow public deletion
--- CREATE POLICY "Allow public deletes from MemberBucket"
--- ON storage.objects
--- FOR DELETE
--- TO public
--- USING (bucket_id = 'MemberBucket');
-
--- Verify policies were created
-SELECT * FROM pg_policies 
-WHERE tablename = 'objects' 
-AND schemaname = 'storage'
-AND policyname LIKE '%MemberBucket%';
-
+-- ⚠️ IMPORTANT: This SQL script will NOT work in Supabase!
+-- 
+-- You cannot modify storage.objects policies via SQL in Supabase.
+-- The error "must be owner of table objects" is expected.
+--
+-- ✅ SOLUTION: Use the Supabase Dashboard instead
+--
+-- To allow uploads to dashboardmemberimages bucket:
+--
+-- OPTION 1 (RECOMMENDED - Easiest):
+-- 1. Go to Supabase Dashboard → Storage
+-- 2. Find the "dashboardmemberimages" bucket
+-- 3. Click the Settings icon (gear) next to the bucket
+-- 4. Change "Public bucket" toggle to ON
+-- 5. Click "Save"
+-- 6. Done! ✅
+--
+-- OPTION 2 (If you need Private bucket with custom policies):
+-- 1. Go to Supabase Dashboard → Storage → Policies
+-- 2. Select "dashboardmemberimages" bucket
+-- 3. Click "New Policy"
+-- 4. Create policies for SELECT, INSERT, UPDATE, DELETE
+-- 5. Set to allow public access
+--
+-- The bucket MUST be Public for the dashboard to upload images.
+-- There's no way around this without admin database access.

@@ -103,12 +103,21 @@ export const membersManager = {
 
   // Save members to localStorage
   saveAll: (members) => {
-    localStorage.setItem("eacsl_members", JSON.stringify(members));
-    // Also update the module (for immediate reflection)
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("membersUpdated", { detail: members })
-      );
+    try {
+      localStorage.setItem("eacsl_members", JSON.stringify(members));
+      console.log('✅ Successfully saved', members.length, 'members to localStorage');
+      // Also update the module (for immediate reflection)
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("membersUpdated", { detail: members })
+        );
+      }
+    } catch (error) {
+      console.error('❌ Failed to save members to localStorage:', error);
+      // If localStorage is full, try to clear some space or show error
+      if (error.name === 'QuotaExceededError') {
+        alert('Storage quota exceeded. Please clear some browser data or contact support.');
+      }
     }
   },
 
@@ -184,9 +193,14 @@ export const membersManager = {
 
   // Update member (syncs with Supabase)
   update: async (id, updatedMember) => {
+    console.log('membersManager.update called with id:', id, 'data:', updatedMember);
     const members = membersManager.getAll();
     const index = members.findIndex((m) => m.id === id);
-    if (index === -1) return null;
+    if (index === -1) {
+      console.error('Member not found with id:', id);
+      return null;
+    }
+    console.log('Found member at index:', index, 'Current member:', members[index]);
 
     const updated = [...members];
     // IMPORTANT: Preserve exact isActive value from updatedMember if provided
@@ -198,28 +212,63 @@ export const membersManager = {
       : true; // Only default to true if never set
 
     // Explicitly set all fields to ensure nothing is lost
+    // Preserve existing values if new values are empty/undefined
     updated[index] = {
       id, // Preserve ID
       supabaseUserId:
         members[index].supabaseUserId ||
         updatedMember.supabaseUserId ||
         undefined, // Preserve Supabase user ID link
-      name: updatedMember.name || "",
-      role: updatedMember.role || "Member",
-      nationality: updatedMember.nationality || "Egyptian",
-      flagCode: updatedMember.flagCode || "eg",
-      description: updatedMember.description || "",
-      fullDescription: updatedMember.fullDescription || "",
-      email: updatedMember.email || "",
-      membershipDate: updatedMember.membershipDate || "",
+      name: updatedMember.name !== undefined && updatedMember.name !== null && String(updatedMember.name).trim() !== ""
+        ? String(updatedMember.name).trim()
+        : (members[index].name || ""),
+      role: updatedMember.role !== undefined && updatedMember.role !== null && String(updatedMember.role).trim() !== ""
+        ? String(updatedMember.role).trim()
+        : (members[index].role || "Member"),
+      nationality: updatedMember.nationality !== undefined && updatedMember.nationality !== null && String(updatedMember.nationality).trim() !== ""
+        ? String(updatedMember.nationality).trim()
+        : (members[index].nationality || "Egyptian"),
+      flagCode: updatedMember.flagCode !== undefined && updatedMember.flagCode !== null && String(updatedMember.flagCode).trim() !== ""
+        ? String(updatedMember.flagCode).trim()
+        : (members[index].flagCode || "eg"),
+      description: updatedMember.description !== undefined && updatedMember.description !== null && String(updatedMember.description).trim() !== ""
+        ? String(updatedMember.description).trim()
+        : (members[index].description || ""),
+      fullDescription: updatedMember.fullDescription !== undefined && updatedMember.fullDescription !== null && String(updatedMember.fullDescription).trim() !== ""
+        ? String(updatedMember.fullDescription).trim()
+        : (members[index].fullDescription || ""),
+      email: updatedMember.email !== undefined && updatedMember.email !== null && String(updatedMember.email).trim() !== ""
+        ? String(updatedMember.email).trim()
+        : (members[index].email || ""),
+      membershipDate: updatedMember.membershipDate !== undefined && updatedMember.membershipDate !== null && String(updatedMember.membershipDate).trim() !== ""
+        ? String(updatedMember.membershipDate).trim()
+        : (members[index].membershipDate || ""),
       isActive: isActiveValue, // Use the preserved value
-      activeTill: updatedMember.activeTill || "",
-      certificates: updatedMember.certificates || [],
-      phone: updatedMember.phone || "",
-      location: updatedMember.location || "",
-      website: updatedMember.website || "",
-      linkedin: updatedMember.linkedin || "",
-      image: updatedMember.image || "",
+      activeTill: updatedMember.activeTill !== undefined && updatedMember.activeTill !== null && String(updatedMember.activeTill).trim() !== ""
+        ? String(updatedMember.activeTill).trim()
+        : (members[index].activeTill || ""),
+      certificates: Array.isArray(updatedMember.certificates) && updatedMember.certificates.length > 0
+        ? updatedMember.certificates
+        : (Array.isArray(members[index].certificates) ? members[index].certificates : []),
+      phone: updatedMember.phone !== undefined && updatedMember.phone !== null && String(updatedMember.phone).trim() !== ""
+        ? String(updatedMember.phone).trim()
+        : (members[index].phone || ""),
+      location: updatedMember.location !== undefined && updatedMember.location !== null && String(updatedMember.location).trim() !== ""
+        ? String(updatedMember.location).trim()
+        : (members[index].location || ""),
+      website: updatedMember.website !== undefined && updatedMember.website !== null && String(updatedMember.website).trim() !== ""
+        ? String(updatedMember.website).trim()
+        : (members[index].website || ""),
+      linkedin: updatedMember.linkedin !== undefined && updatedMember.linkedin !== null && String(updatedMember.linkedin).trim() !== ""
+        ? String(updatedMember.linkedin).trim()
+        : (members[index].linkedin || ""),
+      // Preserve image: only update if a new image is explicitly provided
+      // If updatedMember.image is undefined/null/empty, keep the existing image
+      image: updatedMember.hasOwnProperty("image")
+        ? (updatedMember.image !== null && updatedMember.image !== "" && String(updatedMember.image).trim() !== ""
+          ? String(updatedMember.image).trim()
+          : "") // Explicitly set to empty if provided as empty/null
+        : (members[index].image || ""), // Preserve existing if not provided
       totalMoneySpent: updatedMember.totalMoneySpent !== undefined ? updatedMember.totalMoneySpent : (members[index].totalMoneySpent || '0 EGP'),
       coursesEnrolled: updatedMember.coursesEnrolled !== undefined ? updatedMember.coursesEnrolled : (members[index].coursesEnrolled || 0),
       totalHoursLearned: updatedMember.totalHoursLearned !== undefined ? updatedMember.totalHoursLearned : (members[index].totalHoursLearned || 0),
@@ -227,27 +276,63 @@ export const membersManager = {
       completedCourses: updatedMember.completedCourses !== undefined ? updatedMember.completedCourses : (members[index].completedCourses || []),
     };
 
+    console.log('Updated member data:', updated[index]);
+    console.log('Before save - localStorage has:', membersManager.getAll().length, 'members');
+    
     // Save to local storage first for immediate UI update
+    // This MUST happen synchronously before any async operations
     membersManager.saveAll(updated);
+    
+    // Verify the save worked
+    const verifyMembers = membersManager.getAll();
+    console.log('After save - localStorage has:', verifyMembers.length, 'members');
+    const savedMember = verifyMembers.find(m => m.id === id);
+    if (savedMember) {
+      console.log('✅ Verified: Updated member is in localStorage:', savedMember.name);
+    } else {
+      console.error('❌ ERROR: Updated member NOT found in localStorage after save!');
+    }
 
-    // Sync with Supabase (async, don't block)
-    membersService
-      .update(id, updated[index])
-      .then(({ error }) => {
-        if (error) {
+    // Sync with Supabase - try to sync but don't block if it fails
+    // This ensures data is saved locally even if Supabase is unavailable
+    try {
+      const { error } = await membersService.update(id, updated[index]);
+      if (error) {
+        // Only log if it's not a "table not found" error (expected if table doesn't exist yet)
+        if (error.code !== 'TABLE_NOT_FOUND') {
           console.warn("Failed to sync member update to Supabase:", error);
+        } else {
+          // Table doesn't exist - this is fine, data is saved locally
+          console.log("Member updated locally. Supabase table not created yet.");
         }
-      })
-      .catch((err) => {
-        console.warn("Exception syncing member update to Supabase:", err);
-      });
+        // Data is still saved locally, so it will persist
+      } else {
+        console.log("Successfully synced member update to Supabase");
+      }
+    } catch (err) {
+      console.warn("Exception syncing member update to Supabase:", err);
+      // Data is still saved locally, so it will persist
+    }
 
+    console.log('Returning updated member:', updated[index]);
     return updated[index];
   },
 
   // Delete member (syncs with Supabase)
   delete: async (id) => {
     const members = membersManager.getAll();
+    const memberToDelete = members.find((m) => m.id === id);
+    
+    // Delete member's image from storage if it exists in Supabase Storage
+    if (memberToDelete && memberToDelete.image && memberToDelete.image.includes('dashboardmemberimages')) {
+      try {
+        await membersService.deleteImage(memberToDelete.image);
+        console.log('✅ Deleted member image from storage');
+      } catch (deleteError) {
+        console.warn('Could not delete member image from storage:', deleteError);
+      }
+    }
+
     const filtered = members.filter((m) => m.id !== id);
 
     // Save to local storage first for immediate UI update
@@ -305,8 +390,11 @@ export const membersManager = {
       // Get existing local members
       const localMembers = membersManager.getAll();
 
-      // Start with Supabase members as the source of truth
-      const uniqueMembers = [...supabaseMembers];
+      // Merge Supabase and local members intelligently
+      // IMPORTANT: Prefer LOCAL data as source of truth when member exists in both
+      // This prevents local changes from being overwritten by stale Supabase data
+      // Start with LOCAL members as base (they're more recent)
+      const uniqueMembers = [...localMembers];
 
       // Helper function to check if a member exists in the array
       const memberExists = (member, membersArray) => {
@@ -327,50 +415,79 @@ export const membersManager = {
         );
       };
 
-      // Get all Supabase member IDs for quick lookup (convert to numbers for comparison)
-      const supabaseIds = new Set(
-        supabaseMembers
+      // Get all local member IDs for quick lookup
+      const localIds = new Set(
+        localMembers
           .map((m) => m.id)
           .filter((id) => id != null)
           .map((id) => Number(id))
       );
 
-      // Add local-only members (those that don't exist in Supabase)
-      // Only keep local members that were NEVER synced to Supabase
-      localMembers.forEach((localMember) => {
-        // Check if this member exists in Supabase (by ID, userId, or email)
-        const existsInSupabase = memberExists(localMember, supabaseMembers);
+      // Add Supabase members that don't exist locally (new members from other devices/sources)
+      supabaseMembers.forEach((supabaseMember) => {
+        const existsLocally = memberExists(supabaseMember, localMembers);
+        
+        if (!existsLocally) {
+          // This is a new member from Supabase that doesn't exist locally
+          // Add it to the list
+          uniqueMembers.push(supabaseMember);
+        } else {
+          // Member exists in both - prefer LOCAL data (it's more recent)
+          // But merge in any fields from Supabase that might be missing locally
+          const localMember = localMembers.find(
+            (m) =>
+              (supabaseMember.id && m.id && supabaseMember.id === m.id) ||
+              (supabaseMember.supabaseUserId &&
+                m.supabaseUserId &&
+                supabaseMember.supabaseUserId === m.supabaseUserId) ||
+              (supabaseMember.email &&
+                m.email &&
+                supabaseMember.email.trim().toLowerCase() ===
+                  m.email.trim().toLowerCase() &&
+                supabaseMember.email.trim() !== "")
+          );
 
-        if (!existsInSupabase) {
-          // Member doesn't exist in Supabase
-          // Check if it was previously synced (has a Supabase ID that's not in current Supabase)
-          const localId = localMember.id ? Number(localMember.id) : null;
+          if (localMember) {
+            // Merge: Use LOCAL as base (source of truth), but fill in missing fields from Supabase
+            const mergedMember = {
+              ...localMember, // LOCAL is the base - preserves all local changes
+              // Only use Supabase values if local values are missing/empty
+              supabaseUserId: localMember.supabaseUserId || supabaseMember.supabaseUserId || undefined,
+              id: localMember.id || supabaseMember.id, // Preserve ID
+              // Keep all local fields as-is - they're the most recent
+            };
 
-          // If local member has a numeric ID that's NOT in Supabase IDs, it was deleted
-          // Exception: If the ID is in supabaseIds, it exists (but memberExists should have caught it)
-          // Exception: If ID is null/NaN, it was never synced
-          const wasSyncedBefore =
-            localId !== null && !isNaN(localId) && !supabaseIds.has(localId);
-
-          if (!wasSyncedBefore) {
-            // This is a truly local-only member that was never synced
-            // (has no ID, non-numeric ID, or ID that exists in Supabase)
-            uniqueMembers.push(localMember);
+            // Replace the local version with merged version (in case we added missing fields)
+            const index = uniqueMembers.findIndex(
+              (m) =>
+                (mergedMember.id && m.id && mergedMember.id === m.id) ||
+                (mergedMember.supabaseUserId &&
+                  m.supabaseUserId &&
+                  mergedMember.supabaseUserId === m.supabaseUserId) ||
+                (mergedMember.email &&
+                  m.email &&
+                  mergedMember.email.trim().toLowerCase() ===
+                    m.email.trim().toLowerCase() &&
+                  mergedMember.email.trim() !== "")
+            );
+            if (index !== -1) {
+              uniqueMembers[index] = mergedMember;
+            }
           }
-          // Otherwise, it was synced before but deleted from Supabase - don't keep it
         }
       });
 
-      // Calculate which members were removed
+      // Calculate which members were removed from Supabase (but still exist locally)
+      // These are members that were synced to Supabase before but are now deleted there
       const removedMembers = localMembers.filter((localMember) => {
-        const existsInSupabase = memberExists(localMember, supabaseMembers);
-        if (existsInSupabase) return false;
-
         const localId = localMember.id ? Number(localMember.id) : null;
-        const wasSyncedBefore =
-          localId !== null && !isNaN(localId) && !supabaseIds.has(localId);
-
-        return wasSyncedBefore;
+        // Check if this local member has an ID that exists in Supabase IDs
+        // If it has an ID but doesn't exist in Supabase, it was deleted
+        const wasSyncedBefore = localId !== null && !isNaN(localId);
+        const existsInSupabase = wasSyncedBefore && memberExists(localMember, supabaseMembers);
+        
+        // Member was synced before but doesn't exist in Supabase anymore = removed
+        return wasSyncedBefore && !existsInSupabase;
       });
 
       console.log("Sync result:", {

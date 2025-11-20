@@ -36,36 +36,44 @@ import SetPasswordPage from './../pages/SetPasswordPage';
 // Layout & Auth
 import Layout from "../components/layout/Layout";
 import ProtectedRoute from "../components/auth/ProtectedRoute";
+import ScrollToTop from "../components/layout/ScrollToTop";
 
 
 function AppRouter() {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         <Route element={<Layout />}> {/* Header/Footer wrap all pages */}
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/past-events" element={<PastEvents />} />
+          <Route path="/speakers" element={<SpeakersPage />} />
+          <Route path="/scientific-committee" element={<ScientificCommitteePage />} />
+          <Route path="/organizing-committee" element={<OrganizingCommitteePage />} />
+          <Route path="/seminars" element={<SeminarsPage />} />
           <Route path="/registration" element={<RegistrationPage />} />
           <Route path="/gallery" element={<GalleryPage />} />
+          <Route path="/education" element={<EducationPage />} />
           <Route path="/online-courses" element={<OnlineCoursesPage />} />
           <Route path="/articles" element={<ArticlesPage />} />
           <Route path="/members-overview" element={<MembersOverviewPage />} />
           <Route path="/apply-membership" element={<ApplyMembershipPage />} />
           <Route path="/active-members" element={<ActiveMembersPage />} />
+          <Route path="/services" element={<ServicesPage />} />
           <Route path="/therapy-programs" element={<TherapyPrograms />} />
           <Route path="/for-parents" element={<ForParentsPage />} />
           <Route path="/reservation" element={<ReservationPage />} />
           <Route path="/contact" element={<ContactPage />} />
-          <Route path="*" element={<NotFoundPage />} />
-          <Route path="/dashboard" element={<ProtectedRoute requireAdmin={true}><Dashboard /></ProtectedRoute>} />
-          <Route path="/member-profile/:memberId" element={<MemberProfile />} />
-          <Route path="/continuing-education/:memberId?" element={<ContinuingEducationMember />} />
+          <Route path="/live-events" element={<LiveEventsPage />} />
           <Route path="/upcoming-events/:eventId?" element={<UpcomingEventsPage />} />
           <Route path="/past-events" element={<PastEventsPage />} />
           <Route path="/course-details/:courseId" element={<CourseDetailsPage />} />
+          <Route path="/member-profile/:memberId" element={<MemberProfile />} />
+          <Route path="/continuing-education/:memberId?" element={<ContinuingEducationMember />} />
+          <Route path="/dashboard" element={<ProtectedRoute requireAdmin={true}><Dashboard /></ProtectedRoute>} />
           <Route path="/dashboard-course-editor" element={<ProtectedRoute requireAdmin={true}><DashboardCourseEditorPage /></ProtectedRoute>} />
           <Route path="/set-password" element={<SetPasswordPage />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -3,6 +3,7 @@ import { BookOpen, X, Tag, ExternalLink, Search, Filter } from 'lucide-react';
 import { articlesManager } from '../utils/dataManager';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
+import ImagePlaceholder from '../components/ui/ImagePlaceholder';
 
 const ArticlesPage = () => {
   const [selectedArticle, setSelectedArticle] = useState(null);
@@ -148,9 +149,10 @@ const ArticlesPage = () => {
               onClick={() => setSelectedArticle(article)}
             >
               <div className="aspect-video bg-gray-100 overflow-hidden">
-                <img
+                <ImagePlaceholder
                   src={article.image}
                   alt={article.titleEn}
+                  name={article.titleEn}
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                 />
               </div>
@@ -207,9 +209,10 @@ const ArticlesPage = () => {
             </button>
 
             <div className="aspect-video bg-gray-100 overflow-hidden rounded-t-xl">
-              <img
+              <ImagePlaceholder
                 src={selectedArticle.image}
                 alt={selectedArticle.titleEn}
+                name={selectedArticle.titleEn}
                 className="w-full h-full object-cover"
               />
             </div>

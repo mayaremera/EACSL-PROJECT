@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import ServiceCard1 from "../../assets/servicecard1.png";
 import ServiceCard2 from "../../assets/servicecard2.png";
 import ServiceCard3 from "../../assets/servicecard3.png";
@@ -28,11 +29,11 @@ const ServicesSection = () => {
                     alt="إعادة تأهيل"
                     className="w-full h-full object-contain"
                   />
-                  <a className="absolute inset-0 flex items-center justify-center bg-transparent transition-all duration-300" href="/therapy-programs">
+                  <Link to="/therapy-programs" className="absolute inset-0 flex items-center justify-center bg-transparent transition-all duration-300">
                     <h3 className="text-white text-3xl font-bold drop-shadow-lg">
                       برامج العلاج
                     </h3>
-                  </a>
+                  </Link>
                 </div>
               </div>
 
@@ -44,11 +45,11 @@ const ServicesSection = () => {
                     alt="احجز الآن"
                     className="w-full h-full object-contain"
                   />
-                  <a className="absolute inset-0 flex items-center justify-center bg-transparent transition-all duration-300" href="/reservation">
+                  <Link to="/reservation" className="absolute inset-0 flex items-center justify-center bg-transparent transition-all duration-300">
                     <h3 className="text-white text-3xl font-bold drop-shadow-lg">
                       احجز الآن
                     </h3>
-                  </a>
+                  </Link>
                 </div>
               </div>
 
@@ -60,11 +61,11 @@ const ServicesSection = () => {
                     alt="للآباء"
                     className="w-full h-full object-contain"
                   />
-                  <a className="absolute inset-0 flex items-center justify-center bg-transparent transition-all duration-300" href="/for-parents">
+                  <Link to="/for-parents" className="absolute inset-0 flex items-center justify-center bg-transparent transition-all duration-300">
                     <h3 className="text-white text-3xl font-bold drop-shadow-lg">
                       للآباء
                     </h3>
-                  </a>
+                  </Link>
                 </div>
               </div>
             </div>
