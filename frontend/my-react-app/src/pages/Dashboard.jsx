@@ -424,7 +424,11 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
 
             // If file has storage path but no URL, try to get signed URL
             if (file.storagePath) {
-                const { supabase } = await import('../lib/supabase');
+                // Use the statically imported supabase instead of dynamic import
+                if (!supabase) {
+                    console.error('Supabase client is not available');
+                    return;
+                }
                 const { data, error } = await supabase.storage
                     .from('MemberBucket')
                     .createSignedUrl(file.storagePath, 3600); // 1 hour expiry
