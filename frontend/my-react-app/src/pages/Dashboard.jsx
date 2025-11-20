@@ -26,6 +26,7 @@ import {
 import { coursesManager, membersManager, eventsManager, articlesManager, therapyProgramsManager, forParentsManager, initializeData } from '../utils/dataManager';
 import { supabase } from '../lib/supabase';
 import { membershipFormsService } from '../services/membershipFormsService';
+import { contactFormsService } from '../services/contactFormsService';
 import CourseCard from '../components/cards/CourseCard';
 import MemberCard from '../components/cards/MemberCard';
 import CourseEditForm from '../components/dashboard/CourseEditForm';
@@ -1448,6 +1449,44 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         setContactForms(allContactForms);
     };
 
+    // Sync contact forms from Supabase
+    const syncContactFormsFromSupabase = async () => {
+        try {
+            const result = await contactFormsService.getAll();
+            
+            if (result.error) {
+                if (result.error.code === 'TABLE_NOT_FOUND') {
+                    alert(
+                        '❌ Contact Forms Table Not Found\n\n' +
+                        'The contact_forms table does not exist in Supabase.\n\n' +
+                        'To fix this:\n' +
+                        '1. Go to Supabase Dashboard → SQL Editor\n' +
+                        '2. Run the SQL script from CREATE_CONTACT_FORMS_TABLE.sql\n' +
+                        '3. Try syncing again\n\n' +
+                        'See CONTACT_FORMS_SUPABASE_SETUP.md for detailed instructions.'
+                    );
+                    return;
+                }
+                alert(`Error syncing contact forms from Supabase: ${result.error.message || 'Unknown error'}`);
+                return;
+            }
+
+            if (result.data && Array.isArray(result.data)) {
+                // Update localStorage for backward compatibility
+                contactFormsManager.data = result.data;
+                contactFormsManager.save();
+                setContactForms(result.data);
+                alert(`✅ Successfully synced ${result.data.length} contact form(s) from Supabase!`);
+            } else {
+                setContactForms([]);
+                alert('No contact forms found in Supabase.');
+            }
+        } catch (error) {
+            console.error('Error syncing contact forms from Supabase:', error);
+            alert(`Error syncing contact forms: ${error.message || 'Unknown error'}`);
+        }
+    };
+
     const loadReservations = () => {
         const allReservations = reservationsManager.getAll();
         setReservations(allReservations);
@@ -1559,7 +1598,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                     await membershipFormsService.updateStatus(parseInt(id), 'approved', notes);
                 } catch (error) {
                     console.warn('Could not update form status in Supabase, updating localStorage:', error);
-                    formsManager.updateStatus(id, 'approved', notes);
+                formsManager.updateStatus(id, 'approved', notes);
                 }
                 
                 loadForms();
@@ -1591,8 +1630,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             loadForms();
         } catch (error) {
             console.warn('Could not update form status in Supabase, updating localStorage:', error);
-            formsManager.updateStatus(id, 'rejected', notes);
-            loadForms();
+        formsManager.updateStatus(id, 'rejected', notes);
+        loadForms();
         }
     };
 
@@ -1604,8 +1643,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 loadForms();
             } catch (error) {
                 console.warn('Could not delete form from Supabase, deleting from localStorage:', error);
-                formsManager.delete(id);
-                loadForms();
+            formsManager.delete(id);
+            loadForms();
             }
         }
     };
@@ -1627,20 +1666,41 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         }
     };
 
-    const handleApproveContactForm = (id, notes) => {
+    const handleApproveContactForm = async (id, notes) => {
+        try {
+            // Update in Supabase
+            await contactFormsService.updateStatus(parseInt(id), 'approved', notes);
+            loadContactForms();
+        } catch (error) {
+            console.warn('Could not update contact form status in Supabase, updating localStorage:', error);
         contactFormsManager.updateStatus(id, 'approved', notes);
         loadContactForms();
+        }
     };
 
-    const handleRejectContactForm = (id, notes) => {
+    const handleRejectContactForm = async (id, notes) => {
+        try {
+            // Update in Supabase
+            await contactFormsService.updateStatus(parseInt(id), 'rejected', notes);
+            loadContactForms();
+        } catch (error) {
+            console.warn('Could not update contact form status in Supabase, updating localStorage:', error);
         contactFormsManager.updateStatus(id, 'rejected', notes);
         loadContactForms();
+        }
     };
 
-    const handleDeleteContactForm = (id) => {
+    const handleDeleteContactForm = async (id) => {
         if (window.confirm('Are you sure you want to delete this contact message?')) {
+            try {
+                // Delete from Supabase
+                await contactFormsService.delete(parseInt(id));
+                loadContactForms();
+            } catch (error) {
+                console.warn('Could not delete contact form from Supabase, deleting from localStorage:', error);
             contactFormsManager.delete(id);
             loadContactForms();
+            }
         }
     };
 
@@ -2923,14 +2983,14 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                 <RefreshCw size={16} />
                                                 Sync from Supabase
                                             </button>
-                                            <button
-                                                onClick={loadForms}
-                                                className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
-                                                title="Refresh Member Applications"
-                                            >
-                                                <RefreshCw size={16} />
-                                                Refresh
-                                            </button>
+                                        <button
+                                            onClick={loadForms}
+                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
+                                            title="Refresh Member Applications"
+                                        >
+                                            <RefreshCw size={16} />
+                                            Refresh
+                                        </button>
                                         </div>
                                     </div>
                                 </div>
@@ -3202,6 +3262,15 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {contactForms.length}</span>
                                             <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {contactForms.filter(f => f.status === 'pending').length}</span>
                                         </div>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={syncContactFormsFromSupabase}
+                                                className="flex items-center gap-2 px-4 py-2 text-sm bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                                title="Sync from Supabase"
+                                            >
+                                                <RefreshCw size={16} />
+                                                Sync from Supabase
+                                            </button>
                                         <button
                                             onClick={loadContactForms}
                                             className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
@@ -3210,6 +3279,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             <RefreshCw size={16} />
                                             Refresh
                                         </button>
+                                        </div>
                                     </div>
                                 </div>
 
