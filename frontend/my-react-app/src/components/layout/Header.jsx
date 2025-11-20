@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, Menu, X, ChevronDown, LogOut, User, Calendar, UserCircle, BookOpen, Users, FileText, GraduationCap, Brain, Baby, Loader2 } from 'lucide-react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import logo from '../../assets/logo.png';
 import AuthModal from '../auth/AuthModal';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,11 +17,15 @@ const Header = () => {
   const [searchResults, setSearchResults] = useState(null);
   const [isSearching, setIsSearching] = useState(false);
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isVisible, setIsVisible] = useState(true);
+  const lastScrollYRef = useRef(0);
   const dropdownRef = useRef(null);
   const userDropdownRef = useRef(null);
   const searchRef = useRef(null);
   const searchInputRef = useRef(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, signOut, getMemberByUserId } = useAuth();
   
   // Get member data for logged-in user
@@ -42,6 +46,56 @@ const Header = () => {
       setMemberData(null);
     }
   }, [user, getMemberByUserId]);
+
+  // Handle scroll behavior for sticky header
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      const scrollThreshold = 80; // Start sticky behavior after 80px
+      const scrollDelta = currentScrollY - lastScrollYRef.current;
+      
+      if (currentScrollY < scrollThreshold) {
+        // At the top - show header in normal position
+        setIsScrolled(false);
+        setIsVisible(true);
+      } else {
+        // Past threshold - use sticky behavior
+        setIsScrolled(true);
+        
+        if (scrollDelta > 0) {
+          // Scrolling down - show header (it follows you)
+          setIsVisible(true);
+        } else if (scrollDelta < 0) {
+          // Scrolling up - hide header smoothly
+          setIsVisible(false);
+        }
+        // If scrollDelta is 0, keep current state
+      }
+      
+      lastScrollYRef.current = currentScrollY;
+    };
+
+    // Throttle scroll events for better performance
+    let ticking = false;
+    const throttledHandleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          handleScroll();
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener('scroll', throttledHandleScroll, { passive: true });
+    
+    // Initial check
+    handleScroll();
+    
+    return () => {
+      window.removeEventListener('scroll', throttledHandleScroll);
+    };
+  }, []);
 
   const toggleDropdown = (menu) => {
     setActiveDropdown(activeDropdown === menu ? null : menu);
@@ -176,7 +230,21 @@ const Header = () => {
   }, [user, memberData]);
 
   return (
-    <header className="bg-white shadow-sm relative z-50">
+    <header 
+      className={`bg-white shadow-sm z-50 transition-all duration-300 ease-in-out ${
+        isScrolled 
+          ? `fixed top-0 left-0 right-0 shadow-lg ${
+              isVisible 
+                ? 'translate-y-0 opacity-100 pointer-events-auto' 
+                : '-translate-y-full opacity-0 pointer-events-none'
+            }` 
+          : 'relative'
+      }`}
+      style={{
+        willChange: isScrolled ? 'transform, opacity' : 'auto',
+        transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+      }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
@@ -191,7 +259,11 @@ const Header = () => {
                 {!link.dropdown ? (
                   <Link
                     to={link.href}
-                    className="text-gray-700 hover:text-teal-600 transition-colors duration-200 text-base font-semibold"
+                    className={`text-base font-semibold transition-all duration-200 ${
+                      location.pathname === link.href
+                        ? 'text-green-700'
+                        : 'text-gray-700 hover:text-teal-600'
+                    }`}
                   >
                     {link.name}
                   </Link>
@@ -213,16 +285,23 @@ const Header = () => {
                     {/* Dropdown Menu */}
                     {activeDropdown === link.name && (
                       <div className="absolute left-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg py-2 w-56">
-                        {link.dropdown.map((item) => (
-                          <Link
-                            key={item.name}
-                            to={item.href}
-                            onClick={() => setActiveDropdown(null)}
-                            className="block px-4 py-2 text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-colors text-sm font-medium"
-                          >
-                            {item.name}
-                          </Link>
-                        ))}
+                        {link.dropdown.map((item) => {
+                          const isActive = location.pathname === item.href;
+                          return (
+                            <Link
+                              key={item.name}
+                              to={item.href}
+                              onClick={() => setActiveDropdown(null)}
+                              className={`block px-4 py-2 text-sm font-medium transition-all duration-200 ${
+                                isActive
+                                  ? 'bg-green-100 text-green-700 font-semibold'
+                                  : 'text-gray-700 hover:bg-teal-50 hover:text-teal-600'
+                              }`}
+                            >
+                              {item.name}
+                            </Link>
+                          );
+                        })}
                       </div>
                     )}
                   </>
@@ -482,7 +561,7 @@ const Header = () => {
               <div className="relative" ref={userDropdownRef}>
                 <button
                   onClick={() => setUserDropdownOpen(!userDropdownOpen)}
-                  className="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-lg transition-colors duration-200"
+                  className="flex items-center space-x-2 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded-xl transition-all duration-300 hover:scale-105 hover:shadow-md active:scale-95"
                 >
                   <User size={18} className="text-gray-700" />
                   <span className="text-sm font-medium text-gray-700">
@@ -510,7 +589,11 @@ const Header = () => {
                         <Link
                           to={`/member-profile/${memberData.id}`}
                           onClick={() => setUserDropdownOpen(false)}
-                          className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-colors"
+                          className={`flex items-center space-x-2 px-4 py-2 text-sm transition-all duration-200 ${
+                            location.pathname === `/member-profile/${memberData.id}`
+                              ? 'bg-green-100 text-green-700 font-semibold'
+                              : 'text-gray-700 hover:bg-teal-50 hover:text-teal-600'
+                          }`}
                         >
                           <UserCircle size={16} />
                           <span>Profile</span>
@@ -518,7 +601,11 @@ const Header = () => {
                         <Link
                           to={`/continuing-education/${memberData.id}`}
                           onClick={() => setUserDropdownOpen(false)}
-                          className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-colors"
+                          className={`flex items-center space-x-2 px-4 py-2 text-sm transition-all duration-200 ${
+                            location.pathname === `/continuing-education/${memberData.id}`
+                              ? 'bg-green-100 text-green-700 font-semibold'
+                              : 'text-gray-700 hover:bg-teal-50 hover:text-teal-600'
+                          }`}
                         >
                           <BookOpen size={16} />
                           <span>Continuing Education</span>
@@ -533,7 +620,7 @@ const Header = () => {
                     )}
                     <button
                       onClick={handleSignOut}
-                      className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-colors border-t border-gray-200 mt-2"
+                      className="w-full flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all duration-200 border-t border-gray-200 mt-2 rounded-lg hover:scale-[1.02] active:scale-95"
                     >
                       <LogOut size={16} />
                       <span>Sign Out</span>
@@ -544,7 +631,7 @@ const Header = () => {
             ) : (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
-                className="bg-[#4C9A8F] text-white hover:text-white px-10 py-2 rounded-sm text-sm font-semibold transition-colors duration-200 whitespace-nowrap"
+                className="bg-[#4C9A8F] text-white hover:bg-[#3d8178] px-10 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 whitespace-nowrap"
               >
                 Login
               </button>
@@ -570,7 +657,11 @@ const Header = () => {
                     <Link
                       to={link.href}
                       onClick={() => setIsMenuOpen(false)}
-                      className="text-gray-700 hover:text-teal-600 transition-colors duration-200 text-base font-medium py-2 block"
+                      className={`text-base font-medium py-2 block transition-all duration-200 ${
+                        location.pathname === link.href
+                          ? 'text-green-700 font-semibold'
+                          : 'text-gray-700 hover:text-teal-600'
+                      }`}
                     >
                       {link.name}
                     </Link>
@@ -581,16 +672,23 @@ const Header = () => {
                         <ChevronDown size={18} className="group-open:rotate-180 transition-transform duration-200" />
                       </summary>
                       <div className="pl-4 mt-2 space-y-2">
-                        {link.dropdown.map((item) => (
-                          <Link
-                            key={item.name}
-                            to={item.href}
-                            onClick={() => setIsMenuOpen(false)}
-                            className="block text-gray-600 hover:text-teal-600 text-sm font-medium transition-colors"
-                          >
-                            {item.name}
-                          </Link>
-                        ))}
+                        {link.dropdown.map((item) => {
+                          const isActive = location.pathname === item.href;
+                          return (
+                            <Link
+                              key={item.name}
+                              to={item.href}
+                              onClick={() => setIsMenuOpen(false)}
+                              className={`block text-sm font-medium transition-all duration-200 py-1 px-2 rounded-lg ${
+                                isActive
+                                  ? 'bg-green-100 text-green-700 font-semibold'
+                                  : 'text-gray-600 hover:text-teal-600 hover:bg-teal-50'
+                              }`}
+                            >
+                              {item.name}
+                            </Link>
+                          );
+                        })}
                       </div>
                     </details>
                   )}
@@ -657,7 +755,11 @@ const Header = () => {
                         <Link
                           to={`/member-profile/${memberData.id}`}
                           onClick={() => setIsMenuOpen(false)}
-                          className="w-full flex items-center justify-center space-x-2 bg-teal-50 hover:bg-teal-100 text-teal-600 px-6 py-2.5 rounded-lg font-medium transition-colors duration-200"
+                          className={`w-full flex items-center justify-center space-x-2 px-6 py-2.5 rounded-xl font-medium transition-all duration-300 hover:scale-105 active:scale-95 ${
+                            location.pathname === `/member-profile/${memberData.id}`
+                              ? 'bg-green-100 text-green-700 font-semibold'
+                              : 'bg-teal-50 hover:bg-teal-100 text-teal-600'
+                          }`}
                         >
                           <UserCircle size={18} />
                           <span>Profile</span>
@@ -665,7 +767,11 @@ const Header = () => {
                         <Link
                           to={`/continuing-education/${memberData.id}`}
                           onClick={() => setIsMenuOpen(false)}
-                          className="w-full flex items-center justify-center space-x-2 bg-teal-50 hover:bg-teal-100 text-teal-600 px-6 py-2.5 rounded-lg font-medium transition-colors duration-200"
+                          className={`w-full flex items-center justify-center space-x-2 px-6 py-2.5 rounded-xl font-medium transition-all duration-300 hover:scale-105 active:scale-95 ${
+                            location.pathname === `/continuing-education/${memberData.id}`
+                              ? 'bg-green-100 text-green-700 font-semibold'
+                              : 'bg-teal-50 hover:bg-teal-100 text-teal-600'
+                          }`}
                         >
                           <BookOpen size={18} />
                           <span>Continuing Education</span>
@@ -682,7 +788,7 @@ const Header = () => {
                     )}
                     <button
                       onClick={handleSignOut}
-                      className="w-full flex items-center justify-center space-x-2 bg-red-50 hover:bg-red-100 text-red-600 px-6 py-2.5 rounded-lg font-medium transition-colors duration-200"
+                      className="w-full flex items-center justify-center space-x-2 bg-red-50 hover:bg-red-100 text-red-600 px-6 py-2.5 rounded-xl font-medium transition-all duration-300 hover:scale-105 active:scale-95"
                     >
                       <LogOut size={18} />
                       <span>Sign Out</span>
@@ -694,7 +800,7 @@ const Header = () => {
                       setIsAuthModalOpen(true);
                       setIsMenuOpen(false);
                     }}
-                    className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-2.5 rounded-lg font-medium transition-colors duration-200"
+                    className="w-full bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-2.5 rounded-xl font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95"
                   >
                     Login
                   </button>

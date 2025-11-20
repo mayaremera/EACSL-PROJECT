@@ -169,7 +169,7 @@ export const membersManager = {
       console.log("Attempting to sync member to Supabase...");
       const { data, error } = await membersService.add(newMember);
       if (data && !error) {
-        console.log("Member successfully synced to Supabase:", data);
+        console.log("✅ Member successfully synced to Supabase:", data);
         // Update local member with Supabase ID if different
         const localMembers = membersManager.getAll();
         const index = localMembers.findIndex((m) => m.id === tempId);
@@ -180,13 +180,22 @@ export const membersManager = {
         }
         return data;
       } else if (error) {
-        console.warn("Failed to sync member to Supabase:", error);
-        console.log("Returning local member despite Supabase sync failure");
+        // Log detailed error information
+        console.warn("⚠️ Failed to sync member to Supabase:", {
+          errorCode: error.code,
+          errorMessage: error.message,
+          errorDetails: error
+        });
+        if (error.code === 'TABLE_NOT_FOUND') {
+          console.log("ℹ️ Members table doesn't exist in Supabase yet. Member saved locally.");
+        } else {
+          console.log("⚠️ Member saved locally but not in Supabase. Will retry on update.");
+        }
         // Still return the local member even if Supabase sync fails
         return newMember;
       }
     } catch (err) {
-      console.error("Exception syncing member to Supabase:", err);
+      console.error("❌ Exception syncing member to Supabase:", err);
       console.log("Returning local member despite exception");
       // Still return the local member even if Supabase sync fails
       return newMember;
@@ -303,8 +312,23 @@ export const membersManager = {
     try {
       const { error } = await membersService.update(id, updated[index]);
       if (error) {
-        // Only log if it's not a "table not found" error (expected if table doesn't exist yet)
-        if (error.code !== 'TABLE_NOT_FOUND') {
+        // If update failed because member doesn't exist, try to add it instead
+        if (error.code === 'PGRST116' || error.message?.includes('No rows found') || error.message?.includes('not found')) {
+          console.log("Member not found in Supabase, attempting to add instead...");
+          const addResult = await membersService.add(updated[index]);
+          if (addResult.data && !addResult.error) {
+            console.log("✅ Successfully added member to Supabase (was missing)");
+            // Update local member with Supabase ID if different
+            const localMembers = membersManager.getAll();
+            const memberIndex = localMembers.findIndex(m => m.id === id);
+            if (memberIndex !== -1 && addResult.data.id && addResult.data.id !== id) {
+              localMembers[memberIndex] = { ...addResult.data, id: addResult.data.id };
+              membersManager.saveAll(localMembers);
+            }
+          } else if (addResult.error) {
+            console.warn("Failed to add member to Supabase:", addResult.error);
+          }
+        } else if (error.code !== 'TABLE_NOT_FOUND') {
           console.warn("Failed to sync member update to Supabase:", error);
         } else {
           // Table doesn't exist - this is fine, data is saved locally
@@ -380,6 +404,7 @@ export const membersManager = {
 
     membersSyncPromise = (async () => {
       try {
+        console.log("🔄 Starting member sync from Supabase...");
         const { data, error } = await membersService.getAll();
 
         if (error) {
@@ -400,7 +425,7 @@ export const membersManager = {
               },
             };
           }
-          console.warn("Failed to fetch members from Supabase:", error);
+          console.error("❌ Failed to fetch members from Supabase:", error);
           return { synced: false, error };
         }
 
@@ -512,7 +537,7 @@ export const membersManager = {
           return wasSyncedBefore && !existsInSupabase;
         });
 
-        console.log("Sync result:", {
+        console.log("✅ Sync result:", {
           supabaseCount: supabaseMembers.length,
           localCount: localMembers.length,
           finalCount: uniqueMembers.length,
@@ -521,6 +546,7 @@ export const membersManager = {
           removedMemberNames: removedMembers.map((m) => m.name || m.email),
         });
 
+        // Save all members to local storage
         membersManager.saveAll(uniqueMembers);
 
         // Dispatch event to notify UI of the update
@@ -531,6 +557,7 @@ export const membersManager = {
         }
 
         lastMembersSyncTime = Date.now();
+        console.log("✅ Member sync completed successfully");
 
         return {
           synced: true,
@@ -540,10 +567,18 @@ export const membersManager = {
           error: null,
         };
       } catch (err) {
-        console.error("Exception syncing from Supabase:", err);
-        return { synced: false, error: err };
+        console.error("❌ Exception syncing from Supabase:", err);
+        return { 
+          synced: false, 
+          error: {
+            message: err.message || 'Unknown error occurred during sync',
+            originalError: err
+          }
+        };
       } finally {
+        // Always clear the promise, even if there was an error
         membersSyncPromise = null;
+        console.log("🔄 Sync promise cleared");
       }
     })();
 
@@ -553,63 +588,105 @@ export const membersManager = {
   // Push local members to Supabase (for initial sync)
   syncToSupabase: async () => {
     try {
+      console.log("🔄 Starting member sync to Supabase...");
       const localMembers = membersManager.getAll();
       let syncedCount = 0;
       let errorCount = 0;
+      const errors = [];
+
+      if (localMembers.length === 0) {
+        console.log("ℹ️ No local members to sync");
+        return {
+          synced: true,
+          syncedCount: 0,
+          errorCount: 0,
+          total: 0,
+          error: null,
+        };
+      }
+
+      console.log(`📤 Syncing ${localMembers.length} member(s) to Supabase...`);
 
       for (const member of localMembers) {
-        // Check if member already exists in Supabase (by email or supabaseUserId)
-        let existingMember = null;
+        try {
+          // Check if member already exists in Supabase (by email or supabaseUserId)
+          let existingMember = null;
 
-        if (member.supabaseUserId) {
-          const { data } = await membersService.getByUserId(
-            member.supabaseUserId
-          );
-          existingMember = data;
-        }
-
-        if (!existingMember && member.email) {
-          // Try to find by email (we'd need to add this method to membersService)
-          // For now, we'll just try to add and handle duplicates
-        }
-
-        if (existingMember) {
-          // Update existing member
-          const { error } = await membersService.update(
-            existingMember.id,
-            member
-          );
-          if (!error) {
-            syncedCount++;
-          } else if (error.code !== "TABLE_NOT_FOUND") {
-            errorCount++;
-            console.warn(`Failed to update member ${member.name}:`, error);
+          if (member.supabaseUserId) {
+            const { data, error } = await membersService.getByUserId(
+              member.supabaseUserId
+            );
+            if (error && error.code !== "PGRST116") {
+              // PGRST116 is "not found", which is fine
+              console.warn(`Error checking member by userId:`, error);
+            } else {
+              existingMember = data;
+            }
           }
-        } else {
-          // Add new member
-          const { error } = await membersService.add(member);
-          if (!error) {
-            syncedCount++;
-          } else if (error.code !== "TABLE_NOT_FOUND") {
-            errorCount++;
-            console.warn(`Failed to add member ${member.name}:`, error);
+
+          // Also check by ID if member has one
+          if (!existingMember && member.id) {
+            const { data, error } = await membersService.getById(member.id);
+            if (!error && data) {
+              existingMember = data;
+            }
           }
+
+          if (existingMember) {
+            // Update existing member
+            const { error } = await membersService.update(
+              existingMember.id,
+              member
+            );
+            if (!error) {
+              syncedCount++;
+              console.log(`✅ Updated member: ${member.name || member.email}`);
+            } else if (error.code !== "TABLE_NOT_FOUND") {
+              errorCount++;
+              errors.push({ member: member.name || member.email, error });
+              console.warn(`❌ Failed to update member ${member.name || member.email}:`, error);
+            }
+          } else {
+            // Add new member
+            const { error } = await membersService.add(member);
+            if (!error) {
+              syncedCount++;
+              console.log(`✅ Added member: ${member.name || member.email}`);
+            } else if (error.code !== "TABLE_NOT_FOUND") {
+              errorCount++;
+              errors.push({ member: member.name || member.email, error });
+              console.warn(`❌ Failed to add member ${member.name || member.email}:`, error);
+            }
+          }
+        } catch (memberErr) {
+          errorCount++;
+          errors.push({ member: member.name || member.email, error: memberErr });
+          console.error(`❌ Exception syncing member ${member.name || member.email}:`, memberErr);
         }
       }
+
+      console.log(`✅ Sync to Supabase completed: ${syncedCount} synced, ${errorCount} errors`);
 
       return {
         synced: true,
         syncedCount,
         errorCount,
         total: localMembers.length,
+        errors: errors.length > 0 ? errors : undefined,
         error:
           errorCount > 0
-            ? { message: `${errorCount} members failed to sync` }
+            ? { message: `${errorCount} member(s) failed to sync`, details: errors }
             : null,
       };
     } catch (err) {
-      console.error("Exception syncing to Supabase:", err);
-      return { synced: false, error: err };
+      console.error("❌ Exception syncing to Supabase:", err);
+      return { 
+        synced: false, 
+        error: {
+          message: err.message || 'Unknown error occurred during sync',
+          originalError: err
+        }
+      };
     }
   },
 };

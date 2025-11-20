@@ -301,7 +301,8 @@ const contactFormsManager = {
     },
     
     updateStatus(id, status, notes = '') {
-        const form = this.data.find(f => f.id === id);
+        // Handle both string and number IDs for compatibility
+        const form = this.data.find(f => String(f.id) === String(id) || Number(f.id) === Number(id));
         if (form) {
             form.status = status;
             form.reviewNotes = notes;
@@ -311,7 +312,15 @@ const contactFormsManager = {
     },
     
     delete(id) {
-        this.data = this.data.filter(f => f.id !== id);
+        // Handle both string and number IDs for compatibility
+        const idStr = String(id);
+        const idNum = Number(id);
+        this.data = this.data.filter(f => {
+            const formIdStr = String(f.id);
+            const formIdNum = Number(f.id);
+            // Keep items that don't match (filter out the one that matches)
+            return !(formIdStr === idStr || formIdNum === idNum || formIdStr === String(idNum) || formIdNum === Number(idStr));
+        });
         this.save();
     }
 };
@@ -1450,9 +1459,26 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         }
     };
 
-    const loadContactForms = () => {
-        const allContactForms = contactFormsManager.getAll();
-        setContactForms(allContactForms);
+    const loadContactForms = async () => {
+        // Try to load from Supabase first, fallback to localStorage
+        try {
+            const result = await contactFormsService.getAll();
+            if (result.data && !result.error) {
+                // Update localStorage for backward compatibility
+                contactFormsManager.data = result.data;
+                contactFormsManager.save();
+                setContactForms(result.data);
+            } else {
+                // Fallback to localStorage if Supabase fails or table doesn't exist
+                const allContactForms = contactFormsManager.getAll();
+                setContactForms(allContactForms);
+            }
+        } catch (error) {
+            console.warn('Error loading contact forms from Supabase, using localStorage:', error);
+            // Fallback to localStorage
+            const allContactForms = contactFormsManager.getAll();
+            setContactForms(allContactForms);
+        }
     };
 
     // Sync contact forms from Supabase
@@ -1752,13 +1778,29 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const handleDeleteContactForm = async (id) => {
         if (window.confirm('Are you sure you want to delete this contact message?')) {
             try {
+                // Convert ID to number for Supabase (it expects integer)
+                const numericId = typeof id === 'string' ? parseInt(id, 10) : id;
+                
                 // Delete from Supabase
-                await contactFormsService.delete(parseInt(id));
-                loadContactForms();
+                const result = await contactFormsService.delete(numericId);
+                
+                if (result.error) {
+                    // If Supabase delete failed, try localStorage as fallback
+                    console.warn('Could not delete contact form from Supabase, deleting from localStorage:', result.error);
+                    contactFormsManager.delete(id.toString()); // Ensure string for localStorage
+                } else {
+                    // Successfully deleted from Supabase, also remove from localStorage
+                    console.log('✅ Successfully deleted contact form from Supabase');
+                    contactFormsManager.delete(id.toString()); // Ensure string for localStorage
+                }
+                
+                // Reload contact forms to reflect changes (will reload from Supabase)
+                await loadContactForms();
             } catch (error) {
-                console.warn('Could not delete contact form from Supabase, deleting from localStorage:', error);
-            contactFormsManager.delete(id);
-            loadContactForms();
+                console.error('Exception deleting contact form:', error);
+                // Fallback to localStorage
+                contactFormsManager.delete(id.toString());
+                await loadContactForms();
             }
         }
     };
@@ -1903,47 +1945,61 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     };
 
     const handleSyncMembers = async () => {
-        // First, try to sync from Supabase (download)
-        const result = await membersManager.syncFromSupabase();
-        if (result.synced) {
-            // Reload members to reflect changes
-            loadMembers();
+        try {
+            // First, try to sync from Supabase (download) - force sync to bypass cooldown
+            const result = await membersManager.syncFromSupabase({ force: true });
             
-            // Show detailed sync results
-            let message = `✅ Successfully synced from Supabase!\n\n`;
-            message += `📊 Supabase members: ${result.count}\n`;
-            message += `💾 Local members before: ${result.localCount || 'N/A'}\n`;
-            message += `💾 Local members after: ${membersManager.getAll().length}\n`;
-            
-            if (result.removed > 0) {
-                message += `\n🗑️ Removed ${result.removed} deleted member(s) from local storage.`;
+            // Check if sync was skipped due to cooldown
+            if (result.skipped) {
+                const secondsLeft = Math.ceil((result.nextAllowedIn || 0) / 1000);
+                alert(`⏱️ Sync is on cooldown. Please wait ${secondsLeft} second(s) before syncing again.`);
+                return;
             }
             
-            if (result.count > 0) {
-                alert(message);
-            } else {
-                // If no members in Supabase, offer to push local members
-                const localMembers = membersManager.getAll();
-                if (localMembers.length > 0) {
-                    const pushToSupabase = window.confirm(
-                        `${message}\n\nNo members found in Supabase. Would you like to upload ${localMembers.length} local member(s) to Supabase?`
-                    );
-                    if (pushToSupabase) {
-                        const pushResult = await membersManager.syncToSupabase();
-                        if (pushResult.synced) {
-                            loadMembers();
-                            alert(`Successfully uploaded ${pushResult.syncedCount} member(s) to Supabase!`);
-                        } else {
-                            alert(`Failed to upload members: ${pushResult.error?.message || 'Unknown error'}`);
-                        }
-                    }
-                } else {
-                    alert(message + '\n\nNo members found locally either.');
+            if (result.synced) {
+                // Reload members to reflect changes
+                loadMembers();
+                
+                // Show detailed sync results
+                let message = `✅ Successfully synced from Supabase!\n\n`;
+                message += `📊 Supabase members: ${result.count}\n`;
+                message += `💾 Local members before: ${result.localCount || 'N/A'}\n`;
+                message += `💾 Local members after: ${membersManager.getAll().length}\n`;
+                
+                if (result.removed > 0) {
+                    message += `\n🗑️ Removed ${result.removed} deleted member(s) from local storage.`;
                 }
+                
+                if (result.count > 0) {
+                    alert(message);
+                } else {
+                    // If no members in Supabase, offer to push local members
+                    const localMembers = membersManager.getAll();
+                    if (localMembers.length > 0) {
+                        const pushToSupabase = window.confirm(
+                            `${message}\n\nNo members found in Supabase. Would you like to upload ${localMembers.length} local member(s) to Supabase?`
+                        );
+                        if (pushToSupabase) {
+                            const pushResult = await membersManager.syncToSupabase();
+                            if (pushResult.synced) {
+                                loadMembers();
+                                alert(`Successfully uploaded ${pushResult.syncedCount} member(s) to Supabase!`);
+                            } else {
+                                alert(`Failed to upload members: ${pushResult.error?.message || 'Unknown error'}`);
+                            }
+                        }
+                    } else {
+                        alert(message + '\n\nNo members found locally either.');
+                    }
+                }
+            } else {
+                // Handle errors
+                const errorMessage = result.error?.userMessage || result.error?.message || 'Failed to sync members from Supabase.';
+                alert(`${errorMessage}\n\nCheck SUPABASE_SETUP.md for instructions on creating the members table.`);
             }
-        } else {
-            const errorMessage = result.error?.userMessage || result.error?.message || 'Failed to sync members from Supabase.';
-            alert(`${errorMessage}\n\nCheck SUPABASE_SETUP.md for instructions on creating the members table.`);
+        } catch (err) {
+            console.error('Error syncing members:', err);
+            alert(`An unexpected error occurred while syncing: ${err.message || 'Unknown error'}`);
         }
     };
 
