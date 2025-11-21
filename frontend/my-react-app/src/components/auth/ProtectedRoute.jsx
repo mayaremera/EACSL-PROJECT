@@ -12,17 +12,28 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
 
   // Sync from Supabase and check admin status
   useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (!requireAdmin || !user) {
+    // Skip if already checked or if conditions aren't met
+    if (adminCheckComplete || loading || !user) {
+      if (!requireAdmin && !loading && user) {
+        // For non-admin routes, mark as complete immediately
         setAdminCheckComplete(true);
-        return;
       }
+      return;
+    }
 
+    // Only check admin status if required
+    if (!requireAdmin) {
+      setAdminCheckComplete(true);
+      return;
+    }
+
+    const checkAdminStatus = async () => {
       setCheckingAdmin(true);
       
       try {
-        // First, sync from Supabase to get latest data
-        await membersManager.syncFromSupabase();
+        // First, sync from Supabase to get latest data (only once per user session)
+        // Use force: false to respect cooldown and prevent excessive requests
+        await membersManager.syncFromSupabase({ force: false });
         
         // Get member from local storage (now synced)
         let member = getMemberByUserId(user.id);
@@ -71,10 +82,10 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
       }
     };
 
-    if (!loading && user) {
-      checkAdminStatus();
-    }
-  }, [user, loading, requireAdmin, getMemberByUserId]);
+    checkAdminStatus();
+    // Only depend on user.id (stable) and loading/requireAdmin, not the entire user object or function
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id, loading, requireAdmin]);
 
   if (loading || (requireAdmin && !adminCheckComplete)) {
     return (

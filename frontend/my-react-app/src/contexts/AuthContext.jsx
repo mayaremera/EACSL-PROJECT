@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { membersManager } from '../utils/dataManager';
 
@@ -123,6 +123,17 @@ export const AuthProvider = ({ children }) => {
           setLoading(false);
         }
         return; // CRITICAL: Don't run member sync on token refresh
+      } else if (event === 'INITIAL_SESSION') {
+        // INITIAL_SESSION is already handled by getSession() above
+        // Just update state and skip member sync to avoid duplicate work
+        if (session) {
+          setSession(session);
+          setUser(session.user);
+        }
+        if (mounted) {
+          setLoading(false);
+        }
+        return; // Skip member sync - already handled in initial getSession
       } else {
         // For other events (SIGNED_IN, USER_UPDATED, etc.)
         // Only update if we have a session, or if it's an explicit sign-in event
@@ -441,11 +452,11 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Get member by Supabase user ID
-  const getMemberByUserId = (userId) => {
+  // Get member by Supabase user ID (memoized to prevent unnecessary re-renders)
+  const getMemberByUserId = useCallback((userId) => {
     const members = membersManager.getAll();
     return members.find(m => m.supabaseUserId === userId);
-  };
+  }, []);
 
   const value = {
     user,
