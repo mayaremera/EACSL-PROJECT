@@ -12,11 +12,11 @@ const AboutUsSection = () => {
           {/* Left Content */}
           <div>
             {/* About Us Label */}
-            <div className="mb-6 inline-block">
+            <div className="mb-3 inline-block">
               <span className="text-sm font-bold tracking-wider text-black block mb-[-0.1rem]">
                 ABOUT US
               </span>
-              <div className="h-[0.17rem] w-[3.5rem] bg-[#5A9B8E]"></div>
+              <div className="h-[0.18rem] w-[3.5rem] bg-[#5A9B8E]"></div>
             </div>
 
             {/* Title With Logo */}

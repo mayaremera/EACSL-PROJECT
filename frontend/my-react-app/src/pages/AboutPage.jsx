@@ -1,5 +1,8 @@
 import React from 'react';
-import { Target, Eye, Users, Calendar, Award, ExternalLink } from 'lucide-react';
+import { Target, Eye, Users, Calendar, Award, ExternalLink, Info } from 'lucide-react';
+import PageHero from '../components/ui/PageHero';
+import Breadcrumbs from '../components/ui/Breadcrumbs';
+import ImagePlaceholder from '../components/ui/ImagePlaceholder';
 import SaharAAlsamahi from '../assets/MembersImages/sahar-samahi.png';
 import OsamaElsayed from '../assets/MembersImages/osama-sayed.avif';
 import RehamAli from '../assets/MembersImages/reham-ali.avif';
@@ -41,27 +44,14 @@ const AboutPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">About EACSL</h1>
-            <p className="text-lg md:text-xl text-teal-50 max-w-2xl mx-auto">
-              Egyptian Association for Communication Sciences and Its Disorders
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHero
+        title="About Us"
+        subtitle="Egyptian Association for Communication Sciences and Its Disorders"
+        icon={<Users className="w-12 h-12" />}
+      />
 
       {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center text-sm text-gray-600">
-            <a href="#" className="hover:text-[#4C9A8F] transition-colors">Home</a>
-            <span className="mx-2">/</span>
-            <span className="text-gray-900 font-medium">About</span>
-          </div>
-        </div>
-      </div>
+      <Breadcrumbs items={[{ label: 'About' }]} />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* About Section */}
@@ -117,9 +107,10 @@ const AboutPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="lg:col-span-1 flex flex-col items-center">
               <div className="w-full max-w-xs overflow-hidden rounded-xl shadow-lg mb-4 aspect-[3/4] bg-gray-100">
-                <img 
+                <ImagePlaceholder 
                   src={DrWaelAlDakroury}
                   alt="Dr. Wael A. Al-Dakroury"
+                  name="Dr. Wael A. Al-Dakroury"
                   className="w-full h-full object-cover object-center"
                 />
               </div>
@@ -171,9 +162,10 @@ const AboutPage = () => {
             {boardMembers.map((member, index) => (
               <div key={index} className="text-center">
                 <div className="mb-3 overflow-hidden rounded-lg shadow-md aspect-[3/4] bg-gray-100">
-                  <img 
+                  <ImagePlaceholder 
                     src={member.image} 
                     alt={member.name}
+                    name={member.name}
                     className="w-full h-full object-cover object-top transition-transform duration-300"
                   />
                 </div>
@@ -188,9 +180,10 @@ const AboutPage = () => {
             {founders.map((member, index) => (
               <div key={index} className="text-center">
                 <div className="mb-2 overflow-hidden rounded-lg shadow-md aspect-square bg-gray-100">
-                  <img 
+                  <ImagePlaceholder 
                     src={member.image} 
                     alt={member.name}
+                    name={member.name}
                     className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-300"
                   />
                 </div>

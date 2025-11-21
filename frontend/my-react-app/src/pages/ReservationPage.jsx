@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Phone, Mail, Clock, Send, ArrowLeft, CheckCircle } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, ArrowLeft, CheckCircle, Calendar } from 'lucide-react';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import { useNavigate } from 'react-router-dom';
@@ -121,8 +121,10 @@ const ReservationPage = () => {
     {
       icon: Phone,
       title: 'Contacts',
-      content: '+201061162520 - +201062048067',
-      link: 'tel:+201061162520'
+      phones: [
+        { number: '+201061162520', link: 'tel:+201061162520' },
+        { number: '+201062048067', link: 'tel:+201062048067' }
+      ]
     },
     {
       icon: Mail,
@@ -172,10 +174,11 @@ const ReservationPage = () => {
       <PageHero
         title="Book an Assessment"
         subtitle="Schedule your appointment with our professional team"
+        icon={<Calendar className="w-12 h-12" />}
       />
 
       {/* Breadcrumb */}
-      <Breadcrumbs items={[{ label: 'Services', path: '/services' }, { label: 'Reservation' }]} />
+      <Breadcrumbs items={[{ label: 'Reservation' }]} />
 
       {/* Office Info Cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -191,7 +194,19 @@ const ReservationPage = () => {
                   <Icon className="text-[#4C9A8F]" size={28} />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">{info.title}</h3>
-                {info.link ? (
+                {info.phones ? (
+                  <div className="flex flex-row gap-3 justify-center flex-wrap">
+                    {info.phones.map((phone, phoneIndex) => (
+                      <a
+                        key={phoneIndex}
+                        href={phone.link}
+                        className="text-gray-600 hover:text-[#4C9A8F] transition-colors text-sm leading-relaxed"
+                      >
+                        {phone.number}
+                      </a>
+                    ))}
+                  </div>
+                ) : info.link ? (
                   <a
                     href={info.link}
                     target={info.link.startsWith('http') ? '_blank' : '_self'}
@@ -225,11 +240,15 @@ const ReservationPage = () => {
           </div>
 
           {/* Reservation Form */}
-          <div className="bg-white rounded-lg shadow-md p-8" dir="rtl">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">احجز تقييماً</h2>
+          <div 
+            className="bg-white rounded-lg shadow-md p-8" 
+            dir="rtl"
+            style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}
+          >
+            <h2 className="text-2xl font-bold text-gray-900 mb-6" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>احجز تقييماً</h2>
             <div className="space-y-5">
               <div>
-                <label htmlFor="kidsName" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="kidsName" className="block text-sm font-medium text-gray-700 mb-2" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
                   اسم الطفل *
                 </label>
                 <input
@@ -240,11 +259,12 @@ const ReservationPage = () => {
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
                   placeholder="أدخل اسم الطفل"
+                  style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}
                 />
               </div>
 
               <div>
-                <label htmlFor="yourName" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="yourName" className="block text-sm font-medium text-gray-700 mb-2" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
                   اسمك *
                 </label>
                 <input
@@ -255,11 +275,12 @@ const ReservationPage = () => {
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
                   placeholder="أدخل اسمك الكامل"
+                  style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}
                 />
               </div>
 
               <div>
-                <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-2" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
                   رقم الهاتف *
                 </label>
                 <input
@@ -270,11 +291,12 @@ const ReservationPage = () => {
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
                   placeholder="+20 XXX XXX XXXX"
+                  style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-3">التقييمات المطلوبة</label>
+                <label className="block text-sm font-medium text-gray-700 mb-3" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>التقييمات المطلوبة</label>
                 <div className="space-y-3">
                   {[
                     { name: 'speechAssessment', label: 'تقييم النطق' },
@@ -290,14 +312,14 @@ const ReservationPage = () => {
                         onChange={handleChange}
                         className="w-4 h-4 text-[#4C9A8F] border-gray-300 rounded focus:ring-[#4C9A8F]"
                       />
-                      <span className="text-sm text-gray-700">{item.label}</span>
+                      <span className="text-sm text-gray-700" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}>{item.label}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label htmlFor="concern" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="concern" className="block text-sm font-medium text-gray-700 mb-2" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
                   وصف حالة الطفل *
                 </label>
                 <textarea
@@ -308,6 +330,7 @@ const ReservationPage = () => {
                   onChange={handleChange}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors resize-none"
                   placeholder="اكتب تفاصيل حالة الطفل أو أي استفسار..."
+                  style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}
                 ></textarea>
               </div>
 
@@ -317,6 +340,7 @@ const ReservationPage = () => {
                 className={`w-full bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg ${
                   isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
+                style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}
               >
                 {isSubmitting ? (
                   <>
@@ -343,9 +367,9 @@ const ReservationPage = () => {
             <p className="text-teal-50 mb-6 max-w-2xl mx-auto">
               Become a member and be part of our growing professional community
             </p>
-            <button className="bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg">
+            <a href="/apply-membership" className="bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg">
               Become a Member
-            </button>
+            </a>
           </div>
         </div>
       </div>

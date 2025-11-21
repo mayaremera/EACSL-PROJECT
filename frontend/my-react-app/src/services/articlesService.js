@@ -88,14 +88,11 @@ export const articlesService = {
     try {
       // Map local article structure to Supabase structure
       const supabaseArticle = {
-        title_ar: article.titleAr || '',
         title_en: article.titleEn || '',
         category: article.category || '',
-        category_ar: article.categoryAr || '',
         date: article.date || new Date().toISOString().split('T')[0],
         image_url: article.imageUrl || null,
         image_path: article.imagePath || null,
-        excerpt_ar: article.excerptAr || '',
         excerpt_en: article.excerptEn || '',
         url: article.url || '',
       };
@@ -133,14 +130,11 @@ export const articlesService = {
     try {
       // Map local article structure to Supabase structure
       const supabaseArticle = {
-        title_ar: article.titleAr || '',
         title_en: article.titleEn || '',
         category: article.category || '',
-        category_ar: article.categoryAr || '',
         date: article.date || new Date().toISOString().split('T')[0],
         image_url: article.imageUrl || null,
         image_path: article.imagePath || null,
-        excerpt_ar: article.excerptAr || '',
         excerpt_en: article.excerptEn || '',
         url: article.url || '',
       };
@@ -270,15 +264,12 @@ export const articlesService = {
 
     return {
       id: supabaseArticle.id,
-      titleAr: supabaseArticle.title_ar,
       titleEn: supabaseArticle.title_en,
       category: supabaseArticle.category,
-      categoryAr: supabaseArticle.category_ar,
       date: supabaseArticle.date,
       image: imageUrl, // Combined: path URL or external URL
       imageUrl: supabaseArticle.image_url,
       imagePath: supabaseArticle.image_path,
-      excerptAr: supabaseArticle.excerpt_ar,
       excerptEn: supabaseArticle.excerpt_en,
       url: supabaseArticle.url,
       createdAt: supabaseArticle.created_at,
@@ -292,14 +283,11 @@ export const articlesService = {
     const imageUrl = localArticle.imageUrl || (localArticle.image && !localArticle.imagePath ? localArticle.image : null);
     
     return {
-      title_ar: localArticle.titleAr || '',
       title_en: localArticle.titleEn || '',
       category: localArticle.category || '',
-      category_ar: localArticle.categoryAr || '',
       date: localArticle.date || new Date().toISOString().split('T')[0],
       image_url: imageUrl,
       image_path: localArticle.imagePath || null,
-      excerpt_ar: localArticle.excerptAr || '',
       excerpt_en: localArticle.excerptEn || '',
       url: localArticle.url || '',
     };

@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, MessageCircle, Users, Baby, Brain, ClipboardList } from 'lucide-react';
+import { Calendar, MessageCircle, Users, Baby, Brain, ClipboardList, HeartHandshake } from 'lucide-react';
 import { therapyProgramsManager } from '../utils/dataManager';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import ImagePlaceholder from '../components/ui/ImagePlaceholder';
+import { eventsManager } from '../utils/dataManager';
 
 const TherapyPrograms = () => {
   const navigate = useNavigate();
   const [programs, setPrograms] = useState([]);
+  const [currentEvent, setCurrentEvent] = useState(null);
 
   useEffect(() => {
     const loadPrograms = () => {
@@ -16,16 +18,30 @@ const TherapyPrograms = () => {
       setPrograms(allPrograms);
     };
 
+    const loadEvent = () => {
+      const upcomingEvents = eventsManager.getUpcoming();
+      if (upcomingEvents && upcomingEvents.length > 0) {
+        setCurrentEvent(upcomingEvents[0]);
+      }
+    };
+
     loadPrograms();
+    loadEvent();
 
     // Listen for updates
     const handleProgramsUpdate = () => {
       loadPrograms();
     };
 
+    const handleEventsUpdate = () => {
+      loadEvent();
+    };
+
     window.addEventListener('therapyProgramsUpdated', handleProgramsUpdate);
+    window.addEventListener('eventsUpdated', handleEventsUpdate);
     return () => {
       window.removeEventListener('therapyProgramsUpdated', handleProgramsUpdate);
+      window.removeEventListener('eventsUpdated', handleEventsUpdate);
     };
   }, []);
 
@@ -47,10 +63,11 @@ const TherapyPrograms = () => {
       <PageHero
         title="Therapy Programs"
         subtitle="برامج العلاج والخدمات المتخصصة"
+        icon={<HeartHandshake className="w-12 h-12" />}
       />
 
       {/* Breadcrumb */}
-      <Breadcrumbs items={[{ label: 'Services', path: '/services' }, { label: 'Therapy Programs' }]} />
+      <Breadcrumbs items={[{ label: 'Therapy Programs' }]} />
 
       {/* Programs Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -78,11 +95,11 @@ const TherapyPrograms = () => {
                 </div>
 
                 {/* Content */}
-                <div className="p-6" dir="rtl">
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">
+                <div className="p-6" dir="rtl" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
+                  <h3 className="text-xl font-bold text-gray-900 mb-3" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '20px' }}>
                     {program.title}
                   </h3>
-                  <p className="text-gray-600 leading-relaxed text-sm">
+                  <p className="text-gray-600 leading-relaxed text-sm" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}>
                     {program.description}
                   </p>
                 </div>
@@ -93,13 +110,12 @@ const TherapyPrograms = () => {
 
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-12">
-          <button 
-            onClick={() => navigate('/reservation', { replace: true })}
-            className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-3 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+          <Link 
+            to="/reservation"
+            className="text-sm md:text-base px-8 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] font-semibold rounded-md hover:bg-[#5A9B8E] hover:text-white transition-all duration-300 w-fit"
           >
-            <Calendar size={20} />
-            <span>Book Appointment</span>
-          </button>
+            Book an Assesment
+          </Link>
         </div>
       </div>
 

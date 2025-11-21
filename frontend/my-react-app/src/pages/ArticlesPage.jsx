@@ -44,10 +44,8 @@ const ArticlesPage = () => {
   const filteredArticles = articles.filter(article => {
     const matchesCategory = selectedCategory === 'all' || article.category === selectedCategory;
     const matchesSearch = searchTerm === '' || 
-      article.titleAr.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      article.titleEn.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      article.excerptAr.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      article.excerptEn.toLowerCase().includes(searchTerm.toLowerCase());
+      article.titleEn?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      article.excerptEn?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -141,7 +139,7 @@ const ArticlesPage = () => {
         </div>
 
         {/* Articles Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {filteredArticles.map((article) => (
             <div
               key={article.id}
@@ -156,26 +154,23 @@ const ArticlesPage = () => {
                   className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                 />
               </div>
-              <div className="p-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="px-2 py-0.5 bg-teal-50 text-[#4C9A8F] text-xs font-medium rounded-full">
-                    {article.categoryAr}
+              <div className="p-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="px-3 py-1 bg-teal-50 text-[#4C9A8F] text-sm font-medium rounded-full">
+                    {article.category}
                   </span>
                 </div>
-                <h3 className="text-base font-bold text-gray-900 mb-1 line-clamp-2">
-                  {article.titleAr}
-                </h3>
-                <p className="text-xs text-gray-600 mb-2 line-clamp-1">
+                <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
                   {article.titleEn}
+                </h3>
+                <p className="text-sm text-gray-600 mb-3 line-clamp-3">
+                  {article.excerptEn}
                 </p>
-                <p className="text-gray-600 text-xs mb-3 line-clamp-2">
-                  {article.excerptAr}
-                </p>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">{article.date}</span>
-                  <button className="text-[#4C9A8F] hover:text-[#3d8178] text-xs font-medium flex items-center gap-1">
+                <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                  <span className="text-sm text-gray-500">{article.date}</span>
+                  <button className="text-[#4C9A8F] hover:text-[#3d8178] text-sm font-medium flex items-center gap-1">
                     Read More
-                    <ExternalLink className="w-3 h-3" />
+                    <ExternalLink className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -220,12 +215,12 @@ const ArticlesPage = () => {
             <div className="p-6">
               <div className="flex items-center gap-2 mb-3 flex-wrap">
                 <span className="px-3 py-1 bg-teal-50 text-[#4C9A8F] text-xs font-medium rounded-full">
-                  {selectedArticle.categoryAr}
+                  {selectedArticle.category}
                 </span>
                 <span className="text-xs text-gray-500">{selectedArticle.date}</span>
               </div>
 
-              <h2 className="text-xl font-bold text-gray-900 mb-2">
+              <h2 className="text-xl font-bold text-gray-900 mb-2" dir="rtl" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '20px' }}>
                 {selectedArticle.titleAr}
               </h2>
               <h3 className="text-sm text-gray-600 mb-4">
@@ -233,7 +228,7 @@ const ArticlesPage = () => {
               </h3>
 
               <div className="mb-5">
-                <p className="text-gray-700 text-sm leading-relaxed mb-3">
+                <p className="text-gray-700 text-sm leading-relaxed mb-3" dir="rtl" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}>
                   {selectedArticle.excerptAr}
                 </p>
                 <p className="text-gray-600 text-sm leading-relaxed">
@@ -247,6 +242,7 @@ const ArticlesPage = () => {
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors"
+                  style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '14px' }}
                 >
                   <ExternalLink className="w-4 h-4" />
                   Read Full Article | اقرأ المقال كاملاً

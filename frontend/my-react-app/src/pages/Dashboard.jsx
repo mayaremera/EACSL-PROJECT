@@ -2888,17 +2888,14 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             <div className="p-4">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <span className="px-2 py-0.5 bg-teal-50 text-[#4C9A8F] text-xs font-medium rounded-full">
-                                                        {article.categoryAr}
+                                                        {article.category}
                                                     </span>
                                                 </div>
                                                 <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-2">
-                                                    {article.titleAr}
-                                                </h3>
-                                                <p className="text-sm text-gray-600 mb-2 line-clamp-1">
                                                     {article.titleEn}
-                                                </p>
+                                                </h3>
                                                 <p className="text-gray-600 text-xs mb-3 line-clamp-2">
-                                                    {article.excerptAr}
+                                                    {article.excerptEn}
                                                 </p>
                                                 <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
                                                     <span>{article.date}</span>

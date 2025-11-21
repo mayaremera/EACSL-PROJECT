@@ -34,10 +34,11 @@ const ForParentsPage = () => {
       <PageHero
         title="For Parents"
         subtitle="مقالات ونصائح حول التربية الصحيحة"
+        icon={<BookOpen className="w-12 h-12" />}
       />
 
       {/* Breadcrumb */}
-      <Breadcrumbs items={[{ label: 'Services', path: '/services' }, { label: 'For Parents' }]} />
+      <Breadcrumbs items={[{ label: 'For Parents' }]} />
 
       {/* Articles Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -64,21 +65,21 @@ const ForParentsPage = () => {
               </div>
 
               {/* Content */}
-              <div className="p-5" dir="rtl">
-                <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 hover:text-[#4C9A8F] transition-colors">
+              <div className="p-5" dir="rtl" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
+                <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 hover:text-[#4C9A8F] transition-colors" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '18px' }}>
                   {article.title}
                 </h3>
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                <p className="text-sm text-gray-600 mb-4 line-clamp-2" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}>
                   {article.excerpt}
                 </p>
 
                 {/* Meta Info */}
                 <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
                     <User size={14} />
                     <span>{article.author}</span>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
                     <Calendar size={14} />
                     <span>{article.date}</span>
                   </div>
@@ -99,19 +100,20 @@ const ForParentsPage = () => {
             className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
             onClick={(e) => e.stopPropagation()}
             dir="rtl"
+            style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}
           >
             {/* Modal Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-start justify-between">
               <div className="flex-1 ml-4">
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '24px' }}>
                   {selectedArticle.title}
                 </h2>
                 <div className="flex items-center gap-4 text-sm text-gray-600">
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
                     <User size={16} />
                     <span>{selectedArticle.author}</span>
                   </div>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
                     <Calendar size={16} />
                     <span>{selectedArticle.date}</span>
                   </div>
@@ -135,12 +137,12 @@ const ForParentsPage = () => {
               />
               
               <div className="prose prose-lg max-w-none">
-                <p className="text-gray-700 leading-relaxed mb-6">
+                <p className="text-gray-700 leading-relaxed mb-6" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '18px' }}>
                   {selectedArticle.excerpt}
                 </p>
                 
                 <div className="bg-teal-50 border-r-4 border-[#4C9A8F] p-6 rounded-lg">
-                  <p className="text-gray-700 mb-4">
+                  <p className="text-gray-700 mb-4" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}>
                     لقراءة المقال كاملاً، يرجى زيارة الرابط أدناه:
                   </p>
                   <a
@@ -148,6 +150,7 @@ const ForParentsPage = () => {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200"
+                    style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}
                   >
                     <span>اقرأ المقال الكامل</span>
                     <ExternalLink size={18} />
@@ -161,6 +164,7 @@ const ForParentsPage = () => {
               <button
                 onClick={() => setSelectedArticle(null)}
                 className="w-full px-6 py-3 border-2 border-[#4C9A8F] text-[#4C9A8F] hover:bg-[#4C9A8F] hover:text-white font-semibold rounded-lg transition-colors duration-200"
+                style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}
               >
                 إغلاق
               </button>

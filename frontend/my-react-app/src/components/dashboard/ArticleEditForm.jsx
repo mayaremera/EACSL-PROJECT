@@ -4,15 +4,12 @@ import { articlesService } from '../../services/articlesService';
 
 const ArticleEditForm = ({ article, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
-    titleAr: '',
     titleEn: '',
     category: 'Autism',
-    categoryAr: 'التوحد',
     date: new Date().toISOString().split('T')[0],
     image: '',
     imageUrl: '',
     imagePath: '',
-    excerptAr: '',
     excerptEn: '',
     url: ''
   });
@@ -24,15 +21,12 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
   useEffect(() => {
     if (article) {
       setFormData({
-        titleAr: article.titleAr || '',
         titleEn: article.titleEn || '',
         category: article.category || 'Autism',
-        categoryAr: article.categoryAr || 'التوحد',
         date: article.date || new Date().toISOString().split('T')[0],
         image: article.image || '',
         imageUrl: article.imageUrl || article.image || '',
         imagePath: article.imagePath || '',
-        excerptAr: article.excerptAr || '',
         excerptEn: article.excerptEn || '',
         url: article.url || ''
       });
@@ -53,21 +47,19 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
 
 
   const categories = [
-    { value: 'Autism', labelAr: 'التوحد', labelEn: 'Autism' },
-    { value: 'Aphasia', labelAr: 'الحبسة الكلامية', labelEn: 'Aphasia' },
-    { value: 'Speech Therapy', labelAr: 'علاج النطق', labelEn: 'Speech Therapy' },
-    { value: 'Dysphagia', labelAr: 'عسر البلع', labelEn: 'Dysphagia' },
-    { value: 'Fluency Disorders', labelAr: 'اضطرابات الطلاقة', labelEn: 'Fluency Disorders' },
-    { value: 'Language Development', labelAr: 'تطور اللغة', labelEn: 'Language Development' },
-    { value: 'Voice Disorders', labelAr: 'اضطرابات الصوت', labelEn: 'Voice Disorders' }
+    { value: 'Autism', label: 'Autism' },
+    { value: 'Aphasia', label: 'Aphasia' },
+    { value: 'Speech Therapy', label: 'Speech Therapy' },
+    { value: 'Dysphagia', label: 'Dysphagia' },
+    { value: 'Fluency Disorders', label: 'Fluency Disorders' },
+    { value: 'Language Development', label: 'Language Development' },
+    { value: 'Voice Disorders', label: 'Voice Disorders' }
   ];
 
   const handleCategoryChange = (e) => {
-    const selectedCategory = categories.find(cat => cat.value === e.target.value);
     setFormData(prev => ({
       ...prev,
-      category: selectedCategory.value,
-      categoryAr: selectedCategory.labelAr
+      category: e.target.value
     }));
   };
 
@@ -194,26 +186,10 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Title (Arabic) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Title (Arabic) *
-            </label>
-            <input
-              type="text"
-              name="titleAr"
-              value={formData.titleAr}
-              onChange={handleChange}
-              required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
-              placeholder="عنوان المقال بالعربية"
-            />
-          </div>
-
           {/* Title (English) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Title (English) *
+              Title *
             </label>
             <input
               type="text"
@@ -222,7 +198,7 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
               onChange={handleChange}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
-              placeholder="Article Title in English"
+              placeholder="Article Title"
             />
           </div>
 
@@ -240,7 +216,7 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
             >
               {categories.map((cat) => (
                 <option key={cat.value} value={cat.value}>
-                  {cat.labelEn} - {cat.labelAr}
+                  {cat.label}
                 </option>
               ))}
             </select>
@@ -341,26 +317,10 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
             </div>
           </div>
 
-          {/* Excerpt (Arabic) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Excerpt (Arabic) *
-            </label>
-            <textarea
-              name="excerptAr"
-              value={formData.excerptAr}
-              onChange={handleChange}
-              required
-              rows={3}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none resize-none"
-              placeholder="ملخص المقال بالعربية"
-            />
-          </div>
-
           {/* Excerpt (English) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Excerpt (English) *
+              Excerpt *
             </label>
             <textarea
               name="excerptEn"
@@ -369,7 +329,7 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
               required
               rows={3}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none resize-none"
-              placeholder="Article excerpt in English"
+              placeholder="Article excerpt"
             />
           </div>
 

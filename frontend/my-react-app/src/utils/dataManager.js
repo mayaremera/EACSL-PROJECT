@@ -1,7 +1,4 @@
 // Data management utilities for CRUD operations
-// This can be easily replaced with API calls later
-import { courses as defaultCourses } from "../data/courses";
-import { members as defaultMembers } from "../data/members";
 import { membersService } from "../services/membersService";
 import { eventsService } from "../services/eventsService";
 import { articlesService } from "../services/articlesService";
@@ -15,14 +12,14 @@ let lastMembersSyncTime = 0;
 
 // Courses Management
 export const coursesManager = {
-  // Get all courses (from localStorage or default data)
+  // Get all courses (from localStorage)
   getAll: () => {
-    if (typeof window === "undefined") return defaultCourses;
+    if (typeof window === "undefined") return [];
     const stored = localStorage.getItem("eacsl_courses");
     if (stored) {
       return JSON.parse(stored);
     }
-    return defaultCourses;
+    return [];
   },
 
   // Save courses to localStorage
@@ -71,9 +68,9 @@ export const coursesManager = {
 
 // Members Management
 export const membersManager = {
-  // Get all members (from localStorage or default data)
+  // Get all members (from localStorage)
   getAll: () => {
-    if (typeof window === "undefined") return defaultMembers;
+    if (typeof window === "undefined") return [];
     const stored = localStorage.getItem("eacsl_members");
     if (stored) {
       const members = JSON.parse(stored);
@@ -103,7 +100,7 @@ export const membersManager = {
 
       return normalizedMembers;
     }
-    return defaultMembers;
+    return [];
   },
 
   // Save members to localStorage
@@ -1136,211 +1133,6 @@ export const eventsManager = {
   },
 };
 
-// Initialize default event data (used when no events exist)
-const getDefaultEvent = () => ({
-  heroTitle: "Advancing Speech-Language Pathology 2025",
-  heroDescription: "Join leading experts for a two-day conference focused on advancing clinical practice, enhancing research impact, and exploring innovation across speech, swallowing, language disorders, and audiology.",
-  title: "Conference Schedule",
-  subtitle:
-    "Advancing Practice and Research in Speech-Language Pathology: Bridging Science and Clinical Impact",
-  memberFee: 500,
-  guestFee: 800,
-  tracks: [
-    "Track A: Speech & Swallowing",
-    "Track B: Language Disorders",
-    "Track C: Audiology",
-  ],
-  scheduleDay1: [
-    {
-      time: "4:00 - 5:00 PM",
-      trackA: "Opening Ceremony & Welcome Address - Conference Chair",
-      trackB: "All Attendees",
-      trackC: "All Attendees",
-    },
-    {
-      time: "5:00 - 7:00 PM",
-      trackA: "Session 1A: Advances in Aphasia Rehabilitation",
-      trackB: "Session 1B: Translating Research into Practice",
-      trackC: "Session 1C: Digital Tools in SLP Education",
-    },
-    {
-      time: "7:00 - 7:30 PM",
-      trackA: "Break / Networking / Exhibits",
-      trackB: "Break / Networking / Exhibits",
-      trackC: "Break / Networking / Exhibits",
-    },
-    {
-      time: "7:30 - 9:30 PM",
-      trackA: "Session 2A: Pediatric Speech Disorders",
-      trackB: "Session 2B: Motor Speech Disorders Symposium",
-      trackC: "Session 2C: Clinical Education Innovations",
-    },
-  ],
-  scheduleDay2: [
-    {
-      time: "4:00 - 6:00 PM",
-      trackA: "Session 3A: Leadership in SLP Practice",
-      trackB: "Session 3B: Voice and Fluency Disorders",
-      trackC: "Session 3C: Advocacy & Ethical Practice",
-    },
-    {
-      time: "6:00 - 6:30 PM",
-      trackA: "Break / Networking",
-      trackB: "Break / Networking",
-      trackC: "Break / Networking",
-    },
-    {
-      time: "6:30 - 8:30 PM",
-      trackA: "Session 4A: Excellence in Clinical Documentation",
-      trackB: "Session 4B: Best Practices in Research Forum",
-      trackC: "Session 4C: The Future of Public Health in Telepractice",
-    },
-    {
-      time: "8:30 PM",
-      trackA: "Closing Ceremony & Conference Summary",
-      trackB: "All Attendees",
-      trackC: "All Attendees",
-    },
-  ],
-  day1Title: "Day One - Knowledge and Innovation",
-  day2Title: "Day Two - Collaboration and Future Directions",
-  heroImageUrl: "",
-  status: "upcoming",
-  createdAt: new Date().toISOString(),
-});
-
-// Default articles data
-const defaultArticles = [
-  {
-    id: 1,
-    titleAr: "تطوير مهارات التواصل لدى الأطفال المصابين بالتوحد",
-    titleEn: "Developing Communication Skills in Children with Autism",
-    category: "Autism",
-    categoryAr: "التوحد",
-    date: "2024-10-15",
-    image:
-      "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=800&h=500&fit=crop",
-    excerptAr:
-      "استراتيجيات فعالة لتحسين مهارات التواصل الاجتماعي واللغوي للأطفال ذوي اضطراب طيف التوحد.",
-    excerptEn:
-      "Effective strategies to improve social and linguistic communication skills in children with autism spectrum disorder.",
-    url: "https://www.autismspeaks.org/tool-kit/atnair-p-guide-communication",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    titleAr: "الحبسة الكلامية: الأسباب والعلاج",
-    titleEn: "Aphasia: Causes and Treatment",
-    category: "Aphasia",
-    categoryAr: "الحبسة الكلامية",
-    date: "2024-09-28",
-    image:
-      "https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800&h=500&fit=crop",
-    excerptAr:
-      "فهم شامل للحبسة الكلامية، أنواعها المختلفة، وأحدث طرق العلاج المستخدمة.",
-    excerptEn:
-      "Comprehensive understanding of aphasia, its types, and the latest treatment methods used.",
-    url: "https://www.asha.org/public/speech/disorders/aphasia/",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 3,
-    titleAr: "أهمية التدخل المبكر في علاج اضطرابات النطق",
-    titleEn: "The Importance of Early Intervention in Speech Disorders",
-    category: "Speech Therapy",
-    categoryAr: "علاج النطق",
-    date: "2024-11-01",
-    image:
-      "https://images.unsplash.com/photo-1587654780291-39c9404d746b?w=800&h=500&fit=crop",
-    excerptAr:
-      "دراسة شاملة تبرز أهمية الكشف المبكر والتدخل العلاجي المبكر في علاج اضطرابات النطق.",
-    excerptEn:
-      "Comprehensive study highlighting the importance of early detection and intervention in speech disorders.",
-    url: "https://www.asha.org/public/speech/development/early-intervention/",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 4,
-    titleAr: "اضطرابات البلع: التشخيص والعلاج",
-    titleEn: "Swallowing Disorders: Diagnosis and Treatment",
-    category: "Dysphagia",
-    categoryAr: "عسر البلع",
-    date: "2024-08-20",
-    image:
-      "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&h=500&fit=crop",
-    excerptAr:
-      "نظرة متعمقة على اضطرابات البلع، أسبابها المختلفة، وطرق التشخيص والعلاج الحديثة.",
-    excerptEn:
-      "In-depth look at swallowing disorders, their causes, and modern diagnosis and treatment methods.",
-    url: "https://www.asha.org/public/speech/swallowing/swallowing-disorders-in-adults/",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 5,
-    titleAr: "علاج التلعثم عند الأطفال والبالغين",
-    titleEn: "Stuttering Treatment in Children and Adults",
-    category: "Fluency Disorders",
-    categoryAr: "اضطرابات الطلاقة",
-    date: "2024-10-05",
-    image:
-      "https://images.unsplash.com/photo-1581579186913-45ac3e6efe93?w=800&h=500&fit=crop",
-    excerptAr:
-      "دليل شامل لفهم التلعثم، أسبابه، والتقنيات العلاجية الحديثة المثبتة علمياً.",
-    excerptEn:
-      "Comprehensive guide to understanding stuttering, its causes, and scientifically proven modern treatment techniques.",
-    url: "https://www.stutteringhelp.org/what-stuttering",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 6,
-    titleAr: "تطوير اللغة عند الأطفال ثنائيي اللغة",
-    titleEn: "Language Development in Bilingual Children",
-    category: "Language Development",
-    categoryAr: "تطور اللغة",
-    date: "2024-09-10",
-    image:
-      "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=800&h=500&fit=crop",
-    excerptAr:
-      "استكشاف فوائد وتحديات تربية الأطفال ثنائيي اللغة ودعم التطور اللغوي الصحي.",
-    excerptEn:
-      "Exploring the benefits and challenges of raising bilingual children and supporting healthy language development.",
-    url: "https://www.asha.org/public/speech/development/learning-two-languages/",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 7,
-    titleAr: "اضطرابات الصوت: الأسباب والوقاية",
-    titleEn: "Voice Disorders: Causes and Prevention",
-    category: "Voice Disorders",
-    categoryAr: "اضطرابات الصوت",
-    date: "2024-07-18",
-    image:
-      "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&h=500&fit=crop",
-    excerptAr:
-      "معلومات حول أسباب اضطرابات الصوت وطرق الوقاية منها والحفاظ على صحة الحنجرة.",
-    excerptEn:
-      "Information about causes of voice disorders, prevention methods, and maintaining vocal health.",
-    url: "https://www.asha.org/public/speech/disorders/voice/",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 8,
-    titleAr: "تأخر الكلام واللغة عند الأطفال",
-    titleEn: "Speech and Language Delays in Children",
-    category: "Language Development",
-    categoryAr: "تطور اللغة",
-    date: "2024-08-05",
-    image:
-      "https://images.unsplash.com/photo-1474418397713-7ede21d49118?w=800&h=500&fit=crop",
-    excerptAr:
-      "دليل الأهل لفهم علامات تأخر الكلام واللغة ومتى يجب طلب المساعدة المتخصصة.",
-    excerptEn:
-      "Parent's guide to understanding signs of speech and language delays and when to seek professional help.",
-    url: "https://www.asha.org/public/speech/development/late-bloomer/",
-    createdAt: new Date().toISOString(),
-  },
-];
-
 // Articles Management
 export const articlesManager = {
   // Cache for articles (loaded from Supabase)
@@ -1350,7 +1142,44 @@ export const articlesManager = {
 
   // Get all articles (from cache or Supabase, fallback to localStorage)
   getAll: () => {
-    if (typeof window === "undefined") return defaultArticles;
+    if (typeof window === "undefined") return [];
+    
+    // Check cache first
+    if (articlesManager._cache && articlesManager._cacheTimestamp) {
+      const cacheAge = Date.now() - articlesManager._cacheTimestamp;
+      if (cacheAge < articlesManager._cacheTimeout) {
+        return articlesManager._cache;
+      }
+    }
+
+    // Check localStorage
+    const stored = localStorage.getItem("eacsl_articles");
+    if (stored) {
+      const articles = JSON.parse(stored);
+      // Update cache
+      articlesManager._cache = articles;
+      articlesManager._cacheTimestamp = Date.now();
+      return articles;
+    }
+    
+    return [];
+  },
+
+  // Save articles to cache and localStorage
+  saveAll: (articles) => {
+    articlesManager._cache = articles;
+    articlesManager._cacheTimestamp = Date.now();
+    localStorage.setItem("eacsl_articles", JSON.stringify(articles));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("articlesUpdated", { detail: articles })
+      );
+    }
+  },
+
+  // Get all articles (from cache or Supabase, fallback to localStorage)
+  getAll: () => {
+    if (typeof window === "undefined") return [];
     
     // Check cache first
     if (articlesManager._cache && articlesManager._cacheTimestamp) {
@@ -1365,17 +1194,16 @@ export const articlesManager = {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
+        // Update cache
+        articlesManager._cache = parsed;
+        articlesManager._cacheTimestamp = Date.now();
         return parsed;
       } catch (e) {
         console.error("Error parsing articles from localStorage:", e);
-        // If parsing fails, save defaults and return them
-        localStorage.setItem("eacsl_articles", JSON.stringify(defaultArticles));
-        return defaultArticles;
+        return [];
       }
     }
-    // If no stored data, save defaults and return them
-    localStorage.setItem("eacsl_articles", JSON.stringify(defaultArticles));
-    return defaultArticles;
+    return [];
   },
 
   // Save articles to cache and localStorage
@@ -1613,10 +1441,10 @@ export const articlesManager = {
             const { error } = await articlesService.update(article.id, articleData);
             if (!error) {
               syncedCount++;
-              console.log(`✅ Synced article: ${article.titleEn || article.titleAr}`);
+              console.log(`✅ Synced article: ${article.titleEn}`);
             } else if (error.code !== "TABLE_NOT_FOUND") {
               errorCount++;
-              const errorMsg = `Failed to update article ${article.titleEn || article.titleAr}: ${error.message}`;
+              const errorMsg = `Failed to update article ${article.titleEn}: ${error.message}`;
               console.warn(errorMsg);
               errors.push(errorMsg);
             }
@@ -1628,7 +1456,7 @@ export const articlesManager = {
             const { data, error } = await articlesService.add(articleToAdd);
             if (!error && data) {
               syncedCount++;
-              console.log(`✅ Added article to Supabase: ${article.titleEn || article.titleAr}`);
+              console.log(`✅ Added article to Supabase: ${article.titleEn}`);
               
               // Update local article with Supabase ID
               const localArticles = articlesManager.getAll();
@@ -1639,14 +1467,14 @@ export const articlesManager = {
               }
             } else if (error && error.code !== "TABLE_NOT_FOUND") {
               errorCount++;
-              const errorMsg = `Failed to add article ${article.titleEn || article.titleAr}: ${error.message}`;
+              const errorMsg = `Failed to add article ${article.titleEn}: ${error.message}`;
               console.warn(errorMsg);
               errors.push(errorMsg);
             }
           }
         } catch (err) {
           errorCount++;
-          const errorMsg = `Exception processing article ${article.titleEn || article.titleAr}: ${err.message}`;
+          const errorMsg = `Exception processing article ${article.titleEn}: ${err.message}`;
           console.error(errorMsg);
           errors.push(errorMsg);
         }
@@ -1670,70 +1498,6 @@ export const articlesManager = {
   },
 };
 
-// Default therapy programs data
-const defaultTherapyPrograms = [
-  {
-    id: 1,
-    title: "جلسات علاج النطق للأطفال",
-    description: "توفير جلسات للأطفال لعلاج مجموعة متنوعة من الاضطرابات والإعاقات باستخدام تقنيات حديثة مثل التوحد واضطرابات السمع والشلل الدماغي ومتلازمة داون",
-    icon: "MessageCircle",
-    image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80",
-    imageUrl: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80",
-    imagePath: null,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    title: "جلسات علاج النطق للبالغين",
-    description: "توفير جلسات علاج النطق للبالغين الذين يعانون من اضطرابات النطق والطلاقة",
-    icon: "Users",
-    image: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=600&q=80",
-    imageUrl: "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=600&q=80",
-    imagePath: null,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 3,
-    title: "تنمية المهارات",
-    description: "العمل مع الأطفال لتعزيز الذاكرة والانتباه والمهارات البصرية ومهارات الحياة والمهارات الأكاديمية",
-    icon: "Brain",
-    image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&q=80",
-    imageUrl: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&q=80",
-    imagePath: null,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 4,
-    title: "التدخل المبكر",
-    description: "توفير التدخل المبكر لتحسين إنتاج الكلام والمهارات العامة للأطفال",
-    icon: "Baby",
-    image: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=600&q=80",
-    imageUrl: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=600&q=80",
-    imagePath: null,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 5,
-    title: "الدعم النفسي والأسري",
-    description: "نحن نقدم لك الدعم الذي تحتاجه لتحسين حياتك وحياة طفلك خاصة من يعانون من تحديات سلوكية",
-    icon: "Users",
-    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80",
-    imageUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80",
-    imagePath: null,
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 6,
-    title: "الاختبارات والتقييمات",
-    description: "نحن نجري أنواعًا مختلفة من التقييمات والاختبارات مثل اختبار الذكاء واختبار CARS والمزيد",
-    icon: "ClipboardList",
-    image: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&q=80",
-    imageUrl: "https://images.unsplash.com/photo-1434030216411-0b793f4b4173?w=600&q=80",
-    imagePath: null,
-    createdAt: new Date().toISOString(),
-  },
-];
-
 // Therapy Programs Management
 export const therapyProgramsManager = {
   // Cache for therapy programs (loaded from Supabase)
@@ -1743,7 +1507,7 @@ export const therapyProgramsManager = {
 
   // Get all therapy programs (from cache or Supabase, fallback to localStorage)
   getAll: () => {
-    if (typeof window === "undefined") return defaultTherapyPrograms;
+    if (typeof window === "undefined") return [];
     
     // Check cache first
     if (therapyProgramsManager._cache && therapyProgramsManager._cacheTimestamp) {
@@ -1758,17 +1522,16 @@ export const therapyProgramsManager = {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
+        // Update cache
+        therapyProgramsManager._cache = parsed;
+        therapyProgramsManager._cacheTimestamp = Date.now();
         return parsed;
       } catch (e) {
         console.error("Error parsing therapy programs from localStorage:", e);
-        // If parsing fails, save defaults and return them
-        localStorage.setItem("eacsl_therapy_programs", JSON.stringify(defaultTherapyPrograms));
-        return defaultTherapyPrograms;
+        return [];
       }
     }
-    // If no stored data, save defaults and return them
-    localStorage.setItem("eacsl_therapy_programs", JSON.stringify(defaultTherapyPrograms));
-    return defaultTherapyPrograms;
+    return [];
   },
 
   // Save therapy programs to cache and localStorage
@@ -2063,118 +1826,6 @@ export const therapyProgramsManager = {
   },
 };
 
-// Default for parents articles data
-const defaultForParentsArticles = [
-  {
-    id: 1,
-    title: "كيفية تعزيز الثقة بالنفس لدى الأطفال",
-    excerpt: "نصائح عملية لبناء ثقة طفلك بنفسه منذ الصغر",
-    image: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80",
-    imageUrl: "https://images.unsplash.com/photo-1503454537195-1dcabb73ffb9?w=600&q=80",
-    imagePath: null,
-    date: "15 أكتوبر 2024",
-    author: "د. سارة أحمد",
-    articleUrl: "https://www.example.com/article1",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 2,
-    title: "التواصل الفعال مع الأطفال",
-    excerpt: "أساليب التواصل الصحيحة التي تبني علاقة قوية مع طفلك",
-    image: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=600&q=80",
-    imageUrl: "https://images.unsplash.com/photo-1476703993599-0035a21b17a9?w=600&q=80",
-    imagePath: null,
-    date: "10 أكتوبر 2024",
-    author: "د. محمد حسن",
-    articleUrl: "https://www.example.com/article2",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 3,
-    title: "التعامل مع نوبات الغضب عند الأطفال",
-    excerpt: "استراتيجيات فعالة للتعامل مع الغضب والانفعالات",
-    image: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&q=80",
-    imageUrl: "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=600&q=80",
-    imagePath: null,
-    date: "5 أكتوبر 2024",
-    author: "د. ليلى إبراهيم",
-    articleUrl: "https://www.example.com/article3",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 4,
-    title: "أهمية اللعب في نمو الطفل",
-    excerpt: "كيف يساهم اللعب في التطور المعرفي والاجتماعي للطفل",
-    image: "https://images.unsplash.com/photo-1587616211892-c1c8c6b76d4c?w=600&q=80",
-    imageUrl: "https://images.unsplash.com/photo-1587616211892-c1c8c6b76d4c?w=600&q=80",
-    imagePath: null,
-    date: "1 أكتوبر 2024",
-    author: "د. فاطمة علي",
-    articleUrl: "https://www.example.com/article4",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 5,
-    title: "تنمية المهارات اللغوية للطفل",
-    excerpt: "طرق فعالة لتطوير مهارات النطق واللغة عند الأطفال",
-    image: "https://images.unsplash.com/photo-1609220136736-443140cffec6?w=600&q=80",
-    imageUrl: "https://images.unsplash.com/photo-1609220136736-443140cffec6?w=600&q=80",
-    imagePath: null,
-    date: "28 سبتمبر 2024",
-    author: "د. خالد محمود",
-    articleUrl: "https://www.example.com/article5",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 6,
-    title: "التربية الإيجابية وأثرها على الطفل",
-    excerpt: "مبادئ التربية الإيجابية وكيفية تطبيقها في حياتك اليومية",
-    image: "https://images.unsplash.com/photo-1491013516836-7db643ee125a?w=600&q=80",
-    imageUrl: "https://images.unsplash.com/photo-1491013516836-7db643ee125a?w=600&q=80",
-    imagePath: null,
-    date: "25 سبتمبر 2024",
-    author: "د. منى سالم",
-    articleUrl: "https://www.example.com/article6",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 7,
-    title: "كيفية بناء روتين يومي صحي للأطفال",
-    excerpt: "أهمية الروتين اليومي وكيفية إنشائه بطريقة فعالة",
-    image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80",
-    imageUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=600&q=80",
-    imagePath: null,
-    date: "20 سبتمبر 2024",
-    author: "د. أحمد يوسف",
-    articleUrl: "https://www.example.com/article7",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 8,
-    title: "التعامل مع التنمر والتحديات الاجتماعية",
-    excerpt: "كيف تحمي طفلك من التنمر وتعزز مهاراته الاجتماعية",
-    image: "https://images.unsplash.com/photo-1588392382834-a891154bca4d?w=600&q=80",
-    imageUrl: "https://images.unsplash.com/photo-1588392382834-a891154bca4d?w=600&q=80",
-    imagePath: null,
-    date: "15 سبتمبر 2024",
-    author: "د. نادية فريد",
-    articleUrl: "https://www.example.com/article8",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: 9,
-    title: "تطوير الذكاء العاطفي عند الأطفال",
-    excerpt: "طرق لمساعدة طفلك على فهم وإدارة مشاعره بشكل صحي",
-    image: "https://images.unsplash.com/photo-1571442463800-1337d7af9d2f?w=600&q=80",
-    imageUrl: "https://images.unsplash.com/photo-1571442463800-1337d7af9d2f?w=600&q=80",
-    imagePath: null,
-    date: "10 سبتمبر 2024",
-    author: "د. طارق سمير",
-    articleUrl: "https://www.example.com/article9",
-    createdAt: new Date().toISOString(),
-  },
-];
-
 // For Parents Management
 export const forParentsManager = {
   // Cache for parent articles (loaded from Supabase)
@@ -2184,7 +1835,7 @@ export const forParentsManager = {
 
   // Get all parent articles (from cache or Supabase, fallback to localStorage)
   getAll: () => {
-    if (typeof window === "undefined") return defaultForParentsArticles;
+    if (typeof window === "undefined") return [];
     
     // Check cache first
     if (forParentsManager._cache && forParentsManager._cacheTimestamp) {
@@ -2199,17 +1850,16 @@ export const forParentsManager = {
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
+        // Update cache
+        forParentsManager._cache = parsed;
+        forParentsManager._cacheTimestamp = Date.now();
         return parsed;
       } catch (e) {
         console.error("Error parsing for parents articles from localStorage:", e);
-        // If parsing fails, save defaults and return them
-        localStorage.setItem("eacsl_for_parents", JSON.stringify(defaultForParentsArticles));
-        return defaultForParentsArticles;
+        return [];
       }
     }
-    // If no stored data, save defaults and return them
-    localStorage.setItem("eacsl_for_parents", JSON.stringify(defaultForParentsArticles));
-    return defaultForParentsArticles;
+    return [];
   },
 
   // Save parent articles to cache and localStorage
@@ -2504,49 +2154,9 @@ export const forParentsManager = {
   },
 };
 
-// Initialize localStorage with default data if empty
+// Initialize localStorage (no default data - data comes from Supabase)
 export const initializeData = () => {
   if (typeof window === "undefined") return;
-
-  if (!localStorage.getItem("eacsl_courses")) {
-    localStorage.setItem("eacsl_courses", JSON.stringify(defaultCourses));
-  }
-
-  if (!localStorage.getItem("eacsl_members")) {
-    localStorage.setItem("eacsl_members", JSON.stringify(defaultMembers));
-  }
-
-  // Initialize events - create default upcoming event if none exists
-  const existingEvents = eventsManager.getAll();
-  if (
-    existingEvents.upcoming.length === 0 &&
-    existingEvents.past.length === 0
-  ) {
-    // No events exist, create default upcoming event
-    const defaultEvent = getDefaultEvent();
-    defaultEvent.id = 1;
-    eventsManager.saveAll({
-      upcoming: [defaultEvent],
-      past: [],
-    });
-    console.log("Initialized default upcoming event");
-  }
-
-  // Initialize articles - create default articles if none exist
-  if (!localStorage.getItem("eacsl_articles")) {
-    localStorage.setItem("eacsl_articles", JSON.stringify(defaultArticles));
-    console.log("Initialized default articles");
-  }
-
-  // Initialize therapy programs - create default programs if none exist
-  if (!localStorage.getItem("eacsl_therapy_programs")) {
-    localStorage.setItem("eacsl_therapy_programs", JSON.stringify(defaultTherapyPrograms));
-    console.log("Initialized default therapy programs");
-  }
-
-  // Initialize for parents articles - create default articles if none exist
-  if (!localStorage.getItem("eacsl_for_parents")) {
-    localStorage.setItem("eacsl_for_parents", JSON.stringify(defaultForParentsArticles));
-    console.log("Initialized default for parents articles");
-  }
+  // Data will be loaded from Supabase or localStorage if it exists
+  // No default data initialization needed
 };
