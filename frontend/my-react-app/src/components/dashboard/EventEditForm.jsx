@@ -6,6 +6,11 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     title: '',
     subtitle: '',
+    headerInfo1: 'Two Days Conference',
+    headerInfo2: 'All Attendees Welcome',
+    overviewDescription: '',
+    durationText: 'Two Full Days',
+    tracksDescription: '3 Parallel Sessions',
     memberFee: 500,
     guestFee: 800,
     tracks: ['Track A: Speech & Swallowing', 'Track B: Language Disorders', 'Track C: Audiology'],
@@ -35,6 +40,11 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
       setFormData({
         title: event.title || '',
         subtitle: event.subtitle || '',
+        headerInfo1: event.headerInfo1 || 'Two Days Conference',
+        headerInfo2: event.headerInfo2 || 'All Attendees Welcome',
+        overviewDescription: event.overviewDescription || '',
+        durationText: event.durationText || 'Two Full Days',
+        tracksDescription: event.tracksDescription || '3 Parallel Sessions',
         memberFee: event.memberFee || 500,
         guestFee: event.guestFee || 800,
         tracks: event.tracks || ['Track A: Speech & Swallowing', 'Track B: Language Disorders', 'Track C: Audiology'],
@@ -232,9 +242,9 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Basic Information */}
+          {/* Header Information */}
           <div className="space-y-4">
-            <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Basic Information</h3>
+            <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Header Information</h3>
             
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -265,6 +275,90 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                 required
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Header Info 1 (e.g., "Two Days Conference")
+                </label>
+                <input
+                  type="text"
+                  name="headerInfo1"
+                  value={formData.headerInfo1}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                  placeholder="Two Days Conference"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Header Info 2 (e.g., "All Attendees Welcome")
+                </label>
+                <input
+                  type="text"
+                  name="headerInfo2"
+                  value={formData.headerInfo2}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                  placeholder="All Attendees Welcome"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Event Overview */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Event Overview</h3>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Overview Description (optional)
+              </label>
+              <textarea
+                name="overviewDescription"
+                value={formData.overviewDescription}
+                onChange={handleChange}
+                rows={2}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                placeholder="Brief description about the event overview"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Duration Text
+                </label>
+                <input
+                  type="text"
+                  name="durationText"
+                  value={formData.durationText}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                  placeholder="Two Full Days"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tracks Description
+                </label>
+                <input
+                  type="text"
+                  name="tracksDescription"
+                  value={formData.tracksDescription}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                  placeholder="3 Parallel Sessions"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Basic Information */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Basic Information</h3>
 
             <div className="grid grid-cols-2 gap-4">
               <div>

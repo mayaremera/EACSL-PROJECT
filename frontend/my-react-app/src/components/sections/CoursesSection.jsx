@@ -33,14 +33,17 @@ const CoursesSection = () => {
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-12">
-                    <h2 className="text-3xl font-bold text-black">
-                        TOP POPULAR COURSE
-                    </h2>
+                    <div className="inline-block">
+                        <h2 className="text-3xl font-bold text-black mb-[-0.15rem]">
+                            POPULAR COURSES
+                        </h2>
+                        <div className="h-[0.2rem] w-[10.5rem] bg-[#5A9B8E]"></div>
+                    </div>
                     <Link
                         to="/online-courses"
                         className="text-gray-700 font-medium hover:text-[#5A9B8E] transition-colors duration-300"
                     >
-                        View All
+                        View Al
                     </Link>
                 </div>
 

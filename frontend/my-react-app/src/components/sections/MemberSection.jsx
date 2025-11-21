@@ -19,14 +19,6 @@ const MemberSection = () => {
 
             {/* Content */}
             <div className="relative z-10 text-center px-8">
-                <div className="mb-6">
-                    <div className="text-5xl lg:text-6xl font-bold text-white mb-2">
-                        {count}+
-                    </div>
-                    <div className="text-lg lg:text-xl text-teal-200 font-medium">
-                        Active Members
-                    </div>
-                </div>
                 <h2 className="text-[2.5rem] lg:text-5xl font-semibold text-white mb-8 leading-tight">
                     Want to become a member<br />of EACSL?
                 </h2>

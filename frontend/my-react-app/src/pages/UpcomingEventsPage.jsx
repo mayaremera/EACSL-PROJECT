@@ -53,6 +53,11 @@ const UpcomingEventsPage = () => {
             id: 'default',
             title: 'Conference Schedule',
             subtitle: 'Advancing Practice and Research in Speech-Language Pathology: Bridging Science and Clinical Impact',
+            headerInfo1: 'Two Days Conference',
+            headerInfo2: 'All Attendees Welcome',
+            overviewDescription: '',
+            durationText: 'Two Full Days',
+            tracksDescription: '3 Parallel Sessions',
             memberFee: 500,
             guestFee: 800,
             tracks: ['Track A: Speech & Swallowing', 'Track B: Language Disorders', 'Track C: Audiology'],
@@ -119,7 +124,7 @@ const UpcomingEventsPage = () => {
     
     // Validate required fields
     if (!formData.fullName || !formData.email || !formData.phone) {
-      alert('Please fill in all required fields (Name, Email, Phone).');
+      alert('Please fill in all required fields (Name, Email, WhatsApp Phone).');
       return;
     }
     
@@ -316,14 +321,18 @@ const UpcomingEventsPage = () => {
               {eventData.subtitle || 'Advancing Practice and Research in Speech-Language Pathology: Bridging Science and Clinical Impact'}
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4 text-teal-100">
-              <div className="flex items-center gap-2">
-                <Calendar className="w-5 h-5" />
-                <span>Two Days Conference</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Users className="w-5 h-5" />
-                <span>All Attendees Welcome</span>
-              </div>
+              {eventData.headerInfo1 && (
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  <span>{eventData.headerInfo1}</span>
+                </div>
+              )}
+              {eventData.headerInfo2 && (
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  <span>{eventData.headerInfo2}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -339,25 +348,32 @@ const UpcomingEventsPage = () => {
             {/* Event Overview */}
             <div className="bg-white rounded-xl shadow-md p-8 mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-6">Event Overview</h2>
+              {eventData.overviewDescription && (
+                <p className="text-gray-700 mb-6">{eventData.overviewDescription}</p>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Clock className="w-5 h-5 text-[#4C9A8F]" />
+                {eventData.durationText && (
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Clock className="w-5 h-5 text-[#4C9A8F]" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-1">Duration</h3>
+                      <p className="text-sm text-gray-600">{eventData.durationText}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Duration</h3>
-                    <p className="text-sm text-gray-600">Two Full Days</p>
+                )}
+                {eventData.tracksDescription && (
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <Users className="w-5 h-5 text-[#4C9A8F]" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 mb-1">Tracks</h3>
+                      <p className="text-sm text-gray-600">{eventData.tracksDescription}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                    <Users className="w-5 h-5 text-[#4C9A8F]" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Tracks</h3>
-                    <p className="text-sm text-gray-600">3 Parallel Sessions</p>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 
@@ -499,7 +515,7 @@ const UpcomingEventsPage = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone *
+                    WhatsApp Phone *
                   </label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
@@ -550,27 +566,7 @@ const UpcomingEventsPage = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Preferred Tracks
-                  </label>
-                  <div className="space-y-2">
-                    {tracks.map((track, index) => (
-                      <label key={index} className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          value={track}
-                          checked={formData.selectedTracks.includes(track)}
-                          onChange={handleChange}
-                          className="w-4 h-4 text-[#4C9A8F] border-gray-300 rounded focus:ring-[#4C9A8F]"
-                        />
-                        <span className="text-sm text-gray-700">{track}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Special Requirements
+                    Special Notes
                   </label>
                   <textarea
                     name="specialRequirements"
@@ -578,7 +574,7 @@ const UpcomingEventsPage = () => {
                     onChange={handleChange}
                     rows={3}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent resize-none"
-                    placeholder="Any dietary restrictions or accessibility needs..."
+                    placeholder="Any additional notes or comments..."
                   ></textarea>
                 </div>
 

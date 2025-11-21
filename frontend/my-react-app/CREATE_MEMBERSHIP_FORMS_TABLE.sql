@@ -60,13 +60,16 @@ ALTER TABLE membership_forms ENABLE ROW LEVEL SECURITY;
 -- Admins can view, approve, reject, and manage all forms
 CREATE POLICY "Allow all operations for authenticated users" ON membership_forms
   FOR ALL
-  USING (auth.role() = 'authenticated')
-  WITH CHECK (auth.role() = 'authenticated');
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
 
--- Create policy to allow public insert (for form submissions)
+-- Create policy to allow public insert (for form submissions from anonymous users)
+-- This is critical for allowing form submissions without authentication
 -- Anyone can submit a form, but only admins can view them
 CREATE POLICY "Allow public insert" ON membership_forms
   FOR INSERT
+  TO anon, authenticated
   WITH CHECK (true);
 
 -- Create a function to update updated_at timestamp

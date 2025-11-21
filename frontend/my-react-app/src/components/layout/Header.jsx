@@ -259,11 +259,7 @@ const Header = () => {
                 {!link.dropdown ? (
                   <Link
                     to={link.href}
-                    className={`text-base font-semibold transition-all duration-200 ${
-                      location.pathname === link.href
-                        ? 'text-green-700'
-                        : 'text-gray-700 hover:text-teal-600'
-                    }`}
+                    className="text-base font-semibold text-gray-700 hover:text-teal-600 transition-all duration-200"
                   >
                     {link.name}
                   </Link>
@@ -285,23 +281,16 @@ const Header = () => {
                     {/* Dropdown Menu */}
                     {activeDropdown === link.name && (
                       <div className="absolute left-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-lg py-2 w-56">
-                        {link.dropdown.map((item) => {
-                          const isActive = location.pathname === item.href;
-                          return (
-                            <Link
-                              key={item.name}
-                              to={item.href}
-                              onClick={() => setActiveDropdown(null)}
-                              className={`block px-4 py-2 text-sm font-medium transition-all duration-200 ${
-                                isActive
-                                  ? 'bg-green-100 text-green-700 font-semibold'
-                                  : 'text-gray-700 hover:bg-teal-50 hover:text-teal-600'
-                              }`}
-                            >
-                              {item.name}
-                            </Link>
-                          );
-                        })}
+                        {link.dropdown.map((item) => (
+                          <Link
+                            key={item.name}
+                            to={item.href}
+                            onClick={() => setActiveDropdown(null)}
+                            className="block px-4 py-2 text-sm font-medium text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-all duration-200"
+                          >
+                            {item.name}
+                          </Link>
+                        ))}
                       </div>
                     )}
                   </>
@@ -589,11 +578,7 @@ const Header = () => {
                         <Link
                           to={`/member-profile/${memberData.id}`}
                           onClick={() => setUserDropdownOpen(false)}
-                          className={`flex items-center space-x-2 px-4 py-2 text-sm transition-all duration-200 ${
-                            location.pathname === `/member-profile/${memberData.id}`
-                              ? 'bg-green-100 text-green-700 font-semibold'
-                              : 'text-gray-700 hover:bg-teal-50 hover:text-teal-600'
-                          }`}
+                          className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-all duration-200"
                         >
                           <UserCircle size={16} />
                           <span>Profile</span>
@@ -601,11 +586,7 @@ const Header = () => {
                         <Link
                           to={`/continuing-education/${memberData.id}`}
                           onClick={() => setUserDropdownOpen(false)}
-                          className={`flex items-center space-x-2 px-4 py-2 text-sm transition-all duration-200 ${
-                            location.pathname === `/continuing-education/${memberData.id}`
-                              ? 'bg-green-100 text-green-700 font-semibold'
-                              : 'text-gray-700 hover:bg-teal-50 hover:text-teal-600'
-                          }`}
+                          className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-all duration-200"
                         >
                           <BookOpen size={16} />
                           <span>Continuing Education</span>
@@ -657,11 +638,7 @@ const Header = () => {
                     <Link
                       to={link.href}
                       onClick={() => setIsMenuOpen(false)}
-                      className={`text-base font-medium py-2 block transition-all duration-200 ${
-                        location.pathname === link.href
-                          ? 'text-green-700 font-semibold'
-                          : 'text-gray-700 hover:text-teal-600'
-                      }`}
+                      className="text-base font-medium text-gray-700 hover:text-teal-600 py-2 block transition-all duration-200"
                     >
                       {link.name}
                     </Link>
@@ -672,23 +649,16 @@ const Header = () => {
                         <ChevronDown size={18} className="group-open:rotate-180 transition-transform duration-200" />
                       </summary>
                       <div className="pl-4 mt-2 space-y-2">
-                        {link.dropdown.map((item) => {
-                          const isActive = location.pathname === item.href;
-                          return (
-                            <Link
-                              key={item.name}
-                              to={item.href}
-                              onClick={() => setIsMenuOpen(false)}
-                              className={`block text-sm font-medium transition-all duration-200 py-1 px-2 rounded-lg ${
-                                isActive
-                                  ? 'bg-green-100 text-green-700 font-semibold'
-                                  : 'text-gray-600 hover:text-teal-600 hover:bg-teal-50'
-                              }`}
-                            >
-                              {item.name}
-                            </Link>
-                          );
-                        })}
+                        {link.dropdown.map((item) => (
+                          <Link
+                            key={item.name}
+                            to={item.href}
+                            onClick={() => setIsMenuOpen(false)}
+                            className="block text-sm font-medium text-gray-600 hover:text-teal-600 hover:bg-teal-50 transition-all duration-200 py-1 px-2 rounded-lg"
+                          >
+                            {item.name}
+                          </Link>
+                        ))}
                       </div>
                     </details>
                   )}
@@ -755,11 +725,7 @@ const Header = () => {
                         <Link
                           to={`/member-profile/${memberData.id}`}
                           onClick={() => setIsMenuOpen(false)}
-                          className={`w-full flex items-center justify-center space-x-2 px-6 py-2.5 rounded-xl font-medium transition-all duration-300 hover:scale-105 active:scale-95 ${
-                            location.pathname === `/member-profile/${memberData.id}`
-                              ? 'bg-green-100 text-green-700 font-semibold'
-                              : 'bg-teal-50 hover:bg-teal-100 text-teal-600'
-                          }`}
+                          className="w-full flex items-center justify-center space-x-2 px-6 py-2.5 rounded-xl font-medium bg-teal-50 hover:bg-teal-100 text-teal-600 transition-all duration-300 hover:scale-105 active:scale-95"
                         >
                           <UserCircle size={18} />
                           <span>Profile</span>
@@ -767,11 +733,7 @@ const Header = () => {
                         <Link
                           to={`/continuing-education/${memberData.id}`}
                           onClick={() => setIsMenuOpen(false)}
-                          className={`w-full flex items-center justify-center space-x-2 px-6 py-2.5 rounded-xl font-medium transition-all duration-300 hover:scale-105 active:scale-95 ${
-                            location.pathname === `/continuing-education/${memberData.id}`
-                              ? 'bg-green-100 text-green-700 font-semibold'
-                              : 'bg-teal-50 hover:bg-teal-100 text-teal-600'
-                          }`}
+                          className="w-full flex items-center justify-center space-x-2 px-6 py-2.5 rounded-xl font-medium bg-teal-50 hover:bg-teal-100 text-teal-600 transition-all duration-300 hover:scale-105 active:scale-95"
                         >
                           <BookOpen size={18} />
                           <span>Continuing Education</span>

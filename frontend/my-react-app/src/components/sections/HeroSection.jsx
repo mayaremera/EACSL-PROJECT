@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import WaelAlDakroury from "../../assets/waelaldakroury.png";
 import OsamaElsayed from "../../assets/osamaelsayed.png";
 import SaharAAlsamahi from "../../assets/saharalsamahi.png";
@@ -209,6 +210,10 @@ const HeroSection = () => {
     return '/upcoming-events';
   };
 
+  // Get dynamic title and description from current event
+  const heroTitle = currentEvent?.title || "Advancing Speech-Language Pathology 2025";
+  const heroDescription = currentEvent?.subtitle || "Join leading experts for a two-day conference focused on advancing clinical practice, enhancing research impact, and exploring innovation across speech, swallowing, language disorders, and audiology.";
+
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-[#f7f8fa] py-20">
       {/* Container */}
@@ -217,22 +222,23 @@ const HeroSection = () => {
         {/* Left Side */}
         <div className="space-y-6 flex flex-col items-center md:items-start">
 
-          {/* Updated Catchy Title */}
+          {/* Dynamic Title from Current Event */}
           <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight text-center md:text-left">
-            Advancing Speech-Language Pathology 2025
+            {heroTitle}
           </h1>
 
-          {/* Updated Description */}
+          {/* Dynamic Description from Current Event */}
           <p className="text-base md:text-lg lg:text-[1.1rem] font-normal text-[#5a6270] max-w-[42rem] text-center md:text-left">
-            Join leading experts for a two-day conference focused on advancing clinical
-            practice, enhancing research impact, and exploring innovation across speech,
-            swallowing, language disorders, and audiology.
+            {heroDescription}
           </p>
 
-
-          <a className="text-sm md:text-base px-8 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] font-semibold rounded-md hover:bg-[#5A9B8E] hover:text-white transition-all duration-300 w-fit" href={getEnrollUrl()}>
+          {/* Enroll Button - Links to Current Event */}
+          <Link 
+            to={getEnrollUrl()}
+            className="text-sm md:text-base px-8 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] font-semibold rounded-md hover:bg-[#5A9B8E] hover:text-white transition-all duration-300 w-fit"
+          >
             Enroll Now
-          </a>
+          </Link>
         </div>
 
         {/* Right Side — Card */}

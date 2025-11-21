@@ -1,5 +1,5 @@
 import React from 'react';
-import { Facebook, Instagram, Twitter } from 'lucide-react';
+import { Facebook, Instagram, Twitter, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import whiteLogo from '../../assets/white-eacsl-logo.png';
 
@@ -18,25 +18,31 @@ const Footer = () => {
           </Link> 
           <div className="flex gap-4 justify-center lg:justify-start">
             <a 
-              href="#" 
+              href="https://www.facebook.com/share/1DL2TuQqH3/" 
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all duration-300 hover:scale-110"
               aria-label="Facebook"
             >
               <Facebook className="w-5 h-5 text-white" />
             </a>
             <a 
-              href="#" 
+              href="https://www.instagram.com/eacsl2012?igsh=MTUyNW95c3dmM21tYQ==" 
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all duration-300 hover:scale-110"
               aria-label="Instagram"
             >
               <Instagram className="w-5 h-5 text-white" />
             </a>
             <a 
-              href="#" 
+              href="https://x.com/Eacslphonetics?fbclid=IwVERDUAOMj0NleHRuA2FlbQIxMABzcnRjBmFwcF9pZAwzNTA2ODU1MzE3MjgAAR6hCe2xNn9WcvrAymTP3X-RmtZThkAUffCLo6jM5E4p1uXUwrXx3oFYnrAjPg_aem_yBGW3SHpJKv40n_gaOsD9g" 
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all duration-300 hover:scale-110"
               aria-label="Twitter"
             >
-              <Twitter className="w-5 h-5 text-white" />
+              <X className="w-5 h-5 text-white" />
             </a>
           </div>
         </>
@@ -56,7 +62,6 @@ const Footer = () => {
       links: [
         { name: 'Upcoming Events', href: '/upcoming-events' },
         { name: 'Past Events', href: '/past-events' },
-        { name: 'Registration', href: '/registration' },
       ]
     },
     {
@@ -67,7 +72,6 @@ const Footer = () => {
         { name: 'Members Overview', href: '/members-overview' },
         { name: 'Online Courses', href: '/online-courses' },
         { name: 'Articles', href: '/articles' },
-        { name: 'Education', href: '/education' }
       ]
     },
     {
@@ -96,21 +100,27 @@ const Footer = () => {
             </div>
             <div className="flex gap-4 justify-center">
               <a 
-                href="#" 
+                href="https://www.facebook.com/share/1DL2TuQqH3/" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all duration-300 hover:scale-110"
                 aria-label="Facebook"
               >
                 <Facebook className="w-5 h-5 text-white" />
               </a>
               <a 
-                href="#" 
+                href="https://www.instagram.com/eacsl2012?igsh=MTUyNW95c3dmM21tYQ==" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all duration-300 hover:scale-110"
                 aria-label="Instagram"
               >
                 <Instagram className="w-5 h-5 text-white" />
               </a>
               <a 
-                href="#" 
+                href="https://x.com/Eacslphonetics?fbclid=IwVERDUAOMj0NleHRuA2FlbQIxMABzcnRjBmFwcF9pZAwzNTA2ODU1MzE3MjgAAR6hCe2xNn9WcvrAymTP3X-RmtZThkAUffCLo6jM5E4p1uXUwrXx3oFYnrAjPg_aem_yBGW3SHpJKv40n_gaOsD9g" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center hover:bg-white/20 transition-all duration-300 hover:scale-110"
                 aria-label="Twitter"
               >
