@@ -313,7 +313,7 @@ const ContactPage = () => {
       </div>
 
       {/* Footer CTA Section */}
-      <div className="bg-white border-t border-gray-200 py-12">
+      <div className="bg-white border-t border-gray-200 py-12 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] rounded-2xl p-8 md:p-12 text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
@@ -322,7 +322,10 @@ const ContactPage = () => {
             <p className="text-teal-50 mb-6 max-w-2xl mx-auto">
               Become a member and be part of our growing professional community
             </p>
-            <a href="/apply-membership" className="bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg">
+            <a 
+              href="/apply-membership"
+              className="inline-block bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
+            >
               Become a Member
             </a>
           </div>

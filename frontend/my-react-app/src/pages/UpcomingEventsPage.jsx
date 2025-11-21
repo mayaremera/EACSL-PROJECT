@@ -625,7 +625,10 @@ const UpcomingEventsPage = () => {
             <p className="text-teal-50 mb-6 max-w-2xl mx-auto">
               Contact us for more information about the conference
             </p>
-            <a className="bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg" href='/contact'>
+            <a 
+              href='/contact'
+              className="inline-block bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
+            >
               Contact Us
             </a>
           </div>
