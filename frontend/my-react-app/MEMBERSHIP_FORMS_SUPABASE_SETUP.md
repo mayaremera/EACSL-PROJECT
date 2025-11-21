@@ -45,33 +45,59 @@ The bucket will automatically organize files into these folders:
 - `certificates/` - Graduation certificates
 - `cvs/` - CV/Resume PDF files
 
-### Storage Policies (If Bucket is Private)
+### Storage Policies (Required for Uploads)
 
-If you need to keep the bucket private for security reasons, you can set up RLS policies:
+Even if your bucket is Public, you may still need RLS policies for uploads to work properly. Follow one of these methods:
+
+#### Method 1: Using SQL (Recommended)
+
+Run the SQL script from `STORAGE_POLICIES_MEMBER_FORMS_BUCKET.sql` in your Supabase SQL Editor:
+
+1. Go to Supabase Dashboard → SQL Editor
+2. Click "New Query"
+3. Copy and paste the entire contents of `STORAGE_POLICIES_MEMBER_FORMS_BUCKET.sql`
+4. Click "Run" or press `Ctrl+Enter` (Windows) / `Cmd+Enter` (Mac)
+5. Verify the policies were created by checking the output
+
+This will create policies for:
+- ✅ Public read access (SELECT)
+- ✅ Public upload access (INSERT) - **REQUIRED for form submissions**
+- ✅ Public update access (UPDATE)
+- ✅ Public delete access (DELETE)
+
+#### Method 2: Using Dashboard UI (If SQL doesn't work)
+
+If you get a "must be owner" error with the SQL method, use the Dashboard UI:
 
 1. Go to Supabase Dashboard → Storage → Policies
 2. Select `member-forms-bucket`
-3. Create these policies:
+3. Click "New Policy" and create these policies:
 
-**Policy 1: Allow public uploads**
-- Policy name: "Allow public uploads"
-- Allowed operation: INSERT
-- Target roles: anon, authenticated
-- Policy definition: `true`
+**Policy 1: Allow public uploads** (CRITICAL)
+- Policy name: "Public upload access for member-forms-bucket"
+- Allowed operation: **INSERT**
+- Target roles: **anon**, **authenticated**
+- Policy definition: `bucket_id = 'member-forms-bucket'`
 
-**Policy 2: Allow public access to files**
-- Policy name: "Allow public file access"
-- Allowed operation: SELECT
-- Target roles: anon, authenticated
-- Policy definition: `true`
+**Policy 2: Allow public read access**
+- Policy name: "Public read access for member-forms-bucket"
+- Allowed operation: **SELECT**
+- Target roles: **anon**, **authenticated**
+- Policy definition: `bucket_id = 'member-forms-bucket'`
 
-**Policy 3: Allow authenticated users to delete**
-- Policy name: "Allow admins to delete files"
-- Allowed operation: DELETE
-- Target roles: authenticated
-- Policy definition: `true`
+**Policy 3: Allow public updates** (Optional)
+- Policy name: "Public update access for member-forms-bucket"
+- Allowed operation: **UPDATE**
+- Target roles: **anon**, **authenticated**
+- Policy definition: `bucket_id = 'member-forms-bucket'`
 
-> **Note:** If you make the bucket Public, you don't need these policies. Public buckets allow all operations.
+**Policy 4: Allow authenticated deletes** (Optional - Recommended to restrict to admins)
+- Policy name: "Authenticated delete access for member-forms-bucket"
+- Allowed operation: **DELETE**
+- Target roles: **authenticated** (only admins)
+- Policy definition: `bucket_id = 'member-forms-bucket' AND auth.role() = 'authenticated'`
+
+> **Important:** The INSERT policy is **REQUIRED** for form submissions to work. Without it, you'll get "new row violates row-level security policy" errors.
 
 ## Step 3: Verify Setup
 
@@ -138,11 +164,33 @@ The table stores the following data from the "Become a Member" form:
 ## Troubleshooting
 
 ### Error: "relation 'membership_forms' does not exist"
-- The table wasn't created. Run the SQL script again.
+- The table wasn't created. Run the SQL script from `CREATE_MEMBERSHIP_FORMS_TABLE.sql` again.
+- Verify the table exists in Supabase Dashboard → Table Editor
 
-### Error: "new row violates row-level security policy"
-- Check RLS policies are correctly set up (Step 1)
-- Verify you're using the correct authentication (for admin access)
+### Error: "new row violates row-level security policy" (Storage Upload Error)
+**This is the most common error when uploading files!** It means the storage bucket doesn't have the correct RLS policies for public uploads.
+
+**Solution:**
+1. **Create the policies using SQL (Easiest):**
+   - Run the SQL script from `STORAGE_POLICIES_MEMBER_FORMS_BUCKET.sql` in Supabase SQL Editor
+   - This will create all required policies automatically
+
+2. **OR use Dashboard UI:**
+   - Go to Supabase Dashboard → Storage → Policies
+   - Select `member-forms-bucket`
+   - Click "New Policy"
+   - Create a policy with:
+     - **Policy name:** "Public upload access for member-forms-bucket"
+     - **Allowed operation:** INSERT
+     - **Target roles:** anon, authenticated (or public)
+     - **Policy definition:** `bucket_id = 'member-forms-bucket'`
+
+3. **Verify policies exist:**
+   - Go to Storage → Policies → member-forms-bucket
+   - You should see at least one policy for INSERT operation
+   - If not, create one following the steps above
+
+**Important:** Even if your bucket is set to Public, you still need RLS policies for INSERT operations to work!
 
 ### Error: "bucket not found"
 - Create the `member-forms-bucket` in Storage (Step 2)

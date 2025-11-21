@@ -4,121 +4,48 @@ import BecomeMemberForm from '../components/forms/BecomeMemberForm';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import { UserPlus } from 'lucide-react';
+import { membershipFormsService } from '../services/membershipFormsService';
 
 const ApplyMembershipPage = () => {
 
-  // Helper function to upload file to Supabase Storage
+  // Helper function to upload file to Supabase Storage using the service
   const uploadFileToStorage = async (file, folder, fileName) => {
     if (!file) return null;
     
     try {
-      const { supabase } = await import('../lib/supabase');
-      const fileExt = file.name.split('.').pop();
-      const uniqueFileName = `${fileName}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `${folder}/${uniqueFileName}`;
-
-      // Use dashboardmemberimages bucket for profile images, MemberBucket for other documents
-      const bucketName = folder === 'profile-images' ? 'dashboardmemberimages' : 'MemberBucket';
-
-      const { data, error } = await supabase.storage
-        .from(bucketName)
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (error) {
-        // Check for specific error types
-        if (error.message?.includes('bucket') || 
-            error.message?.includes('not found') ||
-            error.message?.includes('Bucket not found') ||
-            error.code === '404') {
-          console.warn(`Supabase Storage bucket "${bucketName}" not found:`, error);
-          console.warn(`Please create the "${bucketName}" bucket in Supabase Storage and set it to Public.`);
-          // Return error info so caller can handle it
-          return {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            uploaded: false,
-            error: 'BUCKET_NOT_FOUND',
-            errorMessage: `Bucket "${bucketName}" not found. Please create it in Supabase Storage.`,
-            bucketName: bucketName
-          };
-        }
-        if (error.message?.includes('new row violates row-level security') || 
-            error.message?.includes('RLS') ||
-            error.message?.includes('row-level security policy')) {
-          console.warn('Storage bucket RLS policy error:', error);
-          // Return a special error object so we can show a helpful message
-          return {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            uploaded: false,
-            error: 'RLS_POLICY_REQUIRED',
-            errorMessage: 'Bucket requires RLS policies for public uploads. See STORAGE_RLS_POLICIES.sql'
-          };
-        }
-        if (error.message?.includes('The resource already exists')) {
-          // File already exists, try with different name
-          const retryFileName = `${fileName}_${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
-          const retryPath = `${folder}/${retryFileName}`;
-          
-          const { data: retryData, error: retryError } = await supabase.storage
-            .from(bucketName)
-            .upload(retryPath, file, { cacheControl: '3600', upsert: false });
-          
-          if (retryError) {
-            console.warn('Retry upload failed:', retryError);
-            return null;
-          }
-          
-          const { data: urlData } = supabase.storage
-            .from(bucketName)
-            .getPublicUrl(retryPath);
-          
-          return {
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            storagePath: retryPath,
-            url: urlData?.publicUrl || null,
-            uploaded: true
-          };
-        }
-        console.warn('Storage upload error:', error);
-        return null;
+      const result = await membershipFormsService.uploadFile(file, folder, fileName);
+      
+      if (result.error) {
+        // Return error info so caller can handle it
+        return {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          uploaded: false,
+          error: result.error.code || 'UPLOAD_ERROR',
+          errorMessage: result.error.message || 'Upload failed',
+          bucketName: 'member-forms-bucket'
+        };
       }
-
-      // Get public URL
-      const { data: urlData } = supabase.storage
-        .from(bucketName)
-        .getPublicUrl(filePath);
-
-      return {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        storagePath: filePath,
-        url: urlData?.publicUrl || null,
-        uploaded: true
-      };
+      
+      if (result.path && result.url) {
+        return {
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          storagePath: result.path,
+          url: result.url,
+          uploaded: true
+        };
+      }
+      
+      return null;
     } catch (error) {
       console.error('Exception uploading file to storage:', error);
       return null;
     }
   };
 
-  // Helper function to convert File to base64 (fallback)
-  const fileToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
-    });
-  };
 
   // Add a ref to track last submission time to prevent rapid duplicate submissions
   const lastSubmissionRef = useRef(null);
@@ -163,16 +90,15 @@ const ApplyMembershipPage = () => {
       );
       
       if (hasBucketError) {
-        const missingBucket = profileImage?.bucketName || idImage?.bucketName || 'dashboardmemberimages or MemberBucket';
         throw new Error(
           `❌ Storage Bucket Not Found\n\n` +
-          `The bucket "${missingBucket}" does not exist in Supabase Storage.\n\n` +
+          `The bucket "member-forms-bucket" does not exist in Supabase Storage.\n\n` +
           `To fix this:\n` +
           `1. Go to Supabase Dashboard → Storage\n` +
-          `2. Create a new bucket named: "${missingBucket}"\n` +
+          `2. Create a new bucket named: "member-forms-bucket"\n` +
           `3. Set it to Public\n` +
           `4. Try submitting again\n\n` +
-          `See DASHBOARD_MEMBER_IMAGES_SETUP.md for detailed instructions.`
+          `See MEMBERSHIP_FORMS_SUPABASE_SETUP.md for detailed instructions.`
         );
       }
 
@@ -188,105 +114,45 @@ const ApplyMembershipPage = () => {
           `To fix this, choose ONE of these options:\n\n` +
           `OPTION 1 (Easiest):\n` +
           `1. Go to Supabase Dashboard → Storage\n` +
-          `2. Find MemberBucket\n` +
+          `2. Find member-forms-bucket\n` +
           `3. Click the bucket settings\n` +
           `4. Change visibility to "Public"\n\n` +
           `OPTION 2 (If you need Private bucket):\n` +
-          `1. Go to Supabase Dashboard → SQL Editor\n` +
-          `2. Run the SQL script from STORAGE_RLS_POLICIES.sql\n` +
-          `3. This will add policies to allow public uploads\n\n` +
+          `1. Go to Supabase Dashboard → Storage → Policies\n` +
+          `2. Create policies to allow public uploads\n` +
+          `3. See MEMBERSHIP_FORMS_SUPABASE_SETUP.md for details\n\n` +
           `After fixing, try submitting the form again.`
         );
       }
 
-      // Only use base64 fallback if storage failed AND files are small enough
-      if (storageUploadFailed) {
-        const totalSize = [
-          data.profileImage?.size || 0,
-          data.idImage?.size || 0,
-          data.graduationCert?.size || 0,
-          data.cv?.size || 0
-        ].reduce((sum, size) => sum + size, 0);
+      // All files must be uploaded to storage - no base64 fallback
+      // Check if any required file failed to upload
+      const requiredFiles = [
+        { file: data.profileImage, upload: profileImage, name: 'Profile Image' },
+        { file: data.idImage, upload: idImage, name: 'ID Card' },
+        { file: data.graduationCert, upload: graduationCert, name: 'Graduation Certificate' },
+        { file: data.cv, upload: cv, name: 'CV' }
+      ];
 
-        const maxTotalSizeForBase64 = 5 * 1024 * 1024; // 5MB max for base64 fallback (reduced to avoid localStorage issues)
-        
-        if (totalSize > maxTotalSizeForBase64) {
-          throw new Error(
-            `Unable to upload files to storage. Total file size (${(totalSize / (1024 * 1024)).toFixed(2)} MB) is too large for local storage.\n\n` +
-            `Please:\n` +
-            `1. Ensure MemberBucket is set to Public in Supabase Storage\n` +
-            `2. Or run STORAGE_RLS_POLICIES.sql if bucket is Private\n` +
-            `3. Or reduce total file size to under 5MB\n` +
-            `4. Contact support if the issue persists`
-          );
-        }
+      const failedFiles = requiredFiles.filter(
+        ({ file, upload }) => file && (!upload || !upload.uploaded)
+      );
 
-        // Fallback to base64 for small files only
-        const convertFile = async (file) => {
-          if (!file) return null;
-          try {
-            const base64 = await fileToBase64(file);
-            return {
-              name: file.name,
-              size: file.size,
-              type: file.type,
-              data: base64,
-              uploaded: false
-            };
-          } catch (error) {
-            console.error('Error converting file to base64:', error);
-            throw new Error(`Failed to process ${file.name}. Please try again.`);
-          }
-        };
-
-        // Fill in any missing files with base64 conversion
-        if (!profileImage && data.profileImage) profileImage = await convertFile(data.profileImage);
-        if (!idImage && data.idImage) idImage = await convertFile(data.idImage);
-        if (!graduationCert && data.graduationCert) graduationCert = await convertFile(data.graduationCert);
-        if (!cv && data.cv) cv = await convertFile(data.cv);
-      } else {
-        // All files uploaded to storage - only store metadata (no base64 data)
-        // This keeps localStorage small
-        if (!profileImage && data.profileImage) {
-          profileImage = {
-            name: data.profileImage.name,
-            size: data.profileImage.size,
-            type: data.profileImage.type,
-            uploaded: false,
-            error: 'Upload failed'
-          };
-        }
-        if (!idImage && data.idImage) {
-          idImage = {
-            name: data.idImage.name,
-            size: data.idImage.size,
-            type: data.idImage.type,
-            uploaded: false,
-            error: 'Upload failed'
-          };
-        }
-        if (!graduationCert && data.graduationCert) {
-          graduationCert = {
-            name: data.graduationCert.name,
-            size: data.graduationCert.size,
-            type: data.graduationCert.type,
-            uploaded: false,
-            error: 'Upload failed'
-          };
-        }
-        if (!cv && data.cv) {
-          cv = {
-            name: data.cv.name,
-            size: data.cv.size,
-            type: data.cv.type,
-            uploaded: false,
-            error: 'Upload failed'
-          };
-        }
+      if (failedFiles.length > 0) {
+        const failedNames = failedFiles.map(f => f.name).join(', ');
+        throw new Error(
+          `Failed to upload the following files: ${failedNames}\n\n` +
+          `Please ensure:\n` +
+          `1. The "member-forms-bucket" exists in Supabase Storage\n` +
+          `2. The bucket is set to Public\n` +
+          `3. Your internet connection is stable\n` +
+          `4. File sizes are within limits (max 5MB each)\n\n` +
+          `Please try again.`
+        );
       }
 
+      // Prepare form submission data
       const formSubmission = {
-        id: Date.now().toString(), // Generate unique ID
         username: data.username,
         email: data.email,
         password: data.password, // Store password for account creation on approval
@@ -300,66 +166,35 @@ const ApplyMembershipPage = () => {
         cv
       };
 
-      // Get existing forms from localStorage
-      let existingForms = [];
-      try {
-        const stored = localStorage.getItem('memberForms');
-        existingForms = stored ? JSON.parse(stored) : [];
-      } catch (error) {
-        console.error('Error reading from localStorage:', error);
-        existingForms = [];
-      }
-      
-      // Check for duplicate submission (same email with pending status)
-      const duplicateSubmission = existingForms.find(
-        form => form.email === formSubmission.email && form.status === 'pending'
-      );
-      
-      if (duplicateSubmission) {
-        throw new Error(
-          `You already have a pending application with email ${formSubmission.email}.\n\n` +
-          `Please wait for your current application to be reviewed before submitting again.`
-        );
-      }
-      
-      // Add new submission
-      existingForms.push(formSubmission);
-      
-      // Save back to localStorage with error handling
-      // Note: If files are in Supabase Storage, we only store metadata (URLs) - much smaller
-      try {
-        const dataToStore = JSON.stringify(existingForms);
-        const estimatedSize = new Blob([dataToStore]).size;
-        
-        // Check if we're storing base64 data (larger) vs storage URLs (smaller)
-        const hasBase64Data = existingForms.some(form => 
-          form.profileImage?.data || form.idImage?.data || 
-          form.graduationCert?.data || form.cv?.data
-        );
-        
-        if (hasBase64Data && estimatedSize > 5 * 1024 * 1024) { // 5MB warning for base64
-          console.warn('Large data size detected (base64):', estimatedSize);
-        }
-        
-        localStorage.setItem('memberForms', dataToStore);
-      } catch (error) {
-        if (error.name === 'QuotaExceededError' || error.code === 22) {
+      // Save to Supabase instead of localStorage
+      const result = await membershipFormsService.add(formSubmission);
+
+      if (result.error) {
+        // Handle specific errors
+        if (result.error.code === 'TABLE_NOT_FOUND') {
           throw new Error(
-            'Storage limit exceeded. The files you uploaded are too large.\n\n' +
-            'This usually means files failed to upload to Supabase Storage.\n\n' +
-            'Please:\n' +
-            '1. Ensure MemberBucket is set to Public in Supabase Storage\n' +
-            '2. Reduce file sizes (compress images, use smaller PDFs)\n' +
-            '3. Try submitting again\n' +
-            '4. Contact support if the issue persists'
+            `❌ Database Table Not Found\n\n` +
+            `The membership_forms table does not exist in Supabase.\n\n` +
+            `To fix this:\n` +
+            `1. Go to Supabase Dashboard → SQL Editor\n` +
+            `2. Run the SQL script from CREATE_MEMBERSHIP_FORMS_TABLE.sql\n` +
+            `3. Try submitting again\n\n` +
+            `See MEMBERSHIP_FORMS_SUPABASE_SETUP.md for detailed instructions.`
           );
-        } else {
-          throw new Error('Failed to save form submission. Please try again.');
         }
+        
+        if (result.error.code === 'DUPLICATE_EMAIL') {
+          throw new Error(result.error.message);
+        }
+
+        throw new Error(
+          `Failed to save form submission: ${result.error.message || 'Unknown error'}\n\n` +
+          `Please try again or contact support.`
+        );
       }
-      
+
       // Dispatch event to notify dashboard
-      window.dispatchEvent(new CustomEvent('formsUpdated', { detail: existingForms }));
+      window.dispatchEvent(new CustomEvent('formsUpdated', { detail: [result.data] }));
       
       // Return success - form component will show success message
       return { success: true };
