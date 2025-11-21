@@ -11,7 +11,7 @@ import React from 'react';
  */
 const PageHero = ({ title, subtitle, icon, className = '' }) => {
   return (
-    <div className={`bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-16 ${className}`}>
+    <div className={`bg-[#5A9B8E] text-white py-16 ${className}`}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center">
           {icon && (
@@ -21,7 +21,7 @@ const PageHero = ({ title, subtitle, icon, className = '' }) => {
           )}
           <h1 className="text-4xl md:text-5xl font-bold mb-4">{title}</h1>
           {subtitle && (
-            <p className="text-lg md:text-xl text-teal-50 max-w-2xl mx-auto">
+            <p className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto">
               {subtitle}
             </p>
           )}

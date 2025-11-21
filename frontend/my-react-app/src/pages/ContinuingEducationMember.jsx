@@ -152,7 +152,7 @@ function ContinuingEducationMember() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4C9A8F] mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5A9B8E] mx-auto mb-4"></div>
           <p className="text-gray-600">Loading member profile...</p>
         </div>
       </div>
@@ -169,7 +169,7 @@ function ContinuingEducationMember() {
             <p className="text-gray-600 mb-6">You need to be signed in to view your continuing education profile.</p>
             <button
               onClick={() => navigate('/', { replace: true })}
-              className="px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors"
+              className="px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors"
             >
               Go to Home
             </button>
@@ -182,7 +182,7 @@ function ContinuingEducationMember() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4C9A8F] mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5A9B8E] mx-auto mb-4"></div>
           <p className="text-gray-600">Setting up your profile...</p>
         </div>
       </div>
@@ -301,21 +301,21 @@ function ContinuingEducationMember() {
                         </div>
                       )}
                     </div>
-                    <p className="text-xl text-[#4C9A8F] font-semibold mb-4">
+                    <p className="text-xl text-[#5A9B8E] font-semibold mb-4">
                       {profile.title}
                     </p>
 
                     <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 justify-center md:justify-start">
                       {profile.location && (
                         <div className="flex items-center gap-1.5">
-                          <MapPin className="w-4 h-4 text-[#4C9A8F]" />
+                          <MapPin className="w-4 h-4 text-[#5A9B8E]" />
                           <span>{profile.location}</span>
                         </div>
                       )}
                     </div>
                   </div>
 
-                  <button className="flex items-center gap-2 bg-[#4C9A8F] text-white px-6 py-3 rounded-lg hover:bg-[#3d8178] transition-colors duration-200 font-semibold shadow-md">
+                  <button className="flex items-center gap-2 bg-[#5A9B8E] text-white px-6 py-3 rounded-lg hover:bg-[#4A8B7E] transition-colors duration-200 font-semibold shadow-md">
                     <Download className="w-4 h-4" />
                     Download CV
                   </button>
@@ -324,25 +324,25 @@ function ContinuingEducationMember() {
                 {/* Contact Info */}
                 <div className="flex flex-wrap gap-4 mt-6 justify-center md:justify-start">
                   {profile.email && (
-                    <a href={`mailto:${profile.email}`} className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#4C9A8F] transition-colors">
+                    <a href={`mailto:${profile.email}`} className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#5A9B8E] transition-colors">
                       <Mail className="w-4 h-4" />
                       <span>{profile.email}</span>
                     </a>
                   )}
                   {profile.phone && (
-                    <a href={`tel:${profile.phone}`} className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#4C9A8F] transition-colors">
+                    <a href={`tel:${profile.phone}`} className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#5A9B8E] transition-colors">
                       <Phone className="w-4 h-4" />
                       <span>{profile.phone}</span>
                     </a>
                   )}
                   {profile.website && (
-                    <a href={`https://${profile.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#4C9A8F] transition-colors">
+                    <a href={`https://${profile.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#5A9B8E] transition-colors">
                       <Globe className="w-4 h-4" />
                       <span>{profile.website}</span>
                     </a>
                   )}
                   {profile.linkedin && (
-                    <a href={`https://${profile.linkedin}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#4C9A8F] transition-colors">
+                    <a href={`https://${profile.linkedin}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#5A9B8E] transition-colors">
                       <Linkedin className="w-4 h-4" />
                       <span>LinkedIn</span>
                     </a>
@@ -399,8 +399,8 @@ function ContinuingEducationMember() {
               onClick={() => setActiveTab('active')}
               className={`flex items-center gap-2 px-6 py-4 font-semibold transition-colors duration-200 border-b-2 ${
                 activeTab === 'active'
-                  ? 'border-[#4C9A8F] text-[#4C9A8F]'
-                  : 'border-transparent text-gray-600 hover:text-[#4C9A8F]'
+                  ? 'border-[#5A9B8E] text-[#5A9B8E]'
+                  : 'border-transparent text-gray-600 hover:text-[#5A9B8E]'
               }`}
             >
               <PlayCircle className="w-4 h-4" />
@@ -410,8 +410,8 @@ function ContinuingEducationMember() {
               onClick={() => setActiveTab('completed')}
               className={`flex items-center gap-2 px-6 py-4 font-semibold transition-colors duration-200 border-b-2 ${
                 activeTab === 'completed'
-                  ? 'border-[#4C9A8F] text-[#4C9A8F]'
-                  : 'border-transparent text-gray-600 hover:text-[#4C9A8F]'
+                  ? 'border-[#5A9B8E] text-[#5A9B8E]'
+                  : 'border-transparent text-gray-600 hover:text-[#5A9B8E]'
               }`}
             >
               <CheckCircle className="w-4 h-4" />
@@ -459,12 +459,12 @@ function ContinuingEducationMember() {
                       {course.lessons && (
                         <div className="grid grid-cols-2 gap-3 mb-3">
                           <div className="flex items-center gap-2 text-xs text-gray-600">
-                            <BookOpen className="w-4 h-4 text-[#4C9A8F]" />
+                            <BookOpen className="w-4 h-4 text-[#5A9B8E]" />
                             <span>{course.lessons} Lessons</span>
                           </div>
                           {course.duration && (
                             <div className="flex items-center gap-2 text-xs text-gray-600">
-                              <Clock className="w-4 h-4 text-[#4C9A8F]" />
+                              <Clock className="w-4 h-4 text-[#5A9B8E]" />
                               <span>{course.duration}</span>
                             </div>
                           )}
@@ -557,7 +557,7 @@ function ContinuingEducationMember() {
                       )}
                     </div>
 
-                    <button className="w-full bg-[#4C9A8F] hover:bg-[#3d8178] text-white py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2">
+                    <button className="w-full bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2">
                       <Download className="w-4 h-4" />
                       Download Certificate
                     </button>

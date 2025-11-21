@@ -99,7 +99,7 @@ const SetPasswordPage = () => {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
           <div className="text-center">
-            <Loader className="w-12 h-12 animate-spin text-[#4C9A8F] mx-auto mb-4" />
+            <Loader className="w-12 h-12 animate-spin text-[#5A9B8E] mx-auto mb-4" />
             <p className="text-gray-600">Verifying your link...</p>
           </div>
         </div>
@@ -128,7 +128,7 @@ const SetPasswordPage = () => {
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
         <div className="text-center mb-6">
-          <Lock className="w-12 h-12 text-[#4C9A8F] mx-auto mb-4" />
+          <Lock className="w-12 h-12 text-[#5A9B8E] mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">Set Your Password</h1>
           <p className="text-gray-600">
             {session?.user?.email 
@@ -159,7 +159,7 @@ const SetPasswordPage = () => {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               placeholder="Enter your new password"
             />
             <p className="text-xs text-gray-500 mt-1">Must be at least 6 characters</p>
@@ -176,7 +176,7 @@ const SetPasswordPage = () => {
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
               minLength={6}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               placeholder="Confirm your new password"
             />
           </div>
@@ -184,7 +184,7 @@ const SetPasswordPage = () => {
           <button
             type="submit"
             disabled={loading || !session}
-            className="w-full px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {loading ? (
               <>
@@ -200,7 +200,7 @@ const SetPasswordPage = () => {
         <div className="mt-6 text-center">
           <a
             href="/"
-            className="text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
+            className="text-sm text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors"
           >
             Back to Home
           </a>

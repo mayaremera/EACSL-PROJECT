@@ -89,7 +89,7 @@ const TherapyPrograms = () => {
                   />
                   <div className="absolute top-4 right-4">
                     <div className="bg-white p-3 rounded-full shadow-lg">
-                      <Icon className="w-6 h-6 text-[#4C9A8F]" />
+                      <Icon className="w-6 h-6 text-[#5A9B8E]" />
                     </div>
                   </div>
                 </div>
@@ -122,7 +122,7 @@ const TherapyPrograms = () => {
       {/* Footer CTA Section */}
       <div className="bg-white border-t border-gray-200 py-12 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] rounded-2xl p-8 md:p-12 text-center">
+          <div className="bg-[#5A9B8E] rounded-2xl p-8 md:p-12 text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
               Join Our Community
             </h2>
@@ -131,7 +131,7 @@ const TherapyPrograms = () => {
             </p>
             <a 
               href="/apply-membership"
-              className="inline-block bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
+              className="inline-block bg-white text-[#5A9B8E] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
             >
               Become a Member
             </a>

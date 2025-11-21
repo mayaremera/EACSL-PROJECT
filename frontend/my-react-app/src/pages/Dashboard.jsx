@@ -2348,7 +2348,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             <div className="w-64 bg-white shadow-lg flex flex-col">
                 {/* Logo/Header */}
                 <div className="p-6 border-b border-gray-200">
-                    <h1 className="text-2xl font-bold text-[#4C9A8F]">EACSL Admin</h1>
+                    <h1 className="text-2xl font-bold text-[#5A9B8E]">EACSL Admin</h1>
                     <p className="text-sm text-gray-500 mt-1">Dashboard</p>
                 </div>
 
@@ -2364,13 +2364,13 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                     <button
                                         onClick={() => handleTabChange(item.tab)}
                                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
-                                                ? "bg-teal-50 text-[#4C9A8F] font-medium"
+                                                ? "bg-teal-50 text-[#5A9B8E] font-medium"
                                                 : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                                             }`}
                                     >
                                         <Icon
                                             size={20}
-                                            className={isActive ? "text-[#4C9A8F]" : "text-gray-400"}
+                                            className={isActive ? "text-[#5A9B8E]" : "text-gray-400"}
                                         />
                                         <span className="text-sm">{item.label}</span>
                                     </button>
@@ -2383,7 +2383,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 {/* User Profile */}
                 <div className="p-4 border-t border-gray-100">
                     <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-full bg-[#5A9B8E] flex items-center justify-center">
                             <span className="text-white font-semibold text-sm">AD</span>
                         </div>
                         <div className="flex-1">
@@ -2432,7 +2432,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 </button>
                                 <button
                                     onClick={() => setIsAddingCourse(true)}
-                                    className="flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors shadow-md"
+                                    className="flex items-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md"
                                 >
                                     <Plus size={20} />
                                     Add Course
@@ -2458,7 +2458,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 </button>
                                 <button
                                     onClick={() => setIsAddingMember(true)}
-                                    className="flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors shadow-md"
+                                    className="flex items-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md"
                                 >
                                     <Plus size={20} />
                                     Add Member
@@ -2484,7 +2484,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 </button>
                                 <button
                                     onClick={() => setIsAddingArticle(true)}
-                                    className="flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors shadow-md"
+                                    className="flex items-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md"
                                 >
                                     <Plus size={20} />
                                     Add Article
@@ -2510,7 +2510,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 </button>
                                 <button
                                     onClick={() => setIsAddingTherapyProgram(true)}
-                                    className="flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors shadow-md"
+                                    className="flex items-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md"
                                 >
                                     <Plus size={20} />
                                     Add Program
@@ -2536,7 +2536,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 </button>
                                 <button
                                     onClick={() => setIsAddingForParent(true)}
-                                    className="flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors shadow-md"
+                                    className="flex items-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md"
                                 >
                                     <Plus size={20} />
                                     Add Article
@@ -2562,7 +2562,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 </button>
                                 <button
                                     onClick={() => setIsAddingEvent(true)}
-                                    className="flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors shadow-md"
+                                    className="flex items-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md"
                                 >
                                     <Plus size={20} />
                                     Add Event
@@ -2583,7 +2583,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                         placeholder="Search courses..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                                     />
                                 </div>
                             </div>
@@ -2633,7 +2633,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                         placeholder="Search members..."
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                                     />
                                 </div>
                             </div>
@@ -2732,7 +2732,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                         onClick={() => {
                                                             setEditingEvent(event);
                                                         }}
-                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors text-sm font-medium"
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors text-sm font-medium"
                                                     >
                                                         <Edit size={16} />
                                                         Edit
@@ -2757,7 +2757,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                         href={`/upcoming-events/${event.id}`}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="text-xs text-[#4C9A8F] hover:text-[#3d8178] font-medium"
+                                                        className="text-xs text-[#5A9B8E] hover:text-[#4A8B7E] font-medium"
                                                     >
                                                         View Event Page →
                                                     </a>
@@ -2828,7 +2828,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                 <div className="flex items-center gap-2 mt-4 pt-4 border-t border-gray-200">
                                                     <button
                                                         onClick={() => setEditingEvent(event)}
-                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors text-sm font-medium"
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors text-sm font-medium"
                                                     >
                                                         <Edit size={16} />
                                                         Edit
@@ -2887,7 +2887,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             </div>
                                             <div className="p-4">
                                                 <div className="flex items-center gap-2 mb-2">
-                                                    <span className="px-2 py-0.5 bg-teal-50 text-[#4C9A8F] text-xs font-medium rounded-full">
+                                                    <span className="px-2 py-0.5 bg-teal-50 text-[#5A9B8E] text-xs font-medium rounded-full">
                                                         {article.category}
                                                     </span>
                                                 </div>
@@ -2903,7 +2903,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                 <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
                                                     <button
                                                         onClick={() => setEditingArticle(article)}
-                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors text-sm font-medium"
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors text-sm font-medium"
                                                     >
                                                         <Edit size={16} />
                                                         Edit
@@ -2927,7 +2927,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                     <p className="text-gray-600 mb-4">Get started by adding your first article</p>
                                     <button
                                         onClick={() => setIsAddingArticle(true)}
-                                        className="px-6 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                        className="px-6 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium"
                                     >
                                         Add Article
                                     </button>
@@ -2973,7 +2973,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                 <div className="p-4">
                                                     <div className="flex items-center gap-2 mb-2">
                                                         <div className="p-2 bg-teal-50 rounded-full">
-                                                            <Icon className="w-5 h-5 text-[#4C9A8F]" />
+                                                            <Icon className="w-5 h-5 text-[#5A9B8E]" />
                                                         </div>
                                                     </div>
                                                     <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2" dir="rtl">
@@ -2985,7 +2985,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                     <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
                                                         <button
                                                             onClick={() => setEditingTherapyProgram(program)}
-                                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors text-sm font-medium"
+                                                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors text-sm font-medium"
                                                         >
                                                             <Edit size={16} />
                                                             Edit
@@ -3010,7 +3010,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                     <p className="text-gray-600 mb-4">Get started by adding your first therapy program</p>
                                     <button
                                         onClick={() => setIsAddingTherapyProgram(true)}
-                                        className="px-6 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                        className="px-6 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium"
                                     >
                                         Add Program
                                     </button>
@@ -3046,7 +3046,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             <div className="p-4">
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <div className="p-2 bg-teal-50 rounded-full">
-                                                        <BookOpen className="w-5 h-5 text-[#4C9A8F]" />
+                                                        <BookOpen className="w-5 h-5 text-[#5A9B8E]" />
                                                     </div>
                                                 </div>
                                                 <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2" dir="rtl">
@@ -3062,7 +3062,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                 <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
                                                     <button
                                                         onClick={() => setEditingForParent(article)}
-                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors text-sm font-medium"
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors text-sm font-medium"
                                                     >
                                                         <Edit size={16} />
                                                         Edit
@@ -3086,7 +3086,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                     <p className="text-gray-600 mb-4">Get started by adding your first article for parents</p>
                                     <button
                                         onClick={() => setIsAddingForParent(true)}
-                                        className="px-6 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                        className="px-6 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium"
                                     >
                                         Add Article
                                     </button>
@@ -3110,7 +3110,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                         <div className="flex items-center gap-2">
                                             <button
                                                 onClick={syncFormsFromSupabase}
-                                                className="flex items-center gap-2 px-4 py-2 text-sm bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                                className="flex items-center gap-2 px-4 py-2 text-sm bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium"
                                                 title="Sync from Supabase"
                                             >
                                                 <RefreshCw size={16} />
@@ -3118,7 +3118,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             </button>
                                         <button
                                             onClick={loadForms}
-                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
+                                            className="flex items-center gap-2 text-sm text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors"
                                             title="Refresh Member Applications"
                                         >
                                             <RefreshCw size={16} />
@@ -3138,7 +3138,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                 placeholder="Search by name, email, or specialty..."
                                                 value={formSearchTerm}
                                                 onChange={(e) => setFormSearchTerm(e.target.value)}
-                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                                             />
                                         </div>
                                         <div className="flex gap-2">
@@ -3148,7 +3148,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                     onClick={() => setStatusFilter(status)}
                                                     className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
                                                         statusFilter === status
-                                                            ? 'bg-[#4C9A8F] text-white'
+                                                            ? 'bg-[#5A9B8E] text-white'
                                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                     }`}
                                                 >
@@ -3212,7 +3212,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                             <div className="flex items-center gap-2">
                                                                 <button
                                                                     onClick={() => setSelectedForm(form)}
-                                                                    className="p-2 text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors"
+                                                                    className="p-2 text-[#5A9B8E] hover:bg-[#5A9B8E]/10 rounded-lg transition-colors"
                                                                     title="View Details"
                                                                 >
                                                                     <Eye size={18} />
@@ -3251,7 +3251,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                         </div>
                                         <button
                                             onClick={loadEventRegistrations}
-                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
+                                            className="flex items-center gap-2 text-sm text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors"
                                             title="Refresh Event Registrations"
                                         >
                                             <RefreshCw size={16} />
@@ -3263,7 +3263,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             className={`flex items-center gap-2 text-sm text-white px-4 py-2 rounded-lg transition-colors ${
                                                 isSyncingEventRegistrations
                                                     ? 'bg-gray-400 cursor-not-allowed'
-                                                    : 'bg-[#4C9A8F] hover:bg-[#3d8178]'
+                                                    : 'bg-[#5A9B8E] hover:bg-[#4A8B7E]'
                                             }`}
                                             title="Sync from Supabase"
                                         >
@@ -3286,7 +3286,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                 placeholder="Search by name, email, phone, or organization..."
                                                 value={eventSearchTerm}
                                                 onChange={(e) => setEventSearchTerm(e.target.value)}
-                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                                             />
                                         </div>
                                         <div className="flex gap-2">
@@ -3296,7 +3296,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                     onClick={() => setEventStatusFilter(status)}
                                                     className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
                                                         eventStatusFilter === status
-                                                            ? 'bg-[#4C9A8F] text-white'
+                                                            ? 'bg-[#5A9B8E] text-white'
                                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                     }`}
                                                 >
@@ -3358,7 +3358,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                             <div className="flex items-center gap-2">
                                                                 <button
                                                                     onClick={() => setSelectedEventRegistration(registration)}
-                                                                    className="p-2 text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors"
+                                                                    className="p-2 text-[#5A9B8E] hover:bg-[#5A9B8E]/10 rounded-lg transition-colors"
                                                                     title="View Details"
                                                                 >
                                                                     <Eye size={18} />
@@ -3398,7 +3398,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                         <div className="flex items-center gap-2">
                                             <button
                                                 onClick={syncContactFormsFromSupabase}
-                                                className="flex items-center gap-2 px-4 py-2 text-sm bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                                className="flex items-center gap-2 px-4 py-2 text-sm bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium"
                                                 title="Sync from Supabase"
                                             >
                                                 <RefreshCw size={16} />
@@ -3406,7 +3406,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             </button>
                                         <button
                                             onClick={loadContactForms}
-                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
+                                            className="flex items-center gap-2 text-sm text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors"
                                             title="Refresh Contact Messages"
                                         >
                                             <RefreshCw size={16} />
@@ -3426,7 +3426,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                 placeholder="Search by name, email, subject, or message..."
                                                 value={contactSearchTerm}
                                                 onChange={(e) => setContactSearchTerm(e.target.value)}
-                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                                             />
                                         </div>
                                         <div className="flex gap-2">
@@ -3436,7 +3436,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                     onClick={() => setContactStatusFilter(status)}
                                                     className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
                                                         contactStatusFilter === status
-                                                            ? 'bg-[#4C9A8F] text-white'
+                                                            ? 'bg-[#5A9B8E] text-white'
                                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                     }`}
                                                 >
@@ -3494,7 +3494,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                             <div className="flex items-center gap-2">
                                                                 <button
                                                                     onClick={() => setSelectedContactForm(form)}
-                                                                    className="p-2 text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors"
+                                                                    className="p-2 text-[#5A9B8E] hover:bg-[#5A9B8E]/10 rounded-lg transition-colors"
                                                                     title="View Details"
                                                                 >
                                                                     <Eye size={18} />
@@ -3534,7 +3534,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                         <div className="flex items-center gap-2">
                                             <button
                                                 onClick={syncReservationsFromSupabase}
-                                                className="flex items-center gap-2 px-4 py-2 text-sm bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                                className="flex items-center gap-2 px-4 py-2 text-sm bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium"
                                                 title="Sync from Supabase"
                                             >
                                                 <RefreshCw size={16} />
@@ -3542,7 +3542,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             </button>
                                             <button
                                                 onClick={loadReservations}
-                                                className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
+                                                className="flex items-center gap-2 text-sm text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors"
                                                 title="Refresh Reservations"
                                             >
                                                 <RefreshCw size={16} />
@@ -3562,7 +3562,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                 placeholder="Search by child's name, parent name, phone, or concern..."
                                                 value={reservationSearchTerm}
                                                 onChange={(e) => setReservationSearchTerm(e.target.value)}
-                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                                             />
                                         </div>
                                         <div className="flex gap-2">
@@ -3572,7 +3572,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                     onClick={() => setReservationStatusFilter(status)}
                                                     className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
                                                         reservationStatusFilter === status
-                                                            ? 'bg-[#4C9A8F] text-white'
+                                                            ? 'bg-[#5A9B8E] text-white'
                                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                                     }`}
                                                 >
@@ -3647,7 +3647,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                             <div className="flex items-center gap-2">
                                                                 <button
                                                                     onClick={() => setSelectedReservation(reservation)}
-                                                                    className="p-2 text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors"
+                                                                    className="p-2 text-[#5A9B8E] hover:bg-[#5A9B8E]/10 rounded-lg transition-colors"
                                                                     title="View Details"
                                                                 >
                                                                     <Eye size={18} />

@@ -179,7 +179,7 @@ const ForParentEditForm = ({ article, onSave, onCancel }) => {
               value={formData.title}
               onChange={handleChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               placeholder="عنوان المقال"
               dir="rtl"
             />
@@ -196,7 +196,7 @@ const ForParentEditForm = ({ article, onSave, onCancel }) => {
               onChange={handleChange}
               required
               rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none resize-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none resize-none"
               placeholder="ملخص المقال"
               dir="rtl"
             />
@@ -213,7 +213,7 @@ const ForParentEditForm = ({ article, onSave, onCancel }) => {
               value={formData.date}
               onChange={handleChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               placeholder="15 أكتوبر 2024"
               dir="rtl"
             />
@@ -230,7 +230,7 @@ const ForParentEditForm = ({ article, onSave, onCancel }) => {
               value={formData.author}
               onChange={handleChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               placeholder="د. سارة أحمد"
               dir="rtl"
             />
@@ -247,7 +247,7 @@ const ForParentEditForm = ({ article, onSave, onCancel }) => {
               value={formData.articleUrl}
               onChange={handleChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               placeholder="https://www.example.com/article"
             />
           </div>
@@ -262,7 +262,7 @@ const ForParentEditForm = ({ article, onSave, onCancel }) => {
             <div
               className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
                 dragActive
-                  ? 'border-[#4C9A8F] bg-[#4C9A8F]/5'
+                  ? 'border-[#5A9B8E] bg-[#5A9B8E]/5'
                   : 'border-gray-300 hover:border-gray-400'
               }`}
               onDragEnter={handleDrag}
@@ -303,7 +303,7 @@ const ForParentEditForm = ({ article, onSave, onCancel }) => {
                   />
                   <label
                     htmlFor="image-upload"
-                    className="inline-block px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] cursor-pointer transition-colors"
+                    className="inline-block px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] cursor-pointer transition-colors"
                   >
                     Select Image
                   </label>
@@ -326,7 +326,7 @@ const ForParentEditForm = ({ article, onSave, onCancel }) => {
                     setImagePreview(e.target.value);
                   }
                 }}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none text-sm"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm"
                 placeholder="https://example.com/image.jpg"
               />
             </div>
@@ -344,7 +344,7 @@ const ForParentEditForm = ({ article, onSave, onCancel }) => {
             <button
               type="submit"
               disabled={isUploading}
-              className="px-6 py-2 bg-[#4C9A8F] hover:bg-[#3d8178] text-white rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save size={18} />
               {isUploading ? 'Uploading...' : (article ? 'Update Article' : 'Add Article')}

@@ -10,7 +10,6 @@ import {
     Briefcase,
     FileText,
     Calendar,
-    Download,
     BookOpen,
     CheckCircle,
     User
@@ -52,7 +51,7 @@ function MemberProfile() {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4C9A8F] mx-auto mb-4"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5A9B8E] mx-auto mb-4"></div>
                     <p className="text-gray-600">Loading member profile...</p>
                 </div>
             </div>
@@ -67,7 +66,7 @@ function MemberProfile() {
                     <p className="text-gray-600 mb-6">The member profile you're looking for doesn't exist.</p>
                     <button
                         onClick={() => navigate('/active-members', { replace: true })}
-                        className="px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors"
+                        className="px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors"
                     >
                         Back to Members
                     </button>
@@ -112,7 +111,7 @@ function MemberProfile() {
 
             {/* Breadcrumb */}
             <Breadcrumbs items={[
-                { label: 'Our Members', path: '/members' },
+                { label: 'Our Members', path: '/members-overview' },
                 { label: profile.name || 'Member Profile' }
             ]} />
 
@@ -161,45 +160,48 @@ function MemberProfile() {
                                                 </div>
                                             )}
                                         </div>
-                                        <p className="text-xl text-[#4C9A8F] font-semibold mb-4">
+                                        <p className="text-xl text-[#5A9B8E] font-semibold mb-4">
                                             {profile.title}
                                         </p>
 
                                         <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 justify-center md:justify-start">
                                             {profile.location && (
                                                 <div className="flex items-center gap-1.5">
-                                                    <MapPin className="w-4 h-4 text-[#4C9A8F]" />
+                                                    <MapPin className="w-4 h-4 text-[#5A9B8E]" />
                                                     <span>{profile.location}</span>
                                                 </div>
                                             )}
                                             {/* Removed duplicate "Active Till" badge here */}
                                         </div>
                                     </div>
-
-                                    <button className="flex items-center gap-2 bg-[#4C9A8F] text-white px-6 py-3 rounded-lg hover:bg-[#3d8178] transition-colors duration-200 font-semibold shadow-md">
-                                        <Download className="w-4 h-4" />
-                                        Download CV
-                                    </button>
                                 </div>
 
                                 {/* Contact Info */}
                                 <div className="flex flex-wrap gap-4 mt-6 justify-center md:justify-start">
-                                    <a href={`mailto:${profile.email}`} className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#4C9A8F] transition-colors">
-                                        <Mail className="w-4 h-4" />
-                                        <span>{profile.email}</span>
-                                    </a>
-                                    <a href={`tel:${profile.phone}`} className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#4C9A8F] transition-colors">
-                                        <Phone className="w-4 h-4" />
-                                        <span>{profile.phone}</span>
-                                    </a>
-                                    <a href={`https://${profile.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#4C9A8F] transition-colors">
-                                        <Globe className="w-4 h-4" />
-                                        <span>{profile.website}</span>
-                                    </a>
-                                    <a href={`https://${profile.linkedin}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#4C9A8F] transition-colors">
-                                        <Linkedin className="w-4 h-4" />
-                                        <span>LinkedIn</span>
-                                    </a>
+                                    {profile.email && (
+                                        <a href={`mailto:${profile.email}`} className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#5A9B8E] transition-colors">
+                                            <Mail className="w-4 h-4" />
+                                            <span>{profile.email}</span>
+                                        </a>
+                                    )}
+                                    {profile.phone && (
+                                        <a href={`tel:${profile.phone}`} className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#5A9B8E] transition-colors">
+                                            <Phone className="w-4 h-4" />
+                                            <span>{profile.phone}</span>
+                                        </a>
+                                    )}
+                                    {profile.website && (
+                                        <a href={`https://${profile.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#5A9B8E] transition-colors">
+                                            <Globe className="w-4 h-4" />
+                                            <span>{profile.website}</span>
+                                        </a>
+                                    )}
+                                    {profile.linkedin && (
+                                        <a href={`https://${profile.linkedin}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-gray-600 hover:text-[#5A9B8E] transition-colors">
+                                            <Linkedin className="w-4 h-4" />
+                                            <span>LinkedIn</span>
+                                        </a>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -221,8 +223,8 @@ function MemberProfile() {
                                     key={tab.id}
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`flex items-center gap-2 px-6 py-4 font-semibold transition-colors duration-200 border-b-2 ${activeTab === tab.id
-                                        ? 'border-[#4C9A8F] text-[#4C9A8F]'
-                                        : 'border-transparent text-gray-600 hover:text-[#4C9A8F]'
+                                        ? 'border-[#5A9B8E] text-[#5A9B8E]'
+                                        : 'border-transparent text-gray-600 hover:text-[#5A9B8E]'
                                         }`}
                                 >
                                     <Icon className="w-4 h-4" />
@@ -247,7 +249,7 @@ function MemberProfile() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {profile.specializations.map((spec, index) => (
                                     <div key={index} className="flex items-start gap-3 bg-gray-50 rounded-lg p-4">
-                                        <div className="w-2 h-2 rounded-full bg-[#4C9A8F] mt-2 flex-shrink-0"></div>
+                                        <div className="w-2 h-2 rounded-full bg-[#5A9B8E] mt-2 flex-shrink-0"></div>
                                         <span className="text-gray-700">{spec}</span>
                                     </div>
                                 ))}
@@ -268,10 +270,10 @@ function MemberProfile() {
                                 <div className="space-y-6">
                                     {experience.map((job, index) => (
                                         <div key={index} className="relative pl-8 pb-6 border-l-2 border-gray-200 last:border-0 last:pb-0">
-                                            <div className="absolute left-0 top-0 w-4 h-4 rounded-full bg-[#4C9A8F] -ml-[9px] border-4 border-white"></div>
+                                            <div className="absolute left-0 top-0 w-4 h-4 rounded-full bg-[#5A9B8E] -ml-[9px] border-4 border-white"></div>
                                             <div className="bg-gray-50 rounded-lg p-5">
                                                 <h3 className="text-xl font-bold text-gray-900 mb-1">{job.title}</h3>
-                                                <div className="flex items-center gap-2 text-[#4C9A8F] font-semibold mb-2">
+                                                <div className="flex items-center gap-2 text-[#5A9B8E] font-semibold mb-2">
                                                     <Briefcase className="w-4 h-4" />
                                                     <span>{job.company}</span>
                                                 </div>
@@ -308,7 +310,7 @@ function MemberProfile() {
                                     {certificates.map((cert, index) => (
                                         <div key={index} className="bg-gradient-to-br from-gray-50 to-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
                                             <div className="flex items-start justify-between mb-3">
-                                                <Award className="w-8 h-8 text-[#4C9A8F] flex-shrink-0" />
+                                                <Award className="w-8 h-8 text-[#5A9B8E] flex-shrink-0" />
                                                 {cert.verified && (
                                                     <div className="flex items-center gap-1 bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-semibold">
                                                         <CheckCircle className="w-3 h-3" />
@@ -338,12 +340,12 @@ function MemberProfile() {
                             ) : (
                                 <div className="space-y-4">
                                     {courses.map((course, index) => (
-                                        <div key={index} className="bg-gray-50 rounded-lg p-5 border border-gray-200 hover:border-[#4C9A8F] transition-colors duration-200">
+                                        <div key={index} className="bg-gray-50 rounded-lg p-5 border border-gray-200 hover:border-[#5A9B8E] transition-colors duration-200">
                                             <div className="flex items-start justify-between gap-4 mb-3">
                                                 <div className="flex-1">
                                                     <h3 className="text-lg font-bold text-gray-900 mb-1">{course.title}</h3>
                                                     <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                        <BookOpen className="w-4 h-4 text-[#4C9A8F]" />
+                                                        <BookOpen className="w-4 h-4 text-[#5A9B8E]" />
                                                         <span>{course.provider}</span>
                                                     </div>
                                                 </div>

@@ -258,7 +258,7 @@ const UpcomingEventsPage = () => {
             </p>
             <button
               onClick={() => navigate('/past-events')}
-              className="px-8 py-3 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+              className="px-8 py-3 bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white font-semibold rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
             >
               View Past Events
             </button>
@@ -296,7 +296,7 @@ const UpcomingEventsPage = () => {
           <p className="text-gray-600 mb-6 leading-relaxed">
             Thank you for registering for our conference! Our admin team will contact you shortly with Instapay payment details.
           </p>
-          <div className="bg-teal-50 border-l-4 border-[#4C9A8F] p-4 mb-6">
+          <div className="bg-teal-50 border-l-4 border-[#5A9B8E] p-4 mb-6">
             <p className="text-sm text-gray-700">
               <strong>Registration Fee:</strong> {currentFee} EGP<br />
               <strong>Email:</strong> {formData.email}<br />
@@ -305,7 +305,7 @@ const UpcomingEventsPage = () => {
           </div>
           <button
             onClick={() => window.location.reload()}
-            className="px-8 py-3 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200"
+            className="px-8 py-3 bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white font-semibold rounded-lg transition-colors duration-200"
           >
             Back to Event Page
           </button>
@@ -371,7 +371,7 @@ const UpcomingEventsPage = () => {
                 {eventData.durationText && (
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Clock className="w-5 h-5 text-[#4C9A8F]" />
+                      <Clock className="w-5 h-5 text-[#5A9B8E]" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-1">Duration</h3>
@@ -382,7 +382,7 @@ const UpcomingEventsPage = () => {
                 {eventData.tracksDescription && (
                   <div className="flex items-start gap-3">
                     <div className="w-10 h-10 bg-teal-50 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Users className="w-5 h-5 text-[#4C9A8F]" />
+                      <Users className="w-5 h-5 text-[#5A9B8E]" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-1">Tracks</h3>
@@ -399,7 +399,7 @@ const UpcomingEventsPage = () => {
               <div className="space-y-3">
                 {tracks.map((track, index) => (
                   <div key={index} className="flex items-center gap-3 p-3 bg-teal-50 rounded-lg">
-                    <div className="w-8 h-8 bg-[#4C9A8F] text-white rounded-full flex items-center justify-center font-bold text-sm">
+                    <div className="w-8 h-8 bg-[#5A9B8E] text-white rounded-full flex items-center justify-center font-bold text-sm">
                       {String.fromCharCode(65 + index)}
                     </div>
                     <span className="font-medium text-gray-900">{track}</span>
@@ -424,7 +424,7 @@ const UpcomingEventsPage = () => {
                   <tbody>
                     {scheduleDay1.map((slot, index) => (
                       <tr key={index} className="border-b border-gray-100">
-                        <td className="py-3 px-2 font-medium text-[#4C9A8F]">{slot.time}</td>
+                        <td className="py-3 px-2 font-medium text-[#5A9B8E]">{slot.time}</td>
                         {tracks.map((track, trackIndex) => {
                           const trackKey = `track${String.fromCharCode(65 + trackIndex)}`;
                           return (
@@ -454,7 +454,7 @@ const UpcomingEventsPage = () => {
                   <tbody>
                     {scheduleDay2.map((slot, index) => (
                       <tr key={index} className="border-b border-gray-100">
-                        <td className="py-3 px-2 font-medium text-[#4C9A8F]">{slot.time}</td>
+                        <td className="py-3 px-2 font-medium text-[#5A9B8E]">{slot.time}</td>
                         {tracks.map((track, trackIndex) => {
                           const trackKey = `track${String.fromCharCode(65 + trackIndex)}`;
                           return (
@@ -475,15 +475,15 @@ const UpcomingEventsPage = () => {
               <h3 className="text-2xl font-bold text-gray-900 mb-6">Register Now</h3>
               
               {/* Pricing */}
-              <div className="mb-6 p-4 bg-gradient-to-r from-teal-50 to-teal-100 rounded-lg border border-teal-200">
+              <div className="mb-6 p-4 bg-[#5A9B8E]/10 rounded-lg border border-teal-200">
                 <div className="flex items-center gap-2 mb-3">
-                  <DollarSign className="w-5 h-5 text-[#4C9A8F]" />
+                  <DollarSign className="w-5 h-5 text-[#5A9B8E]" />
                   <h4 className="font-semibold text-gray-900">Registration Fees</h4>
                 </div>
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-600">Members:</span>
-                    <span className="font-bold text-[#4C9A8F]">{memberFee} EGP</span>
+                    <span className="font-bold text-[#5A9B8E]">{memberFee} EGP</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-600">Guests:</span>
@@ -504,7 +504,7 @@ const UpcomingEventsPage = () => {
                       name="fullName"
                       value={formData.fullName}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent"
                       placeholder="John Doe"
                       required
                     />
@@ -522,7 +522,7 @@ const UpcomingEventsPage = () => {
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent"
                       placeholder="john@example.com"
                       required
                     />
@@ -540,7 +540,7 @@ const UpcomingEventsPage = () => {
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent"
                       placeholder="+20 XXX XXX XXXX"
                       required
                     />
@@ -558,7 +558,7 @@ const UpcomingEventsPage = () => {
                       name="organization"
                       value={formData.organization}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent"
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent"
                       placeholder="Your Organization"
                     />
                   </div>
@@ -572,7 +572,7 @@ const UpcomingEventsPage = () => {
                     name="membershipType"
                     value={formData.membershipType}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent"
                     required
                   >
                     <option value="member">EACSL Member ({memberFee} EGP)</option>
@@ -589,7 +589,7 @@ const UpcomingEventsPage = () => {
                     value={formData.specialRequirements}
                     onChange={handleChange}
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent resize-none"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent resize-none"
                     placeholder="Any additional notes or comments..."
                   ></textarea>
                 </div>
@@ -597,11 +597,11 @@ const UpcomingEventsPage = () => {
                 <div className="pt-4 border-t border-gray-200">
                   <div className="flex justify-between items-center mb-4">
                     <span className="text-sm font-medium text-gray-700">Total Fee:</span>
-                    <span className="text-2xl font-bold text-[#4C9A8F]">{currentFee} EGP</span>
+                    <span className="text-2xl font-bold text-[#5A9B8E]">{currentFee} EGP</span>
                   </div>
                   <button
                     onClick={handleSubmit}
-                    className="w-full py-3 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+                    className="w-full py-3 bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white font-semibold rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
                   >
                     Register Now
                   </button>
@@ -618,7 +618,7 @@ const UpcomingEventsPage = () => {
       {/* Footer CTA Section */}
       <div className="bg-white border-t border-gray-200 py-12 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] rounded-2xl p-8 md:p-12 text-center">
+          <div className="bg-[#5A9B8E] rounded-2xl p-8 md:p-12 text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
               Questions About the Event?
             </h2>
@@ -627,7 +627,7 @@ const UpcomingEventsPage = () => {
             </p>
             <a 
               href='/contact'
-              className="inline-block bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
+              className="inline-block bg-white text-[#5A9B8E] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
             >
               Contact Us
             </a>

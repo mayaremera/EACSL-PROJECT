@@ -123,7 +123,7 @@ const ContactPage = () => {
           <p className="text-gray-600 mb-6 leading-relaxed">
             Thank you for contacting us! Our team will get back to you as soon as possible.
           </p>
-          <div className="bg-teal-50 border-l-4 border-[#4C9A8F] p-4 mb-6">
+          <div className="bg-teal-50 border-l-4 border-[#5A9B8E] p-4 mb-6">
             <p className="text-sm text-gray-700">
               <strong>Name:</strong> {formData.name}<br />
               <strong>Email:</strong> {formData.email}<br />
@@ -137,7 +137,7 @@ const ContactPage = () => {
           </div>
           <button
             onClick={() => window.location.reload()}
-            className="px-8 py-3 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200"
+            className="px-8 py-3 bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white font-semibold rounded-lg transition-colors duration-200"
           >
             Back to Contact Page
           </button>
@@ -169,7 +169,7 @@ const ContactPage = () => {
                 className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-6 text-center"
               >
                 <div className="inline-flex items-center justify-center w-14 h-14 bg-teal-50 rounded-full mb-4">
-                  <Icon className="text-[#4C9A8F]" size={28} />
+                  <Icon className="text-[#5A9B8E]" size={28} />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   {info.title}
@@ -179,7 +179,7 @@ const ContactPage = () => {
                     href={info.link}
                     target={info.link.startsWith('http') ? '_blank' : '_self'}
                     rel={info.link.startsWith('http') ? 'noopener noreferrer' : ''}
-                    className="text-gray-600 hover:text-[#4C9A8F] transition-colors text-sm leading-relaxed"
+                    className="text-gray-600 hover:text-[#5A9B8E] transition-colors text-sm leading-relaxed"
                   >
                     {info.content}
                   </a>
@@ -209,7 +209,7 @@ const ContactPage = () => {
                   name="name"
                   value={formData.name}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent transition-colors"
                   placeholder="Enter your full name"
                 />
               </div>
@@ -224,7 +224,7 @@ const ContactPage = () => {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent transition-colors"
                   placeholder="your.email@example.com"
                 />
               </div>
@@ -239,7 +239,7 @@ const ContactPage = () => {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent transition-colors"
                   placeholder="+20 XXX XXX XXXX"
                 />
               </div>
@@ -254,7 +254,7 @@ const ContactPage = () => {
                   name="subject"
                   value={formData.subject}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent transition-colors"
                   placeholder="What is your inquiry about?"
                 />
               </div>
@@ -269,7 +269,7 @@ const ContactPage = () => {
                   rows={5}
                   value={formData.message}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent transition-colors resize-none"
                   placeholder="Tell us more about your inquiry..."
                 ></textarea>
               </div>
@@ -277,7 +277,7 @@ const ContactPage = () => {
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className={`w-full bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg ${
+                className={`w-full bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg ${
                   isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
               >
@@ -315,7 +315,7 @@ const ContactPage = () => {
       {/* Footer CTA Section */}
       <div className="bg-white border-t border-gray-200 py-12 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] rounded-2xl p-8 md:p-12 text-center">
+          <div className="bg-[#5A9B8E] rounded-2xl p-8 md:p-12 text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
               Join Our Community
             </h2>
@@ -324,7 +324,7 @@ const ContactPage = () => {
             </p>
             <a 
               href="/apply-membership"
-              className="inline-block bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
+              className="inline-block bg-white text-[#5A9B8E] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
             >
               Become a Member
             </a>

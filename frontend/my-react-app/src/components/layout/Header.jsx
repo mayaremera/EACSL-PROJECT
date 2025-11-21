@@ -160,7 +160,7 @@ const Header = () => {
   const getCategoryIcon = (type) => {
     switch (type) {
       case 'member':
-        return <Users size={16} className="text-teal-600" />;
+        return <Users size={16} className="text-[#5A9B8E]" />;
       case 'event':
         return <Calendar size={16} className="text-blue-600" />;
       case 'article':
@@ -209,7 +209,7 @@ const Header = () => {
       {
         name: 'Members',
         dropdown: [
-          { name: 'Active Members', href: '/members-overview' },
+          { name: 'Our Members', href: '/members-overview' },
           { name: 'Become a Member', href: '/apply-membership' },
         ],
       },
@@ -259,7 +259,7 @@ const Header = () => {
                 {!link.dropdown ? (
                   <Link
                     to={link.href}
-                    className="text-base font-semibold text-gray-700 hover:text-teal-600 transition-all duration-200"
+                    className="text-base font-semibold text-gray-700 hover:text-[#5A9B8E] transition-all duration-200"
                   >
                     {link.name}
                   </Link>
@@ -267,7 +267,7 @@ const Header = () => {
                   <>
                     <button
                       onClick={() => toggleDropdown(link.name)}
-                      className="flex items-center gap-1 text-gray-700 hover:text-teal-600 font-semibold transition-colors duration-200"
+                      className="flex items-center gap-1 text-gray-700 hover:text-[#5A9B8E] font-semibold transition-colors duration-200"
                     >
                       {link.name}
                       <ChevronDown
@@ -286,7 +286,7 @@ const Header = () => {
                             key={item.name}
                             to={item.href}
                             onClick={() => setActiveDropdown(null)}
-                            className="block px-4 py-2 text-sm font-medium text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-all duration-200"
+                            className="block px-4 py-2 text-sm font-medium text-gray-700 hover:bg-teal-50 hover:text-[#5A9B8E] transition-all duration-200"
                           >
                             {item.name}
                           </Link>
@@ -322,7 +322,7 @@ const Header = () => {
               />
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                 {isSearching ? (
-                  <Loader2 size={20} className="text-teal-600 animate-spin" />
+                  <Loader2 size={20} className="text-[#5A9B8E] animate-spin" />
                 ) : (
                   <Search size={20} className="text-gray-400" />
                 )}
@@ -333,7 +333,7 @@ const Header = () => {
                 <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-lg shadow-xl w-96 max-h-[600px] overflow-y-auto z-50">
                   {isSearching ? (
                     <div className="p-8 text-center">
-                      <Loader2 size={24} className="animate-spin text-teal-600 mx-auto mb-2" />
+                      <Loader2 size={24} className="animate-spin text-[#5A9B8E] mx-auto mb-2" />
                       <p className="text-sm text-gray-500">Searching...</p>
                     </div>
                   ) : searchResults && searchResults.total > 0 ? (
@@ -342,7 +342,7 @@ const Header = () => {
                       {searchResults.members.length > 0 && (
                         <div className="mb-2">
                           <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
-                            <Users size={14} className="text-teal-600" />
+                            <Users size={14} className="text-[#5A9B8E]" />
                             <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
                               Members ({searchResults.members.length})
                             </span>
@@ -578,7 +578,7 @@ const Header = () => {
                         <Link
                           to={`/member-profile/${memberData.id}`}
                           onClick={() => setUserDropdownOpen(false)}
-                          className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-all duration-200"
+                          className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-[#5A9B8E] transition-all duration-200"
                         >
                           <UserCircle size={16} />
                           <span>Profile</span>
@@ -586,7 +586,7 @@ const Header = () => {
                         <Link
                           to={`/continuing-education/${memberData.id}`}
                           onClick={() => setUserDropdownOpen(false)}
-                          className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-teal-600 transition-all duration-200"
+                          className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-[#5A9B8E] transition-all duration-200"
                         >
                           <BookOpen size={16} />
                           <span>Continuing Education</span>
@@ -612,7 +612,7 @@ const Header = () => {
             ) : (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
-                className="bg-[#4C9A8F] text-white hover:bg-[#3d8178] px-10 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 whitespace-nowrap"
+                className="bg-[#5A9B8E] text-white hover:bg-[#4A8B7E] px-10 py-2 rounded-xl text-sm font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95 whitespace-nowrap"
               >
                 Login
               </button>
@@ -622,7 +622,7 @@ const Header = () => {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="lg:hidden text-gray-700 hover:text-teal-600 transition-colors"
+            className="lg:hidden text-gray-700 hover:text-[#5A9B8E] transition-colors"
           >
             {isMenuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
@@ -638,13 +638,13 @@ const Header = () => {
                     <Link
                       to={link.href}
                       onClick={() => setIsMenuOpen(false)}
-                      className="text-base font-medium text-gray-700 hover:text-teal-600 py-2 block transition-all duration-200"
+                      className="text-base font-medium text-gray-700 hover:text-[#5A9B8E] py-2 block transition-all duration-200"
                     >
                       {link.name}
                     </Link>
                   ) : (
                     <details className="group">
-                      <summary className="cursor-pointer text-gray-700 hover:text-teal-600 text-base font-medium flex justify-between items-center py-2">
+                      <summary className="cursor-pointer text-gray-700 hover:text-[#5A9B8E] text-base font-medium flex justify-between items-center py-2">
                         {link.name}
                         <ChevronDown size={18} className="group-open:rotate-180 transition-transform duration-200" />
                       </summary>
@@ -654,7 +654,7 @@ const Header = () => {
                             key={item.name}
                             to={item.href}
                             onClick={() => setIsMenuOpen(false)}
-                            className="block text-sm font-medium text-gray-600 hover:text-teal-600 hover:bg-teal-50 transition-all duration-200 py-1 px-2 rounded-lg"
+                            className="block text-sm font-medium text-gray-600 hover:text-[#5A9B8E] hover:bg-teal-50 transition-all duration-200 py-1 px-2 rounded-lg"
                           >
                             {item.name}
                           </Link>
@@ -676,7 +676,7 @@ const Header = () => {
                   />
                   <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
                     {isSearching ? (
-                      <Loader2 size={20} className="text-teal-600 animate-spin" />
+                      <Loader2 size={20} className="text-[#5A9B8E] animate-spin" />
                     ) : (
                       <Search size={20} className="text-gray-400" />
                     )}
@@ -725,7 +725,7 @@ const Header = () => {
                         <Link
                           to={`/member-profile/${memberData.id}`}
                           onClick={() => setIsMenuOpen(false)}
-                          className="w-full flex items-center justify-center space-x-2 px-6 py-2.5 rounded-xl font-medium bg-teal-50 hover:bg-teal-100 text-teal-600 transition-all duration-300 hover:scale-105 active:scale-95"
+                          className="w-full flex items-center justify-center space-x-2 px-6 py-2.5 rounded-xl font-medium bg-teal-50 hover:bg-teal-100 text-[#5A9B8E] transition-all duration-300 hover:scale-105 active:scale-95"
                         >
                           <UserCircle size={18} />
                           <span>Profile</span>
@@ -733,7 +733,7 @@ const Header = () => {
                         <Link
                           to={`/continuing-education/${memberData.id}`}
                           onClick={() => setIsMenuOpen(false)}
-                          className="w-full flex items-center justify-center space-x-2 px-6 py-2.5 rounded-xl font-medium bg-teal-50 hover:bg-teal-100 text-teal-600 transition-all duration-300 hover:scale-105 active:scale-95"
+                          className="w-full flex items-center justify-center space-x-2 px-6 py-2.5 rounded-xl font-medium bg-teal-50 hover:bg-teal-100 text-[#5A9B8E] transition-all duration-300 hover:scale-105 active:scale-95"
                         >
                           <BookOpen size={18} />
                           <span>Continuing Education</span>
@@ -762,7 +762,7 @@ const Header = () => {
                       setIsAuthModalOpen(true);
                       setIsMenuOpen(false);
                     }}
-                    className="w-full bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-2.5 rounded-xl font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95"
+                    className="w-full bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white px-6 py-2.5 rounded-xl font-medium transition-all duration-300 hover:scale-105 hover:shadow-lg active:scale-95"
                   >
                     Login
                   </button>

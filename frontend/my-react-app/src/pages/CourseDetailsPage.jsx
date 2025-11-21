@@ -107,7 +107,7 @@ const CourseDetailPage = () => {
                     <p className="text-gray-600 mb-4">The course you're looking for doesn't exist.</p>
                     <button
                         onClick={() => navigate('/online-courses', { replace: true })}
-                        className="bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-2 rounded-lg font-semibold transition-colors"
+                        className="bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white px-6 py-2 rounded-lg font-semibold transition-colors"
                     >
                         Back to Courses
                     </button>
@@ -150,7 +150,7 @@ const CourseDetailPage = () => {
                             <div className="space-y-3">
                                 {courseData.learningOutcomes.map((outcome, index) => (
                                     <div key={index} className="flex items-start gap-3">
-                                        <CheckCircle className="w-5 h-5 text-[#4C9A8F] flex-shrink-0 mt-0.5" />
+                                        <CheckCircle className="w-5 h-5 text-[#5A9B8E] flex-shrink-0 mt-0.5" />
                                         <p className="text-gray-700">{outcome}</p>
                                     </div>
                                 ))}
@@ -172,9 +172,9 @@ const CourseDetailPage = () => {
                                     <div className="px-5 py-4 space-y-3">
                                         {section.lessons.map((lesson, lessonIndex) => (
                                             <div key={lessonIndex} className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-b-0">
-                                                {lesson.type === 'video' && <Video className="w-5 h-5 text-[#4C9A8F] flex-shrink-0" />}
-                                                {lesson.type === 'text' && <FileText className="w-5 h-5 text-[#4C9A8F] flex-shrink-0" />}
-                                                {lesson.type === 'quiz' && <Award className="w-5 h-5 text-[#4C9A8F] flex-shrink-0" />}
+                                                {lesson.type === 'video' && <Video className="w-5 h-5 text-[#5A9B8E] flex-shrink-0" />}
+                                                {lesson.type === 'text' && <FileText className="w-5 h-5 text-[#5A9B8E] flex-shrink-0" />}
+                                                {lesson.type === 'quiz' && <Award className="w-5 h-5 text-[#5A9B8E] flex-shrink-0" />}
                                                 <div className="flex-1">
                                                     <p className="text-gray-900 font-medium">{lesson.name}</p>
                                                     {lesson.duration && (
@@ -275,7 +275,7 @@ const CourseDetailPage = () => {
                                                 key={tab.id}
                                                 onClick={() => setActiveTab(tab.id)}
                                                 className={`flex-1 px-6 py-4 text-sm font-semibold transition-colors ${activeTab === tab.id
-                                                        ? 'text-white bg-[#4C9A8F]'
+                                                        ? 'text-white bg-[#5A9B8E]'
                                                         : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
                                                     }`}
                                             >
@@ -310,12 +310,12 @@ const CourseDetailPage = () => {
 
                             {/* Price */}
                             <div className="text-center mb-6">
-                                <div className="text-3xl font-bold text-[#4C9A8F] mb-2">{courseData.price}</div>
+                                <div className="text-3xl font-bold text-[#5A9B8E] mb-2">{courseData.price}</div>
                                 <p className="text-sm text-gray-600">{courseData.moneyBackGuarantee}</p>
                             </div>
 
                             {/* Buy Button */}
-                            <button className="w-full bg-[#4C9A8F] hover:bg-[#3d8178] text-white py-3 rounded-lg font-semibold transition-colors mb-6">
+                            <button className="w-full bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white py-3 rounded-lg font-semibold transition-colors mb-6">
                                 BUY NOW
                             </button>
 

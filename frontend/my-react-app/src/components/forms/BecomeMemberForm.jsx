@@ -292,7 +292,7 @@
 //                     <p className="text-gray-600 mb-6 leading-relaxed">
 //                         Thank you for applying to EACSL! You will receive an email within a week regarding the result of your application.
 //                     </p>
-//                     <div className="bg-teal-50 border-l-4 border-[#4C9A8F] p-4 mb-6">
+//                     <div className="bg-teal-50 border-l-4 border-[#5A9B8E] p-4 mb-6">
 //                         <p className="text-sm text-gray-700">
 //                             <strong>Username:</strong> {formData.username}<br />
 //                             <strong>Email:</strong> {formData.email}<br />
@@ -301,7 +301,7 @@
 //                     </div>
 //                     <button
 //                         onClick={() => window.location.reload()}
-//                         className="px-8 py-3 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200"
+//                         className="px-8 py-3 bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white font-semibold rounded-lg transition-colors duration-200"
 //                     >
 //                         Back to Application Page
 //                     </button>
@@ -941,7 +941,7 @@ const BecomeMemberForm = ({ onSubmit }) => {
                     <p className="text-gray-600 mb-6 leading-relaxed">
                         Thank you for applying to EACSL! You will receive an email within a week regarding the result of your application.
                     </p>
-                    <div className="bg-teal-50 border-l-4 border-[#4C9A8F] p-4 mb-6">
+                    <div className="bg-teal-50 border-l-4 border-[#5A9B8E] p-4 mb-6">
                         <p className="text-sm text-gray-700">
                             <strong>Username:</strong> {formData.username}<br />
                             <strong>Email:</strong> {formData.email}<br />
@@ -950,7 +950,7 @@ const BecomeMemberForm = ({ onSubmit }) => {
                     </div>
                     <button
                         onClick={() => window.location.reload()}
-                        className="px-8 py-3 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200"
+                        className="px-8 py-3 bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white font-semibold rounded-lg transition-colors duration-200"
                     >
                         Back to Application Page
                     </button>

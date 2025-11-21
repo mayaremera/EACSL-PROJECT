@@ -94,7 +94,7 @@ const OnlineCoursesPage = () => {
                 placeholder="Search courses..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none text-sm"
+                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm"
               />
             </div>
 
@@ -103,7 +103,7 @@ const OnlineCoursesPage = () => {
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none appearance-none bg-white text-sm pr-10"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none appearance-none bg-white text-sm pr-10"
               >
                 {categories.map((cat) => (
                   <option key={cat.value} value={cat.value}>
@@ -119,7 +119,7 @@ const OnlineCoursesPage = () => {
               <select
                 value={selectedLevel}
                 onChange={(e) => setSelectedLevel(e.target.value)}
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none appearance-none bg-white text-sm pr-10"
+                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none appearance-none bg-white text-sm pr-10"
               >
                 {levels.map((level) => (
                   <option key={level.value} value={level.value}>
@@ -180,7 +180,7 @@ const OnlineCoursesPage = () => {
 
             <div className="p-6">
               <div className="flex items-center gap-2 mb-3">
-                <span className="px-3 py-1 bg-teal-50 text-[#4C9A8F] text-xs font-semibold rounded-full">
+                <span className="px-3 py-1 bg-teal-50 text-[#5A9B8E] text-xs font-semibold rounded-full">
                   {selectedCourse.category}
                 </span>
                 <span className="px-3 py-1 bg-gray-100 text-gray-700 text-xs font-semibold rounded-full">
@@ -194,15 +194,15 @@ const OnlineCoursesPage = () => {
 
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="flex items-center gap-2 text-sm">
-                  <BookOpen className="w-4 h-4 text-[#4C9A8F]" />
+                  <BookOpen className="w-4 h-4 text-[#5A9B8E]" />
                   <span className="text-gray-700">{selectedCourse.lessons} Lessons</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <Clock className="w-4 h-4 text-[#4C9A8F]" />
+                  <Clock className="w-4 h-4 text-[#5A9B8E]" />
                   <span className="text-gray-700">{selectedCourse.duration}</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <Users className="w-4 h-4 text-[#4C9A8F]" />
+                  <Users className="w-4 h-4 text-[#5A9B8E]" />
                   <span className="text-gray-700">{selectedCourse.students} Students</span>
                 </div>
               </div>
@@ -225,13 +225,13 @@ const OnlineCoursesPage = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-[#4C9A8F]">{selectedCourse.price}</p>
+                  <p className="text-2xl font-bold text-[#5A9B8E]">{selectedCourse.price}</p>
                   <button 
                     onClick={() => {
                       setSelectedCourse(null);
                       navigate(`/course-details/${selectedCourse.id}`, { replace: location.pathname !== '/' });
                     }}
-                    className="mt-2 bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
+                    className="mt-2 bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white px-6 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
                   >
                     View Details
                     <ArrowRight className="w-4 h-4" />
@@ -246,7 +246,7 @@ const OnlineCoursesPage = () => {
       {/* Footer CTA Section */}
       <div className="bg-white border-t border-gray-200 py-12 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] rounded-2xl p-8 md:p-12 text-center">
+          <div className="bg-[#5A9B8E] rounded-2xl p-8 md:p-12 text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
               Join Our Learning Community
             </h2>
@@ -255,7 +255,7 @@ const OnlineCoursesPage = () => {
             </p>
             <a 
               href="/apply-membership"
-              className="inline-block bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
+              className="inline-block bg-white text-[#5A9B8E] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
             >
               Become a Member
             </a>

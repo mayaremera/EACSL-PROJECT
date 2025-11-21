@@ -91,7 +91,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#4C9A8F] mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5A9B8E] mx-auto mb-4"></div>
           <p className="text-gray-600">{checkingAdmin ? 'Checking admin status...' : 'Loading...'}</p>
         </div>
       </div>
@@ -116,7 +116,7 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
           </div>
           <a
             href="/"
-            className="px-6 py-3 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors inline-block"
+            className="px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors inline-block"
           >
             Go to Home
           </a>

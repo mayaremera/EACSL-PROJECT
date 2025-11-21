@@ -85,7 +85,7 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="bg-gradient-to-b from-[#4C9A8F] to-[#3d8178] text-white">
+    <footer className="bg-[#5A9B8E] text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
         {/* Mobile Layout */}
         <div className="lg:hidden space-y-10">

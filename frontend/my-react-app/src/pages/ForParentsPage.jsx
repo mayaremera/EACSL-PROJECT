@@ -59,14 +59,14 @@ const ForParentsPage = () => {
                 />
                 <div className="absolute top-3 right-3">
                   <div className="bg-white p-2 rounded-full shadow-lg">
-                    <BookOpen className="w-5 h-5 text-[#4C9A8F]" />
+                    <BookOpen className="w-5 h-5 text-[#5A9B8E]" />
                   </div>
                 </div>
               </div>
 
               {/* Content */}
               <div className="p-5" dir="rtl" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
-                <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 hover:text-[#4C9A8F] transition-colors" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '18px' }}>
+                <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 hover:text-[#5A9B8E] transition-colors" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '18px' }}>
                   {article.title}
                 </h3>
                 <p className="text-sm text-gray-600 mb-4 line-clamp-2" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}>
@@ -141,7 +141,7 @@ const ForParentsPage = () => {
                   {selectedArticle.excerpt}
                 </p>
                 
-                <div className="bg-teal-50 border-r-4 border-[#4C9A8F] p-6 rounded-lg">
+                <div className="bg-teal-50 border-r-4 border-[#5A9B8E] p-6 rounded-lg">
                   <p className="text-gray-700 mb-4" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}>
                     لقراءة المقال كاملاً، يرجى زيارة الرابط أدناه:
                   </p>
@@ -149,7 +149,7 @@ const ForParentsPage = () => {
                     href={selectedArticle.articleUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200"
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white font-semibold rounded-lg transition-colors duration-200"
                     style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}
                   >
                     <span>اقرأ المقال الكامل</span>
@@ -163,7 +163,7 @@ const ForParentsPage = () => {
             <div className="border-t border-gray-200 p-6 bg-gray-50">
               <button
                 onClick={() => setSelectedArticle(null)}
-                className="w-full px-6 py-3 border-2 border-[#4C9A8F] text-[#4C9A8F] hover:bg-[#4C9A8F] hover:text-white font-semibold rounded-lg transition-colors duration-200"
+                className="w-full px-6 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] hover:bg-[#5A9B8E] hover:text-white font-semibold rounded-lg transition-colors duration-200"
                 style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}
               >
                 إغلاق
@@ -176,7 +176,7 @@ const ForParentsPage = () => {
       {/* Footer CTA Section */}
       <div className="bg-white border-t border-gray-200 py-12 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] rounded-2xl p-8 md:p-12 text-center">
+          <div className="bg-[#5A9B8E] rounded-2xl p-8 md:p-12 text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
               Join Our Community
             </h2>
@@ -185,7 +185,7 @@ const ForParentsPage = () => {
             </p>
             <a 
               href="/apply-membership"
-              className="inline-block bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
+              className="inline-block bg-white text-[#5A9B8E] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
             >
               Become a Member
             </a>

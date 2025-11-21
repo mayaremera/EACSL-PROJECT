@@ -25,7 +25,7 @@ const Breadcrumbs = ({ items = [] }) => {
               {item.path ? (
                 <Link 
                   to={item.path} 
-                  className="hover:text-[#4C9A8F] transition-colors"
+                  className="hover:text-[#5A9B8E] transition-colors"
                 >
                   {item.label}
                 </Link>

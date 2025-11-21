@@ -57,7 +57,7 @@ const AboutPage = () => {
         {/* About Section */}
         <div className="bg-white rounded-xl shadow-md p-8 md:p-10 mb-8">
           <div className="flex items-center gap-3 mb-6">
-            <Calendar className="w-8 h-8 text-[#4C9A8F]" />
+            <Calendar className="w-8 h-8 text-[#5A9B8E]" />
             <div>
               <h2 className="text-2xl font-bold text-gray-900">Established 2012</h2>
               <p className="text-sm text-gray-600">University of Alexandria, Egypt</p>
@@ -73,7 +73,7 @@ const AboutPage = () => {
           <div className="bg-white rounded-xl shadow-md p-8">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-teal-50 rounded-full flex items-center justify-center">
-                <Target className="w-6 h-6 text-[#4C9A8F]" />
+                <Target className="w-6 h-6 text-[#5A9B8E]" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900">Our Mission</h2>
             </div>
@@ -85,7 +85,7 @@ const AboutPage = () => {
           <div className="bg-white rounded-xl shadow-md p-8">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 bg-teal-50 rounded-full flex items-center justify-center">
-                <Eye className="w-6 h-6 text-[#4C9A8F]" />
+                <Eye className="w-6 h-6 text-[#5A9B8E]" />
               </div>
               <h2 className="text-2xl font-bold text-gray-900">Our Vision</h2>
             </div>
@@ -99,7 +99,7 @@ const AboutPage = () => {
         <div className="bg-white rounded-xl shadow-md p-8 md:p-10 mb-8">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 bg-teal-50 rounded-full flex items-center justify-center">
-              <Award className="w-6 h-6 text-[#4C9A8F]" />
+              <Award className="w-6 h-6 text-[#5A9B8E]" />
             </div>
             <h2 className="text-3xl font-bold text-gray-900">Honorary President</h2>
           </div>
@@ -116,12 +116,12 @@ const AboutPage = () => {
               </div>
               <h3 className="text-xl font-bold text-gray-900 text-center">Dr. Wael A. Al-Dakroury</h3>
               <p className="text-sm text-gray-600 text-center mb-2">Ph.D., CCC-SLP</p>
-              <p className="text-sm text-[#4C9A8F] font-medium text-center mb-3">Honorary President</p>
+              <p className="text-sm text-[#5A9B8E] font-medium text-center mb-3">Honorary President</p>
               <a 
                 href="https://www.linkedin.com/in/waelslp/" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
+                className="inline-flex items-center gap-2 text-sm text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors"
               >
                 <ExternalLink className="w-4 h-4" />
                 LinkedIn Profile
@@ -152,7 +152,7 @@ const AboutPage = () => {
         <div className="bg-white rounded-xl shadow-md p-8 md:p-10 mb-8">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-12 h-12 bg-teal-50 rounded-full flex items-center justify-center">
-              <Users className="w-6 h-6 text-[#4C9A8F]" />
+              <Users className="w-6 h-6 text-[#5A9B8E]" />
             </div>
             <h2 className="text-3xl font-bold text-gray-900">Leadership Team</h2>
           </div>
@@ -170,7 +170,7 @@ const AboutPage = () => {
                   />
                 </div>
                 <h4 className="font-bold text-gray-900 text-sm mb-1">{member.name}</h4>
-                <p className="text-xs text-[#4C9A8F] font-medium">{member.role}</p>
+                <p className="text-xs text-[#5A9B8E] font-medium">{member.role}</p>
               </div>
             ))}
           </div>
@@ -197,7 +197,7 @@ const AboutPage = () => {
       {/* Footer CTA Section */}
       <div className="bg-white border-t border-gray-200 py-12 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] rounded-2xl p-8 md:p-12 text-center">
+          <div className="bg-[#5A9B8E] rounded-2xl p-8 md:p-12 text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
               Join Our Community
             </h2>
@@ -206,7 +206,7 @@ const AboutPage = () => {
             </p>
             <a 
               href="/apply-membership"
-              className="inline-block bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
+              className="inline-block bg-white text-[#5A9B8E] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
             >
               Become a Member
             </a>

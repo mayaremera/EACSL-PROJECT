@@ -59,7 +59,7 @@ const CourseCard = ({
           className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
         />
         <div className="absolute top-3 left-3">
-          <span className="px-2.5 py-1 bg-[#4C9A8F] text-white text-xs font-semibold rounded">
+          <span className="px-2.5 py-1 bg-[#5A9B8E] text-white text-xs font-semibold rounded">
             {course.category}
           </span>
         </div>
@@ -77,11 +77,11 @@ const CourseCard = ({
 
         <div className="flex items-center gap-3 mb-3 text-xs text-gray-600">
           <div className="flex items-center gap-1">
-            <BookOpen className="w-3.5 h-3.5 text-[#4C9A8F]" />
+            <BookOpen className="w-3.5 h-3.5 text-[#5A9B8E]" />
             <span>{course.lessons} lessons</span>
           </div>
           <div className="flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-[#4C9A8F]" />
+            <Clock className="w-3.5 h-3.5 text-[#5A9B8E]" />
             <span>{course.duration}</span>
           </div>
         </div>
@@ -103,7 +103,7 @@ const CourseCard = ({
             />
             <span className="text-xs font-semibold text-gray-900">{course.instructor}</span>
           </div>
-          <span className="text-sm font-bold text-[#4C9A8F]">{course.price}</span>
+          <span className="text-sm font-bold text-[#5A9B8E]">{course.price}</span>
         </div>
       </div>
     </div>

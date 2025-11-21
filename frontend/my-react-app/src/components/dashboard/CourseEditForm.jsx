@@ -320,7 +320,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                 value={formData.title}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               />
             </div>
 
@@ -334,7 +334,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                 value={formData.category}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               >
                 {categories.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -352,7 +352,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                 value={formData.level}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               >
                 {levels.map(level => (
                   <option key={level} value={level}>{level}</option>
@@ -372,7 +372,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                 onChange={handleChange}
                 placeholder="e.g., 8 weeks"
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               />
             </div>
 
@@ -388,7 +388,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                 onChange={handleChange}
                 required
                 min="1"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               />
             </div>
 
@@ -403,7 +403,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                 value={formData.students}
                 onChange={handleChange}
                 min="0"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               />
             </div>
 
@@ -419,7 +419,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                 onChange={handleChange}
                 placeholder="e.g., 2,500 EGP"
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               />
             </div>
 
@@ -435,8 +435,8 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                 onDrop={(e) => handleDrop(e, 'image')}
                 className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 cursor-pointer ${
                   dragActive['image'] 
-                    ? 'border-[#4C9A8F] bg-[#4C9A8F]/10 scale-[1.02]' 
-                    : 'border-gray-300 hover:border-[#4C9A8F] bg-gray-50 hover:bg-gray-100'
+                    ? 'border-[#5A9B8E] bg-[#5A9B8E]/10 scale-[1.02]' 
+                    : 'border-gray-300 hover:border-[#5A9B8E] bg-gray-50 hover:bg-gray-100'
                 }`}
                 onClick={() => {
                   document.getElementById('course-image').click();
@@ -487,11 +487,11 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                 ) : (
                   <>
                     <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
-                      dragActive['image'] ? 'bg-[#4C9A8F]/20' : 'bg-gray-200'
+                      dragActive['image'] ? 'bg-[#5A9B8E]/20' : 'bg-gray-200'
                     }`}>
-                      <Upload className={`w-8 h-8 ${dragActive['image'] ? 'text-[#4C9A8F]' : 'text-gray-500'}`} />
+                      <Upload className={`w-8 h-8 ${dragActive['image'] ? 'text-[#5A9B8E]' : 'text-gray-500'}`} />
                     </div>
-                    <p className={`text-sm mb-1 font-medium ${dragActive['image'] ? 'text-[#4C9A8F]' : 'text-gray-700'}`}>
+                    <p className={`text-sm mb-1 font-medium ${dragActive['image'] ? 'text-[#5A9B8E]' : 'text-gray-700'}`}>
                       {dragActive['image'] ? 'Drop your image here' : 'Drag and drop your image here'}
                     </p>
                     <p className="text-gray-500 text-xs mb-4">or</p>
@@ -502,7 +502,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                       className="hidden"
                       id="course-image"
                     />
-                    <div className="inline-block px-6 py-2 bg-[#4C9A8F] text-white text-sm rounded-lg hover:bg-[#3d8178] transition-colors font-medium">
+                    <div className="inline-block px-6 py-2 bg-[#5A9B8E] text-white text-sm rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium">
                       Browse Files
                     </div>
                     <p className="text-gray-400 text-xs mt-4">Accepts: Images only (JPG, PNG, GIF, etc.)</p>
@@ -523,7 +523,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                 value={formData.instructor}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               />
             </div>
 
@@ -539,8 +539,8 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                 onDrop={(e) => handleDrop(e, 'instructorImage')}
                 className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 cursor-pointer ${
                   dragActive['instructorImage'] 
-                    ? 'border-[#4C9A8F] bg-[#4C9A8F]/10 scale-[1.02]' 
-                    : 'border-gray-300 hover:border-[#4C9A8F] bg-gray-50 hover:bg-gray-100'
+                    ? 'border-[#5A9B8E] bg-[#5A9B8E]/10 scale-[1.02]' 
+                    : 'border-gray-300 hover:border-[#5A9B8E] bg-gray-50 hover:bg-gray-100'
                 }`}
                 onClick={() => {
                   document.getElementById('instructor-image').click();
@@ -591,11 +591,11 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                 ) : (
                   <>
                     <div className={`w-16 h-16 mx-auto mb-4 rounded-full flex items-center justify-center ${
-                      dragActive['instructorImage'] ? 'bg-[#4C9A8F]/20' : 'bg-gray-200'
+                      dragActive['instructorImage'] ? 'bg-[#5A9B8E]/20' : 'bg-gray-200'
                     }`}>
-                      <Upload className={`w-8 h-8 ${dragActive['instructorImage'] ? 'text-[#4C9A8F]' : 'text-gray-500'}`} />
+                      <Upload className={`w-8 h-8 ${dragActive['instructorImage'] ? 'text-[#5A9B8E]' : 'text-gray-500'}`} />
                     </div>
-                    <p className={`text-sm mb-1 font-medium ${dragActive['instructorImage'] ? 'text-[#4C9A8F]' : 'text-gray-700'}`}>
+                    <p className={`text-sm mb-1 font-medium ${dragActive['instructorImage'] ? 'text-[#5A9B8E]' : 'text-gray-700'}`}>
                       {dragActive['instructorImage'] ? 'Drop your image here' : 'Drag and drop your image here'}
                     </p>
                     <p className="text-gray-500 text-xs mb-4">or</p>
@@ -606,7 +606,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                       className="hidden"
                       id="instructor-image"
                     />
-                    <div className="inline-block px-6 py-2 bg-[#4C9A8F] text-white text-sm rounded-lg hover:bg-[#3d8178] transition-colors font-medium">
+                    <div className="inline-block px-6 py-2 bg-[#5A9B8E] text-white text-sm rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium">
                       Browse Files
                     </div>
                     <p className="text-gray-400 text-xs mt-4">Accepts: Images only (JPG, PNG, GIF, etc.)</p>
@@ -627,15 +627,15 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                 onChange={handleChange}
                 required
                 rows="4"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               />
             </div>
           </div>
 
           {/* Course Details Page Section */}
-          <div className="border-t-2 border-[#4C9A8F] pt-6 mt-6">
+          <div className="border-t-2 border-[#5A9B8E] pt-6 mt-6">
             <div className="mb-6">
-              <h3 className="text-xl font-bold text-[#4C9A8F] mb-2 flex items-center gap-2">
+              <h3 className="text-xl font-bold text-[#5A9B8E] mb-2 flex items-center gap-2">
                 <FileText className="w-5 h-5" />
                 Course Details Page Information
               </h3>
@@ -654,7 +654,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                   value={formData.titleEn}
                   onChange={handleChange}
                   placeholder="English title"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 />
               </div>
 
@@ -669,7 +669,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                   value={formData.titleAr}
                   onChange={handleChange}
                   placeholder="Arabic title"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 />
               </div>
 
@@ -684,7 +684,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                   value={formData.categoryAr}
                   onChange={handleChange}
                   placeholder="Arabic category"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 />
               </div>
 
@@ -697,7 +697,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                   name="skillLevel"
                   value={formData.skillLevel}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 >
                   {levels.map(level => (
                     <option key={level} value={level}>{level}</option>
@@ -716,7 +716,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                   value={formData.lectures}
                   onChange={handleChange}
                   min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 />
               </div>
 
@@ -731,7 +731,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                   value={formData.enrolled}
                   onChange={handleChange}
                   min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 />
               </div>
 
@@ -746,7 +746,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                   value={formData.moneyBackGuarantee}
                   onChange={handleChange}
                   placeholder="e.g., 30-Day Money-Back Guarantee"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 />
               </div>
 
@@ -761,7 +761,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                   value={formData.language}
                   onChange={handleChange}
                   placeholder="e.g., English"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 />
               </div>
 
@@ -776,7 +776,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                   value={formData.classTime}
                   onChange={handleChange}
                   placeholder="e.g., 4:00 PM - 6:00 PM"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 />
               </div>
 
@@ -791,7 +791,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                   value={formData.startDate}
                   onChange={handleChange}
                   placeholder="e.g., Monday-Friday"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 />
               </div>
 
@@ -806,7 +806,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                   onChange={handleChange}
                   rows="3"
                   placeholder="Instructor biography"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 />
               </div>
 
@@ -821,7 +821,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                   onChange={handleChange}
                   rows="3"
                   placeholder="Brief description for course details page"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 />
               </div>
 
@@ -838,7 +838,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                         value={outcome}
                         onChange={(e) => handleArrayChange('learningOutcomes', index, e.target.value)}
                         placeholder={`Learning outcome ${index + 1}`}
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                       />
                       <button
                         type="button"
@@ -852,7 +852,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                   <button
                     type="button"
                     onClick={() => addArrayItem('learningOutcomes', '')}
-                    className="flex items-center gap-2 px-4 py-2 text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors border border-[#4C9A8F]"
+                    className="flex items-center gap-2 px-4 py-2 text-[#5A9B8E] hover:bg-[#5A9B8E]/10 rounded-lg transition-colors border border-[#5A9B8E]"
                   >
                     <Plus className="w-4 h-4" />
                     Add Learning Outcome
@@ -874,7 +874,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                           value={section.title || ''}
                           onChange={(e) => handleCurriculumSectionChange(sectionIndex, 'title', e.target.value)}
                           placeholder={`Section ${sectionIndex + 1} Title`}
-                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none bg-white"
+                          className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none bg-white"
                         />
                         <button
                           type="button"
@@ -892,19 +892,19 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                               value={lesson.name || ''}
                               onChange={(e) => handleCurriculumLessonChange(sectionIndex, lessonIndex, 'name', e.target.value)}
                               placeholder="Lesson name"
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none bg-white text-sm"
+                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none bg-white text-sm"
                             />
                             <input
                               type="text"
                               value={lesson.duration || ''}
                               onChange={(e) => handleCurriculumLessonChange(sectionIndex, lessonIndex, 'duration', e.target.value)}
                               placeholder="Duration"
-                              className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none bg-white text-sm"
+                              className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none bg-white text-sm"
                             />
                             <select
                               value={lesson.type || 'video'}
                               onChange={(e) => handleCurriculumLessonChange(sectionIndex, lessonIndex, 'type', e.target.value)}
-                              className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none bg-white text-sm"
+                              className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none bg-white text-sm"
                             >
                               <option value="video">Video</option>
                               <option value="text">Text</option>
@@ -922,7 +922,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                         <button
                           type="button"
                           onClick={() => addCurriculumLesson(sectionIndex)}
-                          className="flex items-center gap-2 px-3 py-2 text-sm text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors border border-[#4C9A8F]"
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-[#5A9B8E] hover:bg-[#5A9B8E]/10 rounded-lg transition-colors border border-[#5A9B8E]"
                         >
                           <Plus className="w-3 h-3" />
                           Add Lesson
@@ -933,7 +933,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                   <button
                     type="button"
                     onClick={addCurriculumSection}
-                    className="flex items-center gap-2 px-4 py-2 text-[#4C9A8F] hover:bg-[#4C9A8F]/10 rounded-lg transition-colors border border-[#4C9A8F]"
+                    className="flex items-center gap-2 px-4 py-2 text-[#5A9B8E] hover:bg-[#5A9B8E]/10 rounded-lg transition-colors border border-[#5A9B8E]"
                   >
                     <Plus className="w-4 h-4" />
                     Add Curriculum Section
@@ -954,7 +954,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="px-6 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors flex items-center gap-2 disabled:opacity-50"
+              className="px-6 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               {isLoading ? (
                 <>

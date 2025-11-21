@@ -259,7 +259,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                 name="heroTitle"
                 value={formData.heroTitle}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
                 placeholder="Advancing Speech-Language Pathology 2025"
                 required
               />
@@ -274,7 +274,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                 value={formData.heroDescription}
                 onChange={handleChange}
                 rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
                 placeholder="Join leading experts for a two-day conference focused on advancing clinical practice, enhancing research impact, and exploring innovation across speech, swallowing, language disorders, and audiology."
                 required
               />
@@ -294,7 +294,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                 name="title"
                 value={formData.title}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
                 placeholder="Conference Schedule"
                 required
               />
@@ -309,7 +309,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                 value={formData.subtitle}
                 onChange={handleChange}
                 rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
                 placeholder="Advancing Practice and Research in Speech-Language Pathology: Bridging Science and Clinical Impact"
                 required
               />
@@ -325,7 +325,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                   name="headerInfo1"
                   value={formData.headerInfo1}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
                   placeholder="Two Days Conference"
                 />
               </div>
@@ -339,7 +339,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                   name="headerInfo2"
                   value={formData.headerInfo2}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
                   placeholder="All Attendees Welcome"
                 />
               </div>
@@ -359,7 +359,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                 value={formData.overviewDescription}
                 onChange={handleChange}
                 rows={2}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
                 placeholder="Brief description about the event overview"
               />
             </div>
@@ -374,7 +374,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                   name="durationText"
                   value={formData.durationText}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
                   placeholder="Two Full Days"
                 />
               </div>
@@ -388,7 +388,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                   name="tracksDescription"
                   value={formData.tracksDescription}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
                   placeholder="3 Parallel Sessions"
                 />
               </div>
@@ -409,7 +409,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                   name="memberFee"
                   value={formData.memberFee}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
                   required
                   min="0"
                 />
@@ -424,7 +424,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                   name="guestFee"
                   value={formData.guestFee}
                   onChange={handleChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
                   required
                   min="0"
                 />
@@ -441,7 +441,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
               <div
                 className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
                   dragActive
-                    ? 'border-[#4C9A8F] bg-[#4C9A8F]/5'
+                    ? 'border-[#5A9B8E] bg-[#5A9B8E]/5'
                     : 'border-gray-300 hover:border-gray-400'
                 }`}
                 onDragEnter={handleDrag}
@@ -482,7 +482,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                     />
                     <label
                       htmlFor="hero-image-upload"
-                      className="inline-block px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors cursor-pointer"
+                      className="inline-block px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors cursor-pointer"
                     >
                       Select Image
                     </label>
@@ -499,7 +499,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
               <button
                 type="button"
                 onClick={addTrack}
-                className="flex items-center gap-2 px-3 py-1.5 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors text-sm"
+                className="flex items-center gap-2 px-3 py-1.5 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors text-sm"
               >
                 <Plus size={16} />
                 Add Track
@@ -512,7 +512,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                   type="text"
                   value={track}
                   onChange={(e) => handleTrackChange(index, e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
                   placeholder={`Track ${String.fromCharCode(65 + index)}: ...`}
                 />
                 {formData.tracks.length > 1 && (
@@ -537,14 +537,14 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                   type="text"
                   value={formData.day1Title}
                   onChange={(e) => setFormData(prev => ({ ...prev, day1Title: e.target.value }))}
-                  className="mt-2 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                  className="mt-2 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
                   placeholder="Day One - Knowledge and Innovation"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => addScheduleSlot(1)}
-                className="ml-4 flex items-center gap-2 px-3 py-1.5 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors text-sm"
+                className="ml-4 flex items-center gap-2 px-3 py-1.5 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors text-sm"
               >
                 <Plus size={16} />
                 Add Slot
@@ -567,7 +567,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                   type="text"
                   value={slot.time}
                   onChange={(e) => handleScheduleChange(1, index, 'time', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] text-sm"
                   placeholder="4:00 - 5:00 PM"
                 />
                 {formData.tracks.map((track, trackIndex) => {
@@ -578,7 +578,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                       type="text"
                       value={slot[trackKey] || ''}
                       onChange={(e) => handleScheduleChange(1, index, trackKey, e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] text-sm"
                       placeholder={track}
                     />
                   );
@@ -596,14 +596,14 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                   type="text"
                   value={formData.day2Title}
                   onChange={(e) => setFormData(prev => ({ ...prev, day2Title: e.target.value }))}
-                  className="mt-2 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                  className="mt-2 w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
                   placeholder="Day Two - Collaboration and Future Directions"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => addScheduleSlot(2)}
-                className="ml-4 flex items-center gap-2 px-3 py-1.5 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors text-sm"
+                className="ml-4 flex items-center gap-2 px-3 py-1.5 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors text-sm"
               >
                 <Plus size={16} />
                 Add Slot
@@ -626,7 +626,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                   type="text"
                   value={slot.time}
                   onChange={(e) => handleScheduleChange(2, index, 'time', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] text-sm"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] text-sm"
                   placeholder="4:00 - 6:00 PM"
                 />
                 {formData.tracks.map((track, trackIndex) => {
@@ -637,7 +637,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                       type="text"
                       value={slot[trackKey] || ''}
                       onChange={(e) => handleScheduleChange(2, index, trackKey, e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] text-sm"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] text-sm"
                       placeholder={track}
                     />
                   );
@@ -658,7 +658,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
             <button
               type="submit"
               disabled={isUploading}
-              className="px-6 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-6 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Save size={18} />
               {isUploading ? 'Uploading...' : 'Save Event'}

@@ -521,7 +521,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 value={formData.name ?? ''}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               />
             </div>
 
@@ -535,7 +535,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 value={formData.role ?? 'Member'}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               >
                 {roles.map(role => (
                   <option key={role} value={role}>{role}</option>
@@ -554,7 +554,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 value={formData.email ?? ''}
                 onChange={handleChange}
                 required
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none ${
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none ${
                   emailExistsError ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
@@ -597,7 +597,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 name="phone"
                 value={formData.phone ?? ''}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               />
             </div>
 
@@ -611,7 +611,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 name="location"
                 value={formData.location ?? ''}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               />
             </div>
 
@@ -626,7 +626,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 value={formData.activeTill ?? ''}
                 onChange={handleChange}
                 placeholder="e.g., 2025"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               />
             </div>
 
@@ -682,8 +682,8 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 onDrop={(e) => handleDrop(e, 'image')}
                 className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 cursor-pointer ${
                   dragActive['image'] 
-                    ? 'border-[#4C9A8F] bg-[#4C9A8F]/10 scale-[1.02]' 
-                    : 'border-gray-300 hover:border-[#4C9A8F] bg-gray-50 hover:bg-gray-100'
+                    ? 'border-[#5A9B8E] bg-[#5A9B8E]/10 scale-[1.02]' 
+                    : 'border-gray-300 hover:border-[#5A9B8E] bg-gray-50 hover:bg-gray-100'
                 }`}
                 onClick={() => {
                   document.getElementById('member-image').click();
@@ -739,7 +739,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                         textClassName="text-2xl"
                       />
                     </div>
-                    <p className={`text-sm mb-1 font-medium ${dragActive['image'] ? 'text-[#4C9A8F]' : 'text-gray-700'}`}>
+                    <p className={`text-sm mb-1 font-medium ${dragActive['image'] ? 'text-[#5A9B8E]' : 'text-gray-700'}`}>
                       {dragActive['image'] ? 'Drop your image here' : 'Drag and drop your image here'}
                     </p>
                     <p className="text-gray-500 text-xs mb-4">or</p>
@@ -750,7 +750,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                       className="hidden"
                       id="member-image"
                     />
-                    <div className="inline-block px-6 py-2 bg-[#4C9A8F] text-white text-sm rounded-lg hover:bg-[#3d8178] transition-colors font-medium">
+                    <div className="inline-block px-6 py-2 bg-[#5A9B8E] text-white text-sm rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium">
                       Browse Files
                     </div>
                     <p className="text-gray-400 text-xs mt-4">Accepts: Images only (JPG, PNG, GIF, etc.)</p>
@@ -771,7 +771,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 value={formData.website ?? ''}
                 onChange={handleChange}
                 placeholder="www.example.com"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               />
             </div>
 
@@ -786,7 +786,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 value={formData.linkedin ?? ''}
                 onChange={handleChange}
                 placeholder="linkedin.com/in/username"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               />
             </div>
 
@@ -801,7 +801,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 onChange={handleChange}
                 required
                 rows="2"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               />
             </div>
 
@@ -816,7 +816,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 onChange={handleChange}
                 required
                 rows="4"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
               />
             </div>
 
@@ -832,7 +832,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                   onChange={(e) => setCertificateInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddCertificate())}
                   placeholder="Add a certificate..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 />
                 <button
                   type="button"
@@ -862,7 +862,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
           {/* Continuing Education Section */}
           <div className="border-t border-gray-200 pt-6">
             <div className="flex items-center gap-2 mb-6">
-              <BookOpen className="w-5 h-5 text-[#4C9A8F]" />
+              <BookOpen className="w-5 h-5 text-[#5A9B8E]" />
               <h3 className="text-xl font-bold text-gray-900">Continuing Education</h3>
             </div>
 
@@ -878,7 +878,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                   value={formData.totalMoneySpent ?? '0 EGP'}
                   onChange={handleChange}
                   placeholder="0 EGP"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 />
               </div>
 
@@ -893,7 +893,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                   value={formData.coursesEnrolled ?? 0}
                   onChange={handleChange}
                   min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 />
               </div>
 
@@ -908,7 +908,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                   value={formData.totalHoursLearned ?? 0}
                   onChange={handleChange}
                   min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 />
               </div>
             </div>
@@ -922,7 +922,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 <select
                   value={selectedActiveCourse}
                   onChange={(e) => setSelectedActiveCourse(e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 >
                   <option value="">Select a course to add...</option>
                   {availableCourses
@@ -937,7 +937,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                   type="button"
                   onClick={handleAddActiveCourse}
                   disabled={!selectedActiveCourse}
-                  className="px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
                   Add
@@ -986,7 +986,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 <select
                   value={selectedCompletedCourse}
                   onChange={(e) => setSelectedCompletedCourse(e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none"
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 >
                   <option value="">Select a course to add...</option>
                   {availableCourses
@@ -1001,7 +1001,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                   type="button"
                   onClick={handleAddCompletedCourse}
                   disabled={!selectedCompletedCourse}
-                  className="px-4 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
                   Add
@@ -1050,7 +1050,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                   type="checkbox"
                   checked={createAuthAccount}
                   onChange={(e) => setCreateAuthAccount(e.target.checked)}
-                  className="mt-1 w-4 h-4 text-[#4C9A8F] border-gray-300 rounded focus:ring-[#4C9A8F]"
+                  className="mt-1 w-4 h-4 text-[#5A9B8E] border-gray-300 rounded focus:ring-[#5A9B8E]"
                 />
                 <div className="flex-1">
                   <div className="font-semibold text-blue-900 text-sm">
@@ -1075,7 +1075,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
             <button
               type="submit"
               disabled={isLoading}
-              className="px-6 py-2 bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors flex items-center gap-2 disabled:opacity-50"
+              className="px-6 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               {isLoading ? (
                 <>

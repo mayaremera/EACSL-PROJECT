@@ -55,13 +55,13 @@ function DashboardCourseEditorPage() {
                                 <button
                                     onClick={() => handleMenuClick(item)}
                                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
-                                            ? "bg-teal-50 text-[#4C9A8F] font-medium"
+                                            ? "bg-teal-50 text-[#5A9B8E] font-medium"
                                             : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                                         }`}
                                 >
                                     <Icon
                                         size={20}
-                                        className={isActive ? "text-[#4C9A8F]" : "text-gray-400"}
+                                        className={isActive ? "text-[#5A9B8E]" : "text-gray-400"}
                                     />
                                     <span className="text-sm">{item.label}</span>
                                 </button>
@@ -74,7 +74,7 @@ function DashboardCourseEditorPage() {
             {/* User Profile */}
             <div className="p-4 border-t border-gray-100">
                 <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-teal-400 to-teal-600 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-full bg-[#5A9B8E] flex items-center justify-center">
                         <span className="text-white font-semibold text-sm">JD</span>
                     </div>
                     <div className="flex-1">

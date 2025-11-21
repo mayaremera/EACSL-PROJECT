@@ -100,8 +100,8 @@ export default function PastEventsPage() {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-teal-100 to-teal-200 flex items-center justify-center">
-                        <Calendar className="w-16 h-16 text-teal-600 opacity-50" />
+                      <div className="w-full h-full bg-[#5A9B8E] flex items-center justify-center">
+                        <Calendar className="w-16 h-16 text-[#5A9B8E] opacity-50" />
                       </div>
                     )}
                   </div>
@@ -109,7 +109,7 @@ export default function PastEventsPage() {
                   {/* Event Info */}
                   <div className="lg:col-span-2 p-8">
                     <div className="flex items-center gap-3 mb-4">
-                      <span className="px-3 py-1 bg-teal-50 text-[#4C9A8F] text-sm font-semibold rounded-full">
+                      <span className="px-3 py-1 bg-teal-50 text-[#5A9B8E] text-sm font-semibold rounded-full">
                         {eventYear}
                       </span>
                       <span className="text-sm text-gray-500">Past Event</span>
@@ -133,12 +133,12 @@ export default function PastEventsPage() {
                       )}
                       {event.tracks && event.tracks.length > 0 && (
                         <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Users className="w-4 h-4 text-[#4C9A8F]" />
+                          <Users className="w-4 h-4 text-[#5A9B8E]" />
                           <span>{event.tracks.length} Track{event.tracks.length !== 1 ? 's' : ''}</span>
                         </div>
                       )}
                       <div className="flex items-center gap-2 text-sm text-gray-600">
-                        <Calendar className="w-4 h-4 text-[#4C9A8F]" />
+                        <Calendar className="w-4 h-4 text-[#5A9B8E]" />
                         <span>{eventDate}</span>
                       </div>
                     </div>
@@ -153,7 +153,7 @@ export default function PastEventsPage() {
 
                     <button
                       onClick={() => setSelectedEvent(event)}
-                      className="px-6 py-2.5 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200"
+                      className="px-6 py-2.5 bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white font-semibold rounded-lg transition-colors duration-200"
                     >
                       View Full Details
                     </button>
@@ -208,7 +208,7 @@ export default function PastEventsPage() {
             {selectedEvent.tracks && selectedEvent.tracks.length > 0 && (
               <div className="p-8">
                 <div className="flex items-center gap-3 mb-6">
-                  <Users className="w-6 h-6 text-[#4C9A8F]" />
+                  <Users className="w-6 h-6 text-[#5A9B8E]" />
                   <h3 className="text-2xl font-bold text-gray-900">Conference Tracks</h3>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -225,13 +225,13 @@ export default function PastEventsPage() {
             {selectedEvent.scheduleDay1 && selectedEvent.scheduleDay1.length > 0 && (
               <div className="p-8 bg-gray-50">
                 <div className="flex items-center gap-3 mb-6">
-                  <BookOpen className="w-6 h-6 text-[#4C9A8F]" />
+                  <BookOpen className="w-6 h-6 text-[#5A9B8E]" />
                   <h3 className="text-2xl font-bold text-gray-900">{selectedEvent.day1Title || 'Day One'}</h3>
                 </div>
                 <div className="space-y-3">
                   {selectedEvent.scheduleDay1.map((slot, idx) => (
                     <div key={idx} className="p-4 bg-white rounded-lg border border-gray-200">
-                      <div className="font-semibold text-[#4C9A8F] mb-2">{slot.time}</div>
+                      <div className="font-semibold text-[#5A9B8E] mb-2">{slot.time}</div>
                       {selectedEvent.tracks && selectedEvent.tracks.map((track, trackIdx) => {
                         const trackKey = `track${String.fromCharCode(65 + trackIdx)}`;
                         return slot[trackKey] ? (
@@ -250,13 +250,13 @@ export default function PastEventsPage() {
             {selectedEvent.scheduleDay2 && selectedEvent.scheduleDay2.length > 0 && (
               <div className="p-8">
                 <div className="flex items-center gap-3 mb-6">
-                  <BookOpen className="w-6 h-6 text-[#4C9A8F]" />
+                  <BookOpen className="w-6 h-6 text-[#5A9B8E]" />
                   <h3 className="text-2xl font-bold text-gray-900">{selectedEvent.day2Title || 'Day Two'}</h3>
                 </div>
                 <div className="space-y-3">
                   {selectedEvent.scheduleDay2.map((slot, idx) => (
                     <div key={idx} className="p-4 bg-white rounded-lg border border-gray-200">
-                      <div className="font-semibold text-[#4C9A8F] mb-2">{slot.time}</div>
+                      <div className="font-semibold text-[#5A9B8E] mb-2">{slot.time}</div>
                       {selectedEvent.tracks && selectedEvent.tracks.map((track, trackIdx) => {
                         const trackKey = `track${String.fromCharCode(65 + trackIdx)}`;
                         return slot[trackKey] ? (
@@ -277,7 +277,7 @@ export default function PastEventsPage() {
       {/* Footer CTA Section */}
       <div className="bg-white border-t border-gray-200 py-12 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] rounded-2xl p-8 md:p-12 text-center">
+          <div className="bg-[#5A9B8E] rounded-2xl p-8 md:p-12 text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
               Join Our Community
             </h2>
@@ -286,7 +286,7 @@ export default function PastEventsPage() {
             </p>
             <a 
               href="/apply-membership"
-              className="inline-block bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
+              className="inline-block bg-white text-[#5A9B8E] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
             >
               Become a Member
             </a>

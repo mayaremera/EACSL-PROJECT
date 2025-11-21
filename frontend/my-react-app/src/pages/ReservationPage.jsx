@@ -145,7 +145,7 @@ const ReservationPage = () => {
           <p className="text-gray-600 mb-6 leading-relaxed">
             شكراً لك! سنتواصل معك قريباً لتأكيد موعدك.
           </p>
-          <div className="bg-teal-50 border-l-4 border-[#4C9A8F] p-4 mb-6">
+          <div className="bg-teal-50 border-l-4 border-[#5A9B8E] p-4 mb-6">
             <p className="text-sm text-gray-700">
               <strong>Child's Name:</strong> {submittedData?.kidsName}<br />
               <strong>Your Name:</strong> {submittedData?.yourName}<br />
@@ -159,7 +159,7 @@ const ReservationPage = () => {
           </div>
           <button
             onClick={() => window.location.reload()}
-            className="px-8 py-3 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200"
+            className="px-8 py-3 bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white font-semibold rounded-lg transition-colors duration-200"
           >
             Back to Reservation Page
           </button>
@@ -191,7 +191,7 @@ const ReservationPage = () => {
                 className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 p-6 text-center"
               >
                 <div className="inline-flex items-center justify-center w-14 h-14 bg-teal-50 rounded-full mb-4">
-                  <Icon className="text-[#4C9A8F]" size={28} />
+                  <Icon className="text-[#5A9B8E]" size={28} />
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">{info.title}</h3>
                 {info.phones ? (
@@ -200,7 +200,7 @@ const ReservationPage = () => {
                       <a
                         key={phoneIndex}
                         href={phone.link}
-                        className="text-gray-600 hover:text-[#4C9A8F] transition-colors text-sm leading-relaxed"
+                        className="text-gray-600 hover:text-[#5A9B8E] transition-colors text-sm leading-relaxed"
                       >
                         {phone.number}
                       </a>
@@ -211,7 +211,7 @@ const ReservationPage = () => {
                     href={info.link}
                     target={info.link.startsWith('http') ? '_blank' : '_self'}
                     rel={info.link.startsWith('http') ? 'noopener noreferrer' : ''}
-                    className="text-gray-600 hover:text-[#4C9A8F] transition-colors text-sm leading-relaxed"
+                    className="text-gray-600 hover:text-[#5A9B8E] transition-colors text-sm leading-relaxed"
                   >
                     {info.content}
                   </a>
@@ -257,7 +257,7 @@ const ReservationPage = () => {
                   name="kidsName"
                   value={formData.kidsName}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent transition-colors"
                   placeholder="أدخل اسم الطفل"
                   style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}
                 />
@@ -273,7 +273,7 @@ const ReservationPage = () => {
                   name="yourName"
                   value={formData.yourName}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent transition-colors"
                   placeholder="أدخل اسمك الكامل"
                   style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}
                 />
@@ -289,7 +289,7 @@ const ReservationPage = () => {
                   name="phoneNumber"
                   value={formData.phoneNumber}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent transition-colors"
                   placeholder="+20 XXX XXX XXXX"
                   style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}
                 />
@@ -310,7 +310,7 @@ const ReservationPage = () => {
                         name={item.name}
                         checked={formData[item.name]}
                         onChange={handleChange}
-                        className="w-4 h-4 text-[#4C9A8F] border-gray-300 rounded focus:ring-[#4C9A8F]"
+                        className="w-4 h-4 text-[#5A9B8E] border-gray-300 rounded focus:ring-[#5A9B8E]"
                       />
                       <span className="text-sm text-gray-700" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}>{item.label}</span>
                     </label>
@@ -328,7 +328,7 @@ const ReservationPage = () => {
                   rows={5}
                   value={formData.concern}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent transition-colors resize-none"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent transition-colors resize-none"
                   placeholder="اكتب تفاصيل حالة الطفل أو أي استفسار..."
                   style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}
                 ></textarea>
@@ -337,7 +337,7 @@ const ReservationPage = () => {
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className={`w-full bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg ${
+                className={`w-full bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg ${
                   isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
                 }`}
                 style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}
@@ -362,7 +362,7 @@ const ReservationPage = () => {
       {/* Footer CTA Section */}
       <div className="bg-white border-t border-gray-200 py-12 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] rounded-2xl p-8 md:p-12 text-center">
+          <div className="bg-[#5A9B8E] rounded-2xl p-8 md:p-12 text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
               Join Our Community
             </h2>
@@ -371,7 +371,7 @@ const ReservationPage = () => {
             </p>
             <a 
               href="/apply-membership"
-              className="inline-block bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
+              className="inline-block bg-white text-[#5A9B8E] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
             >
               Become a Member
             </a>

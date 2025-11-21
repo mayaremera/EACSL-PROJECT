@@ -141,7 +141,7 @@ const AuthModal = ({ isOpen, onClose }) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#4C9A8F] hover:bg-[#57A79B] text-white font-semibold py-2.5 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-[#5A9B8E] hover:bg-[#57A79B] text-white font-semibold py-2.5 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Processing...' : 'Sign In'}
           </button>
@@ -157,7 +157,7 @@ const AuthModal = ({ isOpen, onClose }) => {
                   onClose();
                   navigate('/apply-membership', { replace: true });
                 }}
-                className="text-[#4C9A8F] hover:text-[#57A79B] font-semibold transition-colors"
+                className="text-[#5A9B8E] hover:text-[#57A79B] font-semibold transition-colors"
               >
                 Become a member
               </a>

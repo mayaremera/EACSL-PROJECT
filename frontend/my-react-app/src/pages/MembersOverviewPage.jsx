@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Globe, Users } from 'lucide-react';
-import { filterMembers, getNationalities } from '../data/members';
+import { Search, Users } from 'lucide-react';
+import { filterMembers } from '../data/members';
 import { membersManager } from '../utils/dataManager';
 import MemberCard from '../components/cards/MemberCard';
 import PageHero from '../components/ui/PageHero';
@@ -8,7 +8,6 @@ import Breadcrumbs from '../components/ui/Breadcrumbs';
 
 function MembersOverviewPage() {
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedNationality, setSelectedNationality] = useState('all');
   const [members, setMembers] = useState([]);
 
   useEffect(() => {
@@ -26,12 +25,8 @@ function MembersOverviewPage() {
     };
   }, []);
 
-  // Get nationalities dynamically from data
-  const nationalities = getNationalities();
-
   // Filter members using helper function
   const filteredMembers = filterMembers({
-    nationality: selectedNationality,
     searchTerm: searchTerm
   }, members);
 
@@ -60,26 +55,8 @@ function MembersOverviewPage() {
                   placeholder="Search members by name, role... | ابحث عن الأعضاء بالاسم أو الدور..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none text-sm"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm"
                 />
-              </div>
-            </div>
-
-            {/* Nationality Filter Dropdown */}
-            <div className="md:w-72">
-              <div className="relative">
-                <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <select
-                  value={selectedNationality}
-                  onChange={(e) => setSelectedNationality(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none text-sm appearance-none bg-white cursor-pointer"
-                >
-                  {nationalities.map((nat) => (
-                    <option key={nat.value} value={nat.value}>
-                      {nat.label}
-                    </option>
-                  ))}
-                </select>
               </div>
             </div>
           </div>
@@ -108,7 +85,7 @@ function MembersOverviewPage() {
       {/* Footer CTA Section */}
       <div className="bg-white border-t border-gray-200 py-12 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] rounded-2xl p-8 md:p-12 text-center">
+          <div className="bg-[#5A9B8E] rounded-2xl p-8 md:p-12 text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
               Join Our Community
             </h2>
@@ -117,7 +94,7 @@ function MembersOverviewPage() {
             </p>
             <a 
               href="/apply-membership"
-              className="inline-block bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
+              className="inline-block bg-white text-[#5A9B8E] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
             >
               Become a Member
             </a>

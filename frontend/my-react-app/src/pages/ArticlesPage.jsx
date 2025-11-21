@@ -68,7 +68,7 @@ const ArticlesPage = () => {
             {/* Search Section */}
             <div className="p-5">
               <div className="flex items-center gap-2 mb-3">
-                <Search className="w-4 h-4 text-[#4C9A8F]" />
+                <Search className="w-4 h-4 text-[#5A9B8E]" />
                 <h3 className="text-sm font-semibold text-gray-700">Search Articles</h3>
               </div>
               <input
@@ -76,20 +76,20 @@ const ArticlesPage = () => {
                 placeholder="Type to search..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none transition-all"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none transition-all"
               />
             </div>
 
             {/* Filter Section */}
             <div className="p-5 md:min-w-[280px]">
               <div className="flex items-center gap-2 mb-3">
-                <Filter className="w-4 h-4 text-[#4C9A8F]" />
+                <Filter className="w-4 h-4 text-[#5A9B8E]" />
                 <h3 className="text-sm font-semibold text-gray-700">Category</h3>
               </div>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#4C9A8F] focus:border-transparent outline-none transition-all bg-white"
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none transition-all bg-white"
               >
                 {categories.map((cat) => (
                   <option key={cat.value} value={cat.value}>
@@ -125,7 +125,7 @@ const ArticlesPage = () => {
                   setSearchTerm('');
                   setSelectedCategory('all');
                 }}
-                className="text-xs text-[#4C9A8F] hover:text-[#3d8178] font-medium ml-auto"
+                className="text-xs text-[#5A9B8E] hover:text-[#4A8B7E] font-medium ml-auto"
               >
                 Clear all
               </button>
@@ -156,7 +156,7 @@ const ArticlesPage = () => {
               </div>
               <div className="p-6">
                 <div className="flex items-center gap-2 mb-3">
-                  <span className="px-3 py-1 bg-teal-50 text-[#4C9A8F] text-sm font-medium rounded-full">
+                  <span className="px-3 py-1 bg-teal-50 text-[#5A9B8E] text-sm font-medium rounded-full">
                     {article.category}
                   </span>
                 </div>
@@ -168,7 +168,7 @@ const ArticlesPage = () => {
                 </p>
                 <div className="flex items-center justify-between pt-3 border-t border-gray-200">
                   <span className="text-sm text-gray-500">{article.date}</span>
-                  <button className="text-[#4C9A8F] hover:text-[#3d8178] text-sm font-medium flex items-center gap-1">
+                  <button className="text-[#5A9B8E] hover:text-[#4A8B7E] text-sm font-medium flex items-center gap-1">
                     Read More
                     <ExternalLink className="w-4 h-4" />
                   </button>
@@ -214,7 +214,7 @@ const ArticlesPage = () => {
 
             <div className="p-6">
               <div className="flex items-center gap-2 mb-3 flex-wrap">
-                <span className="px-3 py-1 bg-teal-50 text-[#4C9A8F] text-xs font-medium rounded-full">
+                <span className="px-3 py-1 bg-teal-50 text-[#5A9B8E] text-xs font-medium rounded-full">
                   {selectedArticle.category}
                 </span>
                 <span className="text-xs text-gray-500">{selectedArticle.date}</span>
@@ -241,7 +241,7 @@ const ArticlesPage = () => {
                   href={selectedArticle.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors"
+                  className="inline-flex items-center gap-2 bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors"
                   style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '14px' }}
                 >
                   <ExternalLink className="w-4 h-4" />
@@ -259,7 +259,7 @@ const ArticlesPage = () => {
       {/* Footer CTA Section */}
       <div className="bg-white border-t border-gray-200 py-12 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] rounded-2xl p-8 md:p-12 text-center">
+          <div className="bg-[#5A9B8E] rounded-2xl p-8 md:p-12 text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
               Join Our Community
             </h2>
@@ -268,7 +268,7 @@ const ArticlesPage = () => {
             </p>
             <a 
               href="/apply-membership"
-              className="inline-block bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
+              className="inline-block bg-white text-[#5A9B8E] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
             >
               Become a Member
             </a>

@@ -8,7 +8,7 @@ import React, { useState } from 'react';
  * @param {string} alt - Alt text for the image
  * @param {string} name - Name/text to extract first letter from (defaults to alt text)
  * @param {string} className - Additional CSS classes
- * @param {string} placeholderColor - Background color for placeholder (default: #4C9A8F)
+ * @param {string} placeholderColor - Background color for placeholder (default: #5A9B8E)
  * @param {function} onError - Optional error handler
  * @param {object} ...props - Other img tag props
  */
@@ -32,7 +32,7 @@ const ImagePlaceholder = ({
     // Generate a color based on the first letter for consistency
     const getColorForLetter = (letter) => {
         const colors = [
-            '#4C9A8F', '#5A9B8E', '#3d8178', '#2d6b61', 
+            '#5A9B8E', '#5A9B8E', '#4A8B7E', '#2d6b61', 
             '#6B8E23', '#4682B4', '#8B4513', '#708090',
             '#CD5C5C', '#9370DB', '#20B2AA', '#FF6347'
         ];
