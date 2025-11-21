@@ -2,9 +2,18 @@
 -- Run this in your Supabase SQL Editor (Dashboard → SQL Editor → New Query)
 -- This will fix RLS policies to allow public form submissions
 
--- First, drop existing policies if they exist (to avoid conflicts)
-DROP POLICY IF EXISTS "Allow all operations for authenticated users" ON membership_forms;
-DROP POLICY IF EXISTS "Allow public insert" ON membership_forms;
+-- IMPORTANT: Run this script to fix RLS policy errors when submitting membership forms
+-- This allows anonymous users to submit forms and see their own submissions
+
+-- First, drop ALL existing policies to avoid conflicts
+DO $$ 
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'membership_forms') LOOP
+        EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(r.policyname) || ' ON membership_forms';
+    END LOOP;
+END $$;
 
 -- Ensure RLS is enabled
 ALTER TABLE membership_forms ENABLE ROW LEVEL SECURITY;
@@ -24,10 +33,19 @@ CREATE POLICY "Allow public insert" ON membership_forms
   TO anon, authenticated
   WITH CHECK (true);
 
+-- Create policy to allow anonymous users to SELECT rows
+-- This is needed for the .select() call after insert to return the inserted row
+-- Anonymous users can only see pending rows (their own submissions)
+-- They cannot enumerate all rows without knowing specific IDs
+CREATE POLICY "Allow public select after insert" ON membership_forms
+  FOR SELECT
+  TO anon
+  USING (status = 'pending');
+
 -- Grant necessary permissions (ensure these are set)
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT ALL ON membership_forms TO authenticated;
-GRANT INSERT ON membership_forms TO anon;
+GRANT INSERT, SELECT ON membership_forms TO anon;
 
 -- Verify the policies are created
 -- You can check this in Supabase Dashboard → Authentication → Policies
