@@ -109,6 +109,55 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
     }
   }, [member]);
 
+  // Listen for member updates and refresh form data
+  useEffect(() => {
+    const handleMemberUpdate = () => {
+      if (member && member.id) {
+        // Get the latest member data from membersManager
+        const updatedMember = membersManager.getAll().find(m => m.id === member.id);
+        if (updatedMember) {
+          // Update form data with latest member data
+          let memberIsActive = true;
+          if (updatedMember.hasOwnProperty('isActive')) {
+            if (updatedMember.isActive === false || updatedMember.isActive === 'false' || updatedMember.isActive === 0) {
+              memberIsActive = false;
+            } else if (updatedMember.isActive === true || updatedMember.isActive === 'true' || updatedMember.isActive === 1) {
+              memberIsActive = true;
+            } else {
+              memberIsActive = Boolean(updatedMember.isActive);
+            }
+          }
+          
+          setFormData({
+            name: updatedMember.name || '',
+            role: updatedMember.role || 'Member',
+            description: updatedMember.description || '',
+            fullDescription: updatedMember.fullDescription || '',
+            email: updatedMember.email || '',
+            isActive: memberIsActive,
+            activeTill: updatedMember.activeTill || '',
+            certificates: updatedMember.certificates || [],
+            phone: updatedMember.phone || '',
+            location: updatedMember.location || '',
+            website: updatedMember.website || '',
+            linkedin: updatedMember.linkedin || '',
+            image: updatedMember.image || '',
+            totalMoneySpent: updatedMember.totalMoneySpent || '0 EGP',
+            coursesEnrolled: updatedMember.coursesEnrolled || 0,
+            totalHoursLearned: updatedMember.totalHoursLearned || 0,
+            activeCourses: updatedMember.activeCourses || [],
+            completedCourses: updatedMember.completedCourses || []
+          });
+        }
+      }
+    };
+
+    window.addEventListener('membersUpdated', handleMemberUpdate);
+    return () => {
+      window.removeEventListener('membersUpdated', handleMemberUpdate);
+    };
+  }, [member]);
+
   // Load available courses
   useEffect(() => {
     const courses = coursesManager.getAll();

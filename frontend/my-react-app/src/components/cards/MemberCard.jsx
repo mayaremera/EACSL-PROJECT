@@ -113,7 +113,7 @@ const MemberCard = ({
                 <div className="p-4">
                     {/* Role Tag and Active Status */}
                     <div className="mb-3 flex items-center gap-2 flex-wrap">
-                        <span className="bg-[#5A9B8E] text-white px-3 py-1 text-xs font-semibold rounded inline-block">
+                        <span className="bg-[#5A9B8E] text-white px-2 py-1 text-[10px] font-semibold rounded inline-block max-w-[30%] truncate flex-shrink-0" title={role}>
                             {role}
                         </span>
                         {isActive !== false ? (

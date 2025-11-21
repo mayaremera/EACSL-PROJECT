@@ -1117,6 +1117,13 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
 
     const handleMembersUpdate = (e) => {
         setMembers(e.detail);
+        // If we're editing a member, refresh the editingMember with latest data
+        if (editingMember && editingMember.id) {
+            const updatedMember = e.detail.find(m => m.id === editingMember.id);
+            if (updatedMember) {
+                setEditingMember(updatedMember);
+            }
+        }
     };
 
     const handleFormsUpdate = (e) => {
@@ -2176,7 +2183,11 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                         key={member.id}
                                         {...member}
                                         isDashboard={true}
-                                        onEdit={setEditingMember}
+                                        onEdit={(memberData) => {
+                                            // Refresh member data from membersManager before opening edit form
+                                            const latestMember = membersManager.getAll().find(m => m.id === memberData.id);
+                                            setEditingMember(latestMember || memberData);
+                                        }}
                                         onDelete={handleDeleteMember}
                                     />
                                 ))}
