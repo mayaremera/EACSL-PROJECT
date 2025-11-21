@@ -18,8 +18,12 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let mounted = true;
+    
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!mounted) return;
+      
       setSession(session);
       setUser(session?.user ?? null);
       
@@ -86,15 +90,51 @@ export const AuthProvider = ({ children }) => {
         }
       }
       
-      setLoading(false);
+      if (mounted) {
+        setLoading(false);
+      }
     });
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+      if (!mounted) return;
+      
+      console.log('Auth state change:', event, session ? 'Session exists' : 'No session');
+      
+      // Handle different auth events
+      if (event === 'SIGNED_OUT') {
+        // Only clear session/user on explicit sign out
+        setSession(null);
+        setUser(null);
+        setLoading(false);
+        return; // Don't continue with member sync on sign out
+      } else if (event === 'TOKEN_REFRESHED') {
+        // Token refreshed - update session but preserve user state
+        // IMPORTANT: Skip member sync on token refresh to avoid delays and race conditions
+        if (session) {
+          setSession(session);
+          setUser(session.user);
+        }
+        // Don't clear user if session is temporarily null during refresh
+        // The refresh should complete quickly
+        if (mounted) {
+          setLoading(false);
+        }
+        return; // CRITICAL: Don't run member sync on token refresh
+      } else {
+        // For other events (SIGNED_IN, USER_UPDATED, etc.)
+        // Only update if we have a session, or if it's an explicit sign-in event
+        if (session) {
+          setSession(session);
+          setUser(session.user);
+        } else if (event === 'SIGNED_IN') {
+          // If SIGNED_IN event but no session, something went wrong
+          // Don't clear user state though - keep existing state
+          console.warn('SIGNED_IN event but no session provided');
+        }
+      }
       
       // Sync user to members list when they sign in or confirm email
       if (session?.user) {
@@ -169,10 +209,15 @@ export const AuthProvider = ({ children }) => {
         }
       }
       
-      setLoading(false);
+      if (mounted) {
+        setLoading(false);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Sign up with email and password
@@ -417,3 +462,383 @@ export const AuthProvider = ({ children }) => {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
+
+// import { createContext, useContext, useEffect, useState } from 'react';
+// import { supabase } from '../lib/supabase';
+// import { membersManager } from '../utils/dataManager';
+
+// const AuthContext = createContext({});
+
+// export const useAuth = () => {
+//   const context = useContext(AuthContext);
+//   if (!context) {
+//     throw new Error('useAuth must be used within an AuthProvider');
+//   }
+//   return context;
+// };
+
+// export const AuthProvider = ({ children }) => {
+//   const [user, setUser] = useState(null);
+//   const [session, setSession] = useState(null);
+//   const [loading, setLoading] = useState(true);
+
+//   useEffect(() => {
+//     let mounted = true;
+    
+//     // Get initial session
+//     supabase.auth.getSession().then(async ({ data: { session } }) => {
+//       if (!mounted) return;
+      
+//       setSession(session);
+//       setUser(session?.user ?? null);
+      
+//       // Only sync on INITIAL load, not on every token refresh
+//       if (session?.user) {
+//         await syncUserToMember(session.user);
+//       }
+      
+//       if (mounted) {
+//         setLoading(false);
+//       }
+//     });
+
+//     // Listen for auth changes
+//     const {
+//       data: { subscription },
+//     } = supabase.auth.onAuthStateChange(async (event, session) => {
+//       if (!mounted) return;
+      
+//       console.log('Auth state change:', event, session ? 'Session exists' : 'No session');
+      
+//       // Handle different auth events
+//       if (event === 'SIGNED_OUT') {
+//         setSession(null);
+//         setUser(null);
+//         setLoading(false);
+//         return;
+//       }
+      
+//       if (event === 'TOKEN_REFRESHED') {
+//         // CRITICAL: Only update session/user, DO NOT sync members on token refresh
+//         if (session) {
+//           setSession(session);
+//           setUser(session.user);
+//         }
+//         setLoading(false);
+//         return; // Exit early - no member sync
+//       }
+      
+//       if (event === 'INITIAL_SESSION') {
+//         // Already handled in getSession above, skip to avoid duplicate sync
+//         if (session) {
+//           setSession(session);
+//           setUser(session.user);
+//         }
+//         setLoading(false);
+//         return;
+//       }
+      
+//       // Only sync members for SIGNED_IN and USER_UPDATED events
+//       if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+//         if (session?.user) {
+//           setSession(session);
+//           setUser(session.user);
+          
+//           // Only sync if it's a fresh sign-in (not a token refresh)
+//           if (event === 'SIGNED_IN') {
+//             await syncUserToMember(session.user);
+//           }
+//         }
+//       } else {
+//         // For any other events
+//         if (session) {
+//           setSession(session);
+//           setUser(session.user);
+//         }
+//       }
+      
+//       if (mounted) {
+//         setLoading(false);
+//       }
+//     });
+
+//     return () => {
+//       mounted = false;
+//       subscription.unsubscribe();
+//     };
+//   }, []);
+
+//   // Helper function to sync user to member (extracted to avoid duplication)
+//   const syncUserToMember = async (authUser) => {
+//     try {
+//       const existingMembers = membersManager.getAll();
+//       let existingMember = existingMembers.find(m => m.supabaseUserId === authUser.id);
+      
+//       if (!existingMember && authUser.email) {
+//         existingMember = existingMembers.find(m => m.email === authUser.email);
+        
+//         if (existingMember && !existingMember.supabaseUserId) {
+//           const updatedMember = { ...existingMember, supabaseUserId: authUser.id };
+//           await membersManager.update(existingMember.id, updatedMember);
+//           existingMember = updatedMember;
+//         }
+//       }
+      
+//       if (authUser.email_confirmed_at && existingMember && !existingMember.isActive) {
+//         const activatedMember = { ...existingMember, isActive: true };
+//         await membersManager.update(existingMember.id, activatedMember);
+//         existingMember = activatedMember;
+//       }
+      
+//       if (!existingMember) {
+//         const fullName = authUser.user_metadata?.full_name || 
+//                         authUser.email?.split('@')[0] || 
+//                         'Member';
+//         const currentDate = new Date();
+//         const membershipDate = currentDate.toLocaleDateString('en-US', { 
+//           year: 'numeric', 
+//           month: 'long' 
+//         });
+        
+//         const newMember = {
+//           supabaseUserId: authUser.id,
+//           name: fullName,
+//           email: authUser.email || '',
+//           role: 'Member',
+//           nationality: authUser.user_metadata?.nationality || 'Egyptian',
+//           flagCode: authUser.user_metadata?.flagCode || 'eg',
+//           description: Member of EACSL since ${membershipDate},
+//           fullDescription: ${fullName} is a valued member of the EACSL community.,
+//           membershipDate: membershipDate,
+//           isActive: authUser.email_confirmed_at ? true : false,
+//           activeTill: new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), currentDate.getDate()).getFullYear().toString(),
+//           certificates: [],
+//           phone: authUser.user_metadata?.phone || '',
+//           location: authUser.user_metadata?.location || '',
+//           website: authUser.user_metadata?.website || '',
+//           linkedin: authUser.user_metadata?.linkedin || '',
+//           image: authUser.user_metadata?.image || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.1.0&auto=format&fit=crop&q=60&w=600',
+//         };
+        
+//         await membersManager.add(newMember);
+//         const allMembers = membersManager.getAll();
+//         window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
+//         console.log('Created member record for:', authUser.email);
+//       } else {
+//         console.log('Member already exists for:', authUser.email);
+//       }
+//     } catch (error) {
+//       console.error('Error syncing user to member:', error);
+//     }
+//   };
+
+//   // Sign up with email and password
+//   const signUp = async (email, password, metadata = {}) => {
+//     const { data, error } = await supabase.auth.signUp({
+//       email,
+//       password,
+//       options: {
+//         data: metadata,
+//         emailRedirectTo: ${window.location.origin}/,
+//       },
+//     });
+    
+//     if (error) {
+//       const errorMsg = error.message?.toLowerCase() || '';
+//       const errorCode = error.status || error.code || '';
+      
+//       if (errorMsg.includes('already') || 
+//           errorMsg.includes('registered') ||
+//           errorMsg.includes('exists') ||
+//           errorMsg.includes('duplicate') ||
+//           errorCode === 'user_already_registered' ||
+//           errorCode === 'email_already_registered' ||
+//           errorCode === 'signup_disabled' ||
+//           error.status === 400) {
+//         return { 
+//           data: null, 
+//           error: { 
+//             message: 'An account with this email already exists. Please sign in instead.',
+//             code: 'USER_ALREADY_EXISTS'
+//           } 
+//         };
+//       }
+//       return { data, error };
+//     }
+    
+//     if (data?.user && data?.session) {
+//       return {
+//         data: null,
+//         error: {
+//           message: 'An account with this email already exists. You have been signed in.',
+//           code: 'USER_ALREADY_EXISTS'
+//         }
+//       };
+//     }
+    
+//     if (data?.user && data.user.email_confirmed_at && !data.session) {
+//       return {
+//         data: null,
+//         error: {
+//           message: 'An account with this email already exists. Please sign in instead.',
+//           code: 'USER_ALREADY_EXISTS'
+//         }
+//       };
+//     }
+    
+//     if (data?.user && !data.session) {
+//       const userCreatedAt = data.user.created_at ? new Date(data.user.created_at) : null;
+//       const now = new Date();
+//       if (userCreatedAt && (now - userCreatedAt) > 5000) {
+//         return {
+//           data: null,
+//           error: {
+//             message: 'An account with this email already exists. Please sign in instead.',
+//             code: 'USER_ALREADY_EXISTS'
+//           }
+//         };
+//       }
+//     }
+
+//     // Create member record immediately after successful signup
+//     if (data?.user && !error) {
+//       try {
+//         const fullName = metadata.full_name || email.split('@')[0];
+//         const currentDate = new Date();
+//         const membershipDate = currentDate.toLocaleDateString('en-US', { 
+//           year: 'numeric', 
+//           month: 'long' 
+//         });
+        
+//         const existingMembers = membersManager.getAll();
+//         const existingMember = existingMembers.find(m => m.supabaseUserId === data.user.id || m.email === email);
+        
+//         if (!existingMember) {
+//           const newMember = {
+//             supabaseUserId: data.user.id,
+//             name: fullName,
+//             email: email,
+//             role: 'Member',
+//             nationality: metadata.nationality || 'Egyptian',
+//             flagCode: metadata.flagCode || 'eg',
+//             description: Member of EACSL since ${membershipDate},
+//             fullDescription: ${fullName} is a valued member of the EACSL community.,
+//             membershipDate: membershipDate,
+//             isActive: true,
+//             activeTill: new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), currentDate.getDate()).getFullYear().toString(),
+//             certificates: [],
+//             phone: metadata.phone || '',
+//             location: metadata.location || '',
+//             website: metadata.website || '',
+//             linkedin: metadata.linkedin || '',
+//             image: metadata.image || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.1.0&auto=format&fit=crop&q=60&w=600',
+//           };
+          
+//           console.log('Creating member record for new user:', email);
+//           await membersManager.add(newMember);
+          
+//           const allMembers = membersManager.getAll();
+//           window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
+//         }
+//       } catch (memberError) {
+//         console.error('Error creating member record during signup:', memberError);
+//       }
+//     }
+
+//     return { data, error };
+//   };
+
+//   // Sign in with email and password
+//   const signIn = async (email, password) => {
+//     const { data, error } = await supabase.auth.signInWithPassword({
+//       email,
+//       password,
+//     });
+//     return { data, error };
+//   };
+
+//   // Sign out
+//   const signOut = async () => {
+//     const { error } = await supabase.auth.signOut();
+//     return { error };
+//   };
+
+//   // Reset password
+//   const resetPassword = async (email) => {
+//     const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+//       redirectTo: ${window.location.origin}/reset-password,
+//     });
+//     return { data, error };
+//   };
+
+//   // Sync current user to members list
+//   const syncCurrentUserToMember = async () => {
+//     try {
+//       if (!user) {
+//         return { error: 'No user logged in' };
+//       }
+
+//       const existingMembers = membersManager.getAll();
+//       const existingMember = existingMembers.find(m => m.supabaseUserId === user.id);
+      
+//       if (existingMember) {
+//         return { member: existingMember, created: false };
+//       }
+
+//       const fullName = user.user_metadata?.full_name || 
+//                       user.email?.split('@')[0] || 
+//                       'Member';
+//       const currentDate = new Date();
+//       const membershipDate = currentDate.toLocaleDateString('en-US', { 
+//         year: 'numeric', 
+//         month: 'long' 
+//       });
+      
+//       const newMember = {
+//         supabaseUserId: user.id,
+//         name: fullName,
+//         email: user.email || '',
+//         role: 'Member',
+//         nationality: user.user_metadata?.nationality || 'Egyptian',
+//         flagCode: user.user_metadata?.flagCode || 'eg',
+//         description: Member of EACSL since ${membershipDate},
+//         fullDescription: ${fullName} is a valued member of the EACSL community.,
+//         membershipDate: membershipDate,
+//         isActive: true,
+//         activeTill: new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), currentDate.getDate()).getFullYear().toString(),
+//         certificates: [],
+//         phone: user.user_metadata?.phone || '',
+//         location: user.user_metadata?.location || '',
+//         website: user.user_metadata?.website || '',
+//         linkedin: user.user_metadata?.linkedin || '',
+//         image: user.user_metadata?.image || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.1.0&auto=format&fit=crop&q=60&w=600',
+//       };
+      
+//       const createdMember = await membersManager.add(newMember);
+//       return { member: createdMember, created: true };
+//     } catch (err) {
+//       console.error('Error syncing user to member:', err);
+//       return { error: err.message };
+//     }
+//   };
+
+//   // Get member by Supabase user ID
+//   const getMemberByUserId = (userId) => {
+//     const members = membersManager.getAll();
+//     return members.find(m => m.supabaseUserId === userId);
+//   };
+
+//   const value = {
+//     user,
+//     session,
+//     loading,
+//     signUp,
+//     signIn,
+//     signOut,
+//     resetPassword,
+//     syncCurrentUserToMember,
+//     getMemberByUserId,
+//   };
+
+//   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+// };

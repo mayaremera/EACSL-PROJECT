@@ -8,6 +8,11 @@ import { articlesService } from "../services/articlesService";
 import { therapyProgramsService } from "../services/therapyProgramsService";
 import { forParentsService } from "../services/forParentsService";
 
+// Shared throttling state for expensive Supabase syncs
+const MEMBERS_SYNC_COOLDOWN_MS = 60 * 1000; // 1 minute
+let membersSyncPromise = null;
+let lastMembersSyncTime = 0;
+
 // Courses Management
 export const coursesManager = {
   // Get all courses (from localStorage or default data)
@@ -356,169 +361,193 @@ export const membersManager = {
   },
 
   // Fetch members from Supabase and sync with local storage
-  syncFromSupabase: async () => {
-    try {
-      const { data, error } = await membersService.getAll();
+  syncFromSupabase: async (options = {}) => {
+    const force = options.force === true;
+    const now = Date.now();
 
-      if (error) {
-        // Check if it's a table not found error
-        if (
-          error.code === "TABLE_NOT_FOUND" ||
-          error.message?.includes("Table does not exist")
-        ) {
-          console.warn(
-            "Members table does not exist in Supabase. Please create it using the SQL script from SUPABASE_SETUP.md"
-          );
-          return {
-            synced: false,
-            error: {
-              ...error,
-              userMessage:
-                "Members table does not exist. Please create it in Supabase first. Check SUPABASE_SETUP.md for instructions.",
-            },
-          };
-        }
-        console.warn("Failed to fetch members from Supabase:", error);
-        return { synced: false, error };
-      }
+    if (membersSyncPromise) {
+      return membersSyncPromise;
+    }
 
-      // Map Supabase members to local format
-      const supabaseMembers = data
-        ? data.map((m) => membersService.mapSupabaseToLocal(m))
-        : [];
-
-      // Get existing local members
-      const localMembers = membersManager.getAll();
-
-      // Merge Supabase and local members intelligently
-      // IMPORTANT: Prefer LOCAL data as source of truth when member exists in both
-      // This prevents local changes from being overwritten by stale Supabase data
-      // Start with LOCAL members as base (they're more recent)
-      const uniqueMembers = [...localMembers];
-
-      // Helper function to check if a member exists in the array
-      const memberExists = (member, membersArray) => {
-        return membersArray.some(
-          (existing) =>
-            // Match by Supabase database ID (most reliable)
-            (member.id && existing.id && member.id === existing.id) ||
-            // Match by supabaseUserId (links to auth.users)
-            (member.supabaseUserId &&
-              existing.supabaseUserId &&
-              member.supabaseUserId === existing.supabaseUserId) ||
-            // Match by email (fallback, case-insensitive)
-            (member.email &&
-              existing.email &&
-              member.email.trim().toLowerCase() ===
-                existing.email.trim().toLowerCase() &&
-              member.email.trim() !== "")
-        );
+    if (!force && now - lastMembersSyncTime < MEMBERS_SYNC_COOLDOWN_MS) {
+      return {
+        synced: false,
+        skipped: true,
+        reason: "COOLDOWN",
+        nextAllowedIn: MEMBERS_SYNC_COOLDOWN_MS - (now - lastMembersSyncTime),
       };
+    }
 
-      // Get all local member IDs for quick lookup
-      const localIds = new Set(
-        localMembers
-          .map((m) => m.id)
-          .filter((id) => id != null)
-          .map((id) => Number(id))
-      );
+    membersSyncPromise = (async () => {
+      try {
+        const { data, error } = await membersService.getAll();
 
-      // Add Supabase members that don't exist locally (new members from other devices/sources)
-      supabaseMembers.forEach((supabaseMember) => {
-        const existsLocally = memberExists(supabaseMember, localMembers);
-        
-        if (!existsLocally) {
-          // This is a new member from Supabase that doesn't exist locally
-          // Add it to the list
-          uniqueMembers.push(supabaseMember);
-        } else {
-          // Member exists in both - prefer LOCAL data (it's more recent)
-          // But merge in any fields from Supabase that might be missing locally
-          const localMember = localMembers.find(
-            (m) =>
-              (supabaseMember.id && m.id && supabaseMember.id === m.id) ||
-              (supabaseMember.supabaseUserId &&
-                m.supabaseUserId &&
-                supabaseMember.supabaseUserId === m.supabaseUserId) ||
-              (supabaseMember.email &&
-                m.email &&
-                supabaseMember.email.trim().toLowerCase() ===
-                  m.email.trim().toLowerCase() &&
-                supabaseMember.email.trim() !== "")
-          );
-
-          if (localMember) {
-            // Merge: Use LOCAL as base (source of truth), but fill in missing fields from Supabase
-            const mergedMember = {
-              ...localMember, // LOCAL is the base - preserves all local changes
-              // Only use Supabase values if local values are missing/empty
-              supabaseUserId: localMember.supabaseUserId || supabaseMember.supabaseUserId || undefined,
-              id: localMember.id || supabaseMember.id, // Preserve ID
-              // Keep all local fields as-is - they're the most recent
-            };
-
-            // Replace the local version with merged version (in case we added missing fields)
-            const index = uniqueMembers.findIndex(
-              (m) =>
-                (mergedMember.id && m.id && mergedMember.id === m.id) ||
-                (mergedMember.supabaseUserId &&
-                  m.supabaseUserId &&
-                  mergedMember.supabaseUserId === m.supabaseUserId) ||
-                (mergedMember.email &&
-                  m.email &&
-                  mergedMember.email.trim().toLowerCase() ===
-                    m.email.trim().toLowerCase() &&
-                  mergedMember.email.trim() !== "")
+        if (error) {
+          // Check if it's a table not found error
+          if (
+            error.code === "TABLE_NOT_FOUND" ||
+            error.message?.includes("Table does not exist")
+          ) {
+            console.warn(
+              "Members table does not exist in Supabase. Please create it using the SQL script from SUPABASE_SETUP.md"
             );
-            if (index !== -1) {
-              uniqueMembers[index] = mergedMember;
+            return {
+              synced: false,
+              error: {
+                ...error,
+                userMessage:
+                  "Members table does not exist. Please create it in Supabase first. Check SUPABASE_SETUP.md for instructions.",
+              },
+            };
+          }
+          console.warn("Failed to fetch members from Supabase:", error);
+          return { synced: false, error };
+        }
+
+        // Map Supabase members to local format
+        const supabaseMembers = data
+          ? data.map((m) => membersService.mapSupabaseToLocal(m))
+          : [];
+
+        // Get existing local members
+        const localMembers = membersManager.getAll();
+
+        // Merge Supabase and local members intelligently
+        // IMPORTANT: Prefer LOCAL data as source of truth when member exists in both
+        // This prevents local changes from being overwritten by stale Supabase data
+        // Start with LOCAL members as base (they're more recent)
+        const uniqueMembers = [...localMembers];
+
+        // Helper function to check if a member exists in the array
+        const memberExists = (member, membersArray) => {
+          return membersArray.some(
+            (existing) =>
+              // Match by Supabase database ID (most reliable)
+              (member.id && existing.id && member.id === existing.id) ||
+              // Match by supabaseUserId (links to auth.users)
+              (member.supabaseUserId &&
+                existing.supabaseUserId &&
+                member.supabaseUserId === existing.supabaseUserId) ||
+              // Match by email (fallback, case-insensitive)
+              (member.email &&
+                existing.email &&
+                member.email.trim().toLowerCase() ===
+                  existing.email.trim().toLowerCase() &&
+                member.email.trim() !== "")
+          );
+        };
+
+        // Get all local member IDs for quick lookup
+        const localIds = new Set(
+          localMembers
+            .map((m) => m.id)
+            .filter((id) => id != null)
+            .map((id) => Number(id))
+        );
+
+        // Add Supabase members that don't exist locally (new members from other devices/sources)
+        supabaseMembers.forEach((supabaseMember) => {
+          const existsLocally = memberExists(supabaseMember, localMembers);
+          
+          if (!existsLocally) {
+            // This is a new member from Supabase that doesn't exist locally
+            // Add it to the list
+            uniqueMembers.push(supabaseMember);
+          } else {
+            // Member exists in both - prefer LOCAL data (it's more recent)
+            // But merge in any fields from Supabase that might be missing locally
+            const localMember = localMembers.find(
+              (m) =>
+                (supabaseMember.id && m.id && supabaseMember.id === m.id) ||
+                (supabaseMember.supabaseUserId &&
+                  m.supabaseUserId &&
+                  supabaseMember.supabaseUserId === m.supabaseUserId) ||
+                (supabaseMember.email &&
+                  m.email &&
+                  supabaseMember.email.trim().toLowerCase() ===
+                    m.email.trim().toLowerCase() &&
+                  supabaseMember.email.trim() !== "")
+            );
+
+            if (localMember) {
+              // Merge: Use LOCAL as base (source of truth), but fill in missing fields from Supabase
+              const mergedMember = {
+                ...localMember, // LOCAL is the base - preserves all local changes
+                // Only use Supabase values if local values are missing/empty
+                supabaseUserId: localMember.supabaseUserId || supabaseMember.supabaseUserId || undefined,
+                id: localMember.id || supabaseMember.id, // Preserve ID
+                // Keep all local fields as-is - they're the most recent
+              };
+
+              // Replace the local version with merged version (in case we added missing fields)
+              const index = uniqueMembers.findIndex(
+                (m) =>
+                  (mergedMember.id && m.id && mergedMember.id === m.id) ||
+                  (mergedMember.supabaseUserId &&
+                    m.supabaseUserId &&
+                    mergedMember.supabaseUserId === m.supabaseUserId) ||
+                  (mergedMember.email &&
+                    m.email &&
+                    mergedMember.email.trim().toLowerCase() ===
+                      m.email.trim().toLowerCase() &&
+                    mergedMember.email.trim() !== "")
+              );
+              if (index !== -1) {
+                uniqueMembers[index] = mergedMember;
+              }
             }
           }
+        });
+
+        // Calculate which members were removed from Supabase (but still exist locally)
+        // These are members that were synced to Supabase before but are now deleted there
+        const removedMembers = localMembers.filter((localMember) => {
+          const localId = localMember.id ? Number(localMember.id) : null;
+          // Check if this local member has an ID that exists in Supabase IDs
+          // If it has an ID but doesn't exist in Supabase, it was deleted
+          const wasSyncedBefore = localId !== null && !isNaN(localId);
+          const existsInSupabase = wasSyncedBefore && memberExists(localMember, supabaseMembers);
+          
+          // Member was synced before but doesn't exist in Supabase anymore = removed
+          return wasSyncedBefore && !existsInSupabase;
+        });
+
+        console.log("Sync result:", {
+          supabaseCount: supabaseMembers.length,
+          localCount: localMembers.length,
+          finalCount: uniqueMembers.length,
+          removed: removedMembers.length,
+          removedMemberIds: removedMembers.map((m) => m.id),
+          removedMemberNames: removedMembers.map((m) => m.name || m.email),
+        });
+
+        membersManager.saveAll(uniqueMembers);
+
+        // Dispatch event to notify UI of the update
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("membersUpdated", { detail: uniqueMembers })
+          );
         }
-      });
 
-      // Calculate which members were removed from Supabase (but still exist locally)
-      // These are members that were synced to Supabase before but are now deleted there
-      const removedMembers = localMembers.filter((localMember) => {
-        const localId = localMember.id ? Number(localMember.id) : null;
-        // Check if this local member has an ID that exists in Supabase IDs
-        // If it has an ID but doesn't exist in Supabase, it was deleted
-        const wasSyncedBefore = localId !== null && !isNaN(localId);
-        const existsInSupabase = wasSyncedBefore && memberExists(localMember, supabaseMembers);
-        
-        // Member was synced before but doesn't exist in Supabase anymore = removed
-        return wasSyncedBefore && !existsInSupabase;
-      });
+        lastMembersSyncTime = Date.now();
 
-      console.log("Sync result:", {
-        supabaseCount: supabaseMembers.length,
-        localCount: localMembers.length,
-        finalCount: uniqueMembers.length,
-        removed: removedMembers.length,
-        removedMemberIds: removedMembers.map((m) => m.id),
-        removedMemberNames: removedMembers.map((m) => m.name || m.email),
-      });
-
-      membersManager.saveAll(uniqueMembers);
-
-      // Dispatch event to notify UI of the update
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(
-          new CustomEvent("membersUpdated", { detail: uniqueMembers })
-        );
+        return {
+          synced: true,
+          count: supabaseMembers.length,
+          localCount: localMembers.length,
+          removed: removedMembers.length,
+          error: null,
+        };
+      } catch (err) {
+        console.error("Exception syncing from Supabase:", err);
+        return { synced: false, error: err };
+      } finally {
+        membersSyncPromise = null;
       }
+    })();
 
-      return {
-        synced: true,
-        count: supabaseMembers.length,
-        localCount: localMembers.length,
-        removed: removedMembers.length,
-        error: null,
-      };
-    } catch (err) {
-      console.error("Exception syncing from Supabase:", err);
-      return { synced: false, error: err };
-    }
+    return membersSyncPromise;
   },
 
   // Push local members to Supabase (for initial sync)
