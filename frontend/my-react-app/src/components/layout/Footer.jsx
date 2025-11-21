@@ -67,7 +67,7 @@ const Footer = () => {
     {
       title: 'Members & Education',
       links: [
-        { name: 'Active Members', href: '/active-members' },
+        // { name: 'Active Members', href: '/active-members' },
         { name: 'Become a Member', href: '/apply-membership' },
         { name: 'Members Overview', href: '/members-overview' },
         { name: 'Online Courses', href: '/online-courses' },

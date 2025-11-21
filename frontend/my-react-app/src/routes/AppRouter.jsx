@@ -16,7 +16,7 @@ import OnlineCoursesPage from "../pages/OnlineCoursesPage";
 import ArticlesPage from "../pages/ArticlesPage";
 import MembersOverviewPage from "../pages/MembersOverviewPage";
 import ApplyMembershipPage from "../pages/ApplyMembershipPage";
-import ActiveMembersPage from "../pages/ActiveMembersPage";
+// import ActiveMembersPage from "../pages/ActiveMembersPage";
 import ServicesPage from "../pages/ServicesPage";
 import TherapyPrograms from "../pages/TherapyPrograms";
 import ForParentsPage from "../pages/ForParentsPage";
@@ -58,7 +58,7 @@ function AppRouter() {
           <Route path="/articles" element={<ArticlesPage />} />
           <Route path="/members-overview" element={<MembersOverviewPage />} />
           <Route path="/apply-membership" element={<ApplyMembershipPage />} />
-          <Route path="/active-members" element={<ActiveMembersPage />} />
+          {/* <Route path="/active-members" element={<ActiveMembersPage />} /> */}
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/therapy-programs" element={<TherapyPrograms />} />
           <Route path="/for-parents" element={<ForParentsPage />} />
