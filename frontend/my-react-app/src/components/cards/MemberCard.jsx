@@ -100,7 +100,7 @@ const MemberCard = ({
                     </div>
                 )}
                 {/* Member Image */}
-                <div className="relative h-40 overflow-hidden">
+                <div className="relative h-52 overflow-hidden">
                     <ImagePlaceholder
                         src={image}
                         alt={name}
