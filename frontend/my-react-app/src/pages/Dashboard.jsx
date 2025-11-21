@@ -24,6 +24,7 @@ import {
     ClipboardList,
 } from "lucide-react";
 import { coursesManager, membersManager, eventsManager, articlesManager, therapyProgramsManager, forParentsManager, initializeData } from '../utils/dataManager';
+import { supabase } from '../lib/supabase';
 import { membershipFormsService } from '../services/membershipFormsService';
 import { contactFormsService } from '../services/contactFormsService';
 import { reservationsService } from '../services/reservationsService';
@@ -112,6 +113,12 @@ const eventRegistrationsManager = {
     
     async getAll() {
         try {
+            // Ensure supabase is available
+            if (!supabase) {
+                console.error('Supabase client is not available');
+                return this.getAllFromLocalStorage();
+            }
+            
             // Try to fetch from Supabase first
             const { data, error } = await supabase
                 .from('event_registrations')
@@ -170,6 +177,20 @@ const eventRegistrationsManager = {
     
     async updateStatus(id, status, notes = '') {
         try {
+            // Ensure supabase is available
+            if (!supabase) {
+                console.error('Supabase client is not available');
+                // Fall back to localStorage
+                const registration = this.data.find(r => r.id === id);
+                if (registration) {
+                    registration.status = status;
+                    registration.reviewNotes = notes;
+                    registration.reviewedAt = new Date().toISOString();
+                    this.save();
+                }
+                return;
+            }
+            
             // Update in Supabase
             const { error } = await supabase
                 .from('event_registrations')
@@ -218,6 +239,15 @@ const eventRegistrationsManager = {
     
     async delete(id) {
         try {
+            // Ensure supabase is available
+            if (!supabase) {
+                console.error('Supabase client is not available');
+                // Fall back to localStorage
+                this.data = this.data.filter(r => r.id !== id);
+                this.save();
+                return;
+            }
+            
             // Delete from Supabase
             const { error } = await supabase
                 .from('event_registrations')
@@ -1151,11 +1181,13 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         });
 
         // Sync event registrations from Supabase on initial load (silently fail if table doesn't exist)
-        setTimeout(() => {
-            loadEventRegistrations().catch(err => {
+        setTimeout(async () => {
+            try {
+                await loadEventRegistrations();
+            } catch (err) {
                 // Silently handle errors on initial load
                 console.warn('Could not load event registrations on initial load:', err);
-            });
+            }
         }, 600);
 
         // Sync articles from Supabase on initial load (silently fail if table doesn't exist)
@@ -1393,8 +1425,9 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             setEventRegistrations(allRegistrations);
         } catch (error) {
             console.error('Error loading event registrations:', error);
-            // Fallback to empty array on error
-            setEventRegistrations([]);
+            // Fallback to localStorage if async call fails
+            const allRegistrations = eventRegistrationsManager.getAllFromLocalStorage();
+            setEventRegistrations(allRegistrations);
         }
     };
 
