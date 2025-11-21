@@ -21,6 +21,7 @@ const UpcomingEventsPage = () => {
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [eventData, setEventData] = useState(null);
+  const [hasNoEvents, setHasNoEvents] = useState(false);
 
   useEffect(() => {
     const loadEvent = () => {
@@ -47,37 +48,15 @@ const UpcomingEventsPage = () => {
           } else if (!eventId) {
             navigate(`/upcoming-events/${event.id}`, { replace: true });
           }
+          setHasNoEvents(false);
         } else {
-          // Default event data if no events exist
-          event = {
-            id: 'default',
-            title: 'Conference Schedule',
-            subtitle: 'Advancing Practice and Research in Speech-Language Pathology: Bridging Science and Clinical Impact',
-            headerInfo1: 'Two Days Conference',
-            headerInfo2: 'All Attendees Welcome',
-            overviewDescription: '',
-            durationText: 'Two Full Days',
-            tracksDescription: '3 Parallel Sessions',
-            memberFee: 500,
-            guestFee: 800,
-            tracks: ['Track A: Speech & Swallowing', 'Track B: Language Disorders', 'Track C: Audiology'],
-            scheduleDay1: [
-              { time: '4:00 - 5:00 PM', trackA: 'Opening Ceremony & Welcome Address - Conference Chair', trackB: 'All Attendees', trackC: 'All Attendees' },
-              { time: '5:00 - 7:00 PM', trackA: 'Session 1A: Advances in Aphasia Rehabilitation', trackB: 'Session 1B: Translating Research into Practice', trackC: 'Session 1C: Digital Tools in SLP Education' },
-              { time: '7:00 - 7:30 PM', trackA: 'Break / Networking / Exhibits', trackB: 'Break / Networking / Exhibits', trackC: 'Break / Networking / Exhibits' },
-              { time: '7:30 - 9:30 PM', trackA: 'Session 2A: Pediatric Speech Disorders', trackB: 'Session 2B: Motor Speech Disorders Symposium', trackC: 'Session 2C: Clinical Education Innovations' }
-            ],
-            scheduleDay2: [
-              { time: '4:00 - 6:00 PM', trackA: 'Session 3A: Leadership in SLP Practice', trackB: 'Session 3B: Voice and Fluency Disorders', trackC: 'Session 3C: Advocacy & Ethical Practice' },
-              { time: '6:00 - 6:30 PM', trackA: 'Break / Networking', trackB: 'Break / Networking', trackC: 'Break / Networking' },
-              { time: '6:30 - 8:30 PM', trackA: 'Session 4A: Excellence in Clinical Documentation', trackB: 'Session 4B: Best Practices in Research Forum', trackC: 'Session 4C: The Future of Public Health in Telepractice' },
-              { time: '8:30 PM', trackA: 'Closing Ceremony & Conference Summary', trackB: 'All Attendees', trackC: 'All Attendees' }
-            ],
-            day1Title: 'Day One - Knowledge and Innovation',
-            day2Title: 'Day Two - Collaboration and Future Directions',
-            heroImageUrl: ''
-          };
+          // No upcoming events available
+          setHasNoEvents(true);
+          setEventData(null);
+          return;
         }
+      } else {
+        setHasNoEvents(false);
       }
       
       setEventData(event);
@@ -251,6 +230,43 @@ const UpcomingEventsPage = () => {
       alert('Failed to submit registration. Please try again.');
     }
   };
+
+  if (hasNoEvents) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Hero Section */}
+        <PageHero
+          title="Events"
+          subtitle="Stay updated with our latest conferences and professional development events"
+          icon={<Calendar className="w-12 h-12" />}
+        />
+
+        {/* Breadcrumb */}
+        <Breadcrumbs items={[{ label: 'Events' }]} />
+
+        {/* Empty State */}
+        <div className="min-h-[60vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center max-w-2xl">
+            <div className="mb-6">
+              <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+              No Currently Live Event or Upcoming Event
+            </h2>
+            <p className="text-lg text-gray-600 mb-8">
+              There is no currently live event or upcoming event coming soon. Check out our past events to see what we've been up to!
+            </p>
+            <button
+              onClick={() => navigate('/past-events')}
+              className="px-8 py-3 bg-[#4C9A8F] hover:bg-[#3d8178] text-white font-semibold rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
+            >
+              View Past Events
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!eventData) {
     return (

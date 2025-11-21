@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { X, ZoomIn } from 'lucide-react';
+import { X, ZoomIn, Images } from 'lucide-react';
+import PageHero from '../components/ui/PageHero';
+import Breadcrumbs from '../components/ui/Breadcrumbs';
 
 // ✅ Import all your local images properly
 import gallery1 from '../../src/assets/GalleryImages/gallery1.jpg';
@@ -60,27 +62,14 @@ const GalleryPage = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <div className="bg-gradient-to-r from-[#4C9A8F] to-[#3d8178] text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">Our Gallery</h1>
-            <p className="text-lg md:text-xl text-teal-50 max-w-2xl mx-auto">
-              Explore moments from our events, educational programs, and community activities
-            </p>
-          </div>
-        </div>
-      </div>
+      <PageHero
+        title="Our Gallery"
+        subtitle="Explore moments from our events, educational programs, and community activities"
+        icon={<Images className="w-12 h-12" />}
+      />
 
       {/* Breadcrumb */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center text-sm text-gray-600">
-            <a href="#" className="hover:text-[#4C9A8F] transition-colors">Home</a>
-            <span className="mx-2">/</span>
-            <span className="text-gray-900 font-medium">Gallery</span>
-          </div>
-        </div>
-      </div>
+      <Breadcrumbs items={[{ label: 'Gallery' }]} />
 
       {/* Gallery Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -138,9 +127,9 @@ const GalleryPage = () => {
             <p className="text-teal-50 mb-6 max-w-2xl mx-auto">
               Become a member and be part of our growing professional community
             </p>
-            <button className="bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg">
+            <a href="/apply-membership" className="bg-white text-[#4C9A8F] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg">
               Become a Member
-            </button>
+            </a>
           </div>
         </div>
       </div>

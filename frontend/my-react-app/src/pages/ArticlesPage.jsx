@@ -266,9 +266,9 @@ const ArticlesPage = () => {
             <p className="text-teal-50 mb-4 max-w-2xl mx-auto text-sm">
               Become a member and be part of our growing professional community
             </p>
-            <button className="bg-white text-[#4C9A8F] hover:bg-gray-50 px-6 py-2.5 rounded-lg font-semibold transition-colors duration-200 shadow-lg text-sm">
+            <a href="/apply-membership" className="bg-white text-[#4C9A8F] hover:bg-gray-50 px-6 py-2.5 rounded-lg font-semibold transition-colors duration-200 shadow-lg text-sm">
               Become a Member
-            </button>
+            </a>
           </div>
         </div>
       </div>

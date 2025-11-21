@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Phone, Mail, Clock, Send, CheckCircle } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, CheckCircle, MessageCircle } from 'lucide-react';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import { contactFormsService } from '../services/contactFormsService';
@@ -152,6 +152,7 @@ const ContactPage = () => {
       <PageHero
         title="Contact Us"
         subtitle="Get in touch with us for any inquiries or information about our programs"
+        icon={<MessageCircle className="w-12 h-12" />}
       />
 
       {/* Breadcrumb */}
