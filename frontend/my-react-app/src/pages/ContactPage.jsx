@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { MapPin, Phone, Mail, Clock, Send, CheckCircle } from 'lucide-react';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
+import { contactFormsService } from '../services/contactFormsService';
 
 const ContactPage = () => {
   const [formData, setFormData] = useState({
@@ -13,49 +14,68 @@ const ContactPage = () => {
   });
 
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Create form submission object
-    const formSubmission = {
-      id: Date.now().toString(),
-      type: 'contactMessage',
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      subject: formData.subject,
-      message: formData.message,
-      submittedAt: new Date().toISOString(),
-      status: 'pending'
-    };
-
-    // Get existing contact forms from localStorage
-    let existingForms = [];
-    try {
-      const stored = localStorage.getItem('contactForms');
-      existingForms = stored ? JSON.parse(stored) : [];
-    } catch (error) {
-      console.error('Error reading from localStorage:', error);
-      existingForms = [];
-    }
-    
-    // Add new submission
-    existingForms.push(formSubmission);
-    
-    // Save back to localStorage
-    try {
-      localStorage.setItem('contactForms', JSON.stringify(existingForms));
-      // Dispatch event to notify dashboard
-      window.dispatchEvent(new CustomEvent('contactFormsUpdated', { detail: existingForms }));
-    } catch (error) {
-      console.error('Error saving contact form:', error);
-      alert('Failed to save your message. Please try again.');
+    // Prevent duplicate submissions
+    if (isSubmitting) {
       return;
     }
     
-    console.log('Form submitted:', formData);
-    setIsSubmitted(true);
+    setIsSubmitting(true);
+    
+    try {
+      // Prepare form submission data
+      const formSubmission = {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone || '',
+        subject: formData.subject,
+        message: formData.message,
+        submittedAt: new Date().toISOString(),
+        status: 'pending'
+      };
+
+      // Save to Supabase instead of localStorage
+      const result = await contactFormsService.add(formSubmission);
+
+      if (result.error) {
+        // Handle specific errors
+        if (result.error.code === 'TABLE_NOT_FOUND') {
+          alert(
+            '❌ Database Table Not Found\n\n' +
+            'The contact_forms table does not exist in Supabase.\n\n' +
+            'To fix this:\n' +
+            '1. Go to Supabase Dashboard → SQL Editor\n' +
+            '2. Run the SQL script from CREATE_CONTACT_FORMS_TABLE.sql\n' +
+            '3. Try submitting again\n\n' +
+            'See CONTACT_FORMS_SUPABASE_SETUP.md for detailed instructions.'
+          );
+          setIsSubmitting(false);
+          return;
+        }
+
+        throw new Error(
+          result.error.message || 'Failed to save your message. Please try again.'
+        );
+      }
+
+      // Dispatch event to notify dashboard
+      window.dispatchEvent(new CustomEvent('contactFormsUpdated', { detail: [result.data] }));
+      
+      console.log('Form submitted successfully:', result.data);
+      setIsSubmitted(true);
+    } catch (error) {
+      console.error('Error submitting contact form:', error);
+      alert(
+        `Failed to save your message: ${error.message || 'Unknown error'}\n\n` +
+        'Please try again or contact support if the issue persists.'
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -255,10 +275,22 @@ const ContactPage = () => {
 
               <button
                 onClick={handleSubmit}
-                className="w-full bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+                disabled={isSubmitting}
+                className={`w-full bg-[#4C9A8F] hover:bg-[#3d8178] text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 flex items-center justify-center gap-2 shadow-md hover:shadow-lg ${
+                  isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                }`}
               >
-                <Send size={20} />
-                Send Message
+                {isSubmitting ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send size={20} />
+                    Send Message
+                  </>
+                )}
               </button>
             </div>
           </div>
