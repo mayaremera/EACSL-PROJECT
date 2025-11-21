@@ -26,6 +26,8 @@ import {
 import { coursesManager, membersManager, eventsManager, articlesManager, therapyProgramsManager, forParentsManager, initializeData } from '../utils/dataManager';
 import { membershipFormsService } from '../services/membershipFormsService';
 import { contactFormsService } from '../services/contactFormsService';
+import { reservationsService } from '../services/reservationsService';
+import { supabase } from '../lib/supabase';
 import CourseCard from '../components/cards/CourseCard';
 import MemberCard from '../components/cards/MemberCard';
 import CourseEditForm from '../components/dashboard/CourseEditForm';
@@ -1238,6 +1240,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         }
         if (activeTab === 'applications') {
             loadForms();
+            loadReservations();
         }
     }, [activeTab]);
 
@@ -1384,9 +1387,15 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         }
     };
 
-    const loadEventRegistrations = () => {
-        const allRegistrations = eventRegistrationsManager.getAll();
-        setEventRegistrations(allRegistrations);
+    const loadEventRegistrations = async () => {
+        try {
+            const allRegistrations = await eventRegistrationsManager.getAll();
+            setEventRegistrations(allRegistrations);
+        } catch (error) {
+            console.error('Error loading event registrations:', error);
+            // Fallback to empty array on error
+            setEventRegistrations([]);
+        }
     };
 
     const [isSyncingEventRegistrations, setIsSyncingEventRegistrations] = useState(false);
@@ -1448,9 +1457,62 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         }
     };
 
-    const loadReservations = () => {
+    const loadReservations = async () => {
+        // Try to load from Supabase first
+        try {
+            const result = await reservationsService.getAll();
+            if (result.data && !result.error) {
+                // Update localStorage for backward compatibility
+                reservationsManager.data = result.data;
+                reservationsManager.save();
+                setReservations(result.data);
+                return;
+            }
+        } catch (error) {
+            console.warn('Could not load reservations from Supabase, using localStorage:', error);
+        }
+        
+        // Fallback to localStorage
         const allReservations = reservationsManager.getAll();
         setReservations(allReservations);
+    };
+
+    // Sync reservations from Supabase
+    const syncReservationsFromSupabase = async () => {
+        try {
+            const result = await reservationsService.getAll();
+            
+            if (result.error) {
+                if (result.error.code === 'TABLE_NOT_FOUND') {
+                    alert(
+                        '❌ Reservations Table Not Found\n\n' +
+                        'The reservations table does not exist in Supabase.\n\n' +
+                        'To fix this:\n' +
+                        '1. Go to Supabase Dashboard → SQL Editor\n' +
+                        '2. Run the SQL script from CREATE_RESERVATIONS_TABLE.sql\n' +
+                        '3. Try syncing again\n\n' +
+                        'See RESERVATIONS_SUPABASE_SETUP.md for detailed instructions.'
+                    );
+                    return;
+                }
+                alert(`Error syncing reservations from Supabase: ${result.error.message || 'Unknown error'}`);
+                return;
+            }
+
+            if (result.data && Array.isArray(result.data)) {
+                // Update localStorage for backward compatibility
+                reservationsManager.data = result.data;
+                reservationsManager.save();
+                setReservations(result.data);
+                alert(`✅ Successfully synced ${result.data.length} reservation(s) from Supabase!`);
+            } else {
+                setReservations([]);
+                alert('No reservations found in Supabase.');
+            }
+        } catch (error) {
+            console.error('Error syncing reservations from Supabase:', error);
+            alert(`Error syncing reservations: ${error.message || 'Unknown error'}`);
+        }
     };
 
     const loadEvents = () => {
@@ -1665,20 +1727,41 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         }
     };
 
-    const handleApproveReservation = (id, notes) => {
-        reservationsManager.updateStatus(id, 'approved', notes);
-        loadReservations();
-    };
-
-    const handleRejectReservation = (id, notes) => {
-        reservationsManager.updateStatus(id, 'rejected', notes);
-        loadReservations();
-    };
-
-    const handleDeleteReservation = (id) => {
-        if (window.confirm('Are you sure you want to delete this reservation?')) {
-            reservationsManager.delete(id);
+    const handleApproveReservation = async (id, notes) => {
+        try {
+            // Update in Supabase
+            await reservationsService.updateStatus(parseInt(id), 'approved', notes);
             loadReservations();
+        } catch (error) {
+            console.warn('Could not update reservation status in Supabase, updating localStorage:', error);
+            reservationsManager.updateStatus(id, 'approved', notes);
+            loadReservations();
+        }
+    };
+
+    const handleRejectReservation = async (id, notes) => {
+        try {
+            // Update in Supabase
+            await reservationsService.updateStatus(parseInt(id), 'rejected', notes);
+            loadReservations();
+        } catch (error) {
+            console.warn('Could not update reservation status in Supabase, updating localStorage:', error);
+            reservationsManager.updateStatus(id, 'rejected', notes);
+            loadReservations();
+        }
+    };
+
+    const handleDeleteReservation = async (id) => {
+        if (window.confirm('Are you sure you want to delete this reservation?')) {
+            try {
+                // Delete from Supabase
+                await reservationsService.delete(parseInt(id));
+                loadReservations();
+            } catch (error) {
+                console.warn('Could not delete reservation from Supabase, deleting from localStorage:', error);
+                reservationsManager.delete(id);
+                loadReservations();
+            }
         }
     };
 
@@ -3359,14 +3442,24 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {reservations.length}</span>
                                             <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {reservations.filter(r => r.status === 'pending').length}</span>
                                         </div>
-                                        <button
-                                            onClick={loadReservations}
-                                            className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
-                                            title="Refresh Reservations"
-                                        >
-                                            <RefreshCw size={16} />
-                                            Refresh
-                                        </button>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={syncReservationsFromSupabase}
+                                                className="flex items-center gap-2 px-4 py-2 text-sm bg-[#4C9A8F] text-white rounded-lg hover:bg-[#3d8178] transition-colors font-medium"
+                                                title="Sync from Supabase"
+                                            >
+                                                <RefreshCw size={16} />
+                                                Sync from Supabase
+                                            </button>
+                                            <button
+                                                onClick={loadReservations}
+                                                className="flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
+                                                title="Refresh Reservations"
+                                            >
+                                                <RefreshCw size={16} />
+                                                Refresh
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
