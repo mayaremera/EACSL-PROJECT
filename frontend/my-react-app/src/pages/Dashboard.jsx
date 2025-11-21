@@ -28,7 +28,6 @@ import { supabase } from '../lib/supabase';
 import { membershipFormsService } from '../services/membershipFormsService';
 import { contactFormsService } from '../services/contactFormsService';
 import { reservationsService } from '../services/reservationsService';
-import { supabase } from '../lib/supabase';
 import CourseCard from '../components/cards/CourseCard';
 import MemberCard from '../components/cards/MemberCard';
 import CourseEditForm from '../components/dashboard/CourseEditForm';
