@@ -34,10 +34,10 @@ const CoursesSection = () => {
                 {/* Header */}
                 <div className="flex items-center justify-between mb-12">
                     <div className="inline-block">
-                        <h2 className="text-3xl font-bold text-black mb-[-0.15rem]">
+                        <h2 className="text-xl font-bold text-black mb-[-0.15rem]">
                             POPULAR COURSES
                         </h2>
-                        <div className="h-[0.2rem] w-[10.5rem] bg-[#5A9B8E]"></div>
+                        <div className="h-[0.2rem] w-[7.5rem] bg-[#5A9B8E]"></div>
                     </div>
                     <Link
                         to="/online-courses"

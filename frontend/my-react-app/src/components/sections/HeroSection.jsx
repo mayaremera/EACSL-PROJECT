@@ -210,9 +210,9 @@ const HeroSection = () => {
     return '/upcoming-events';
   };
 
-  // Get dynamic title and description from current event
-  const heroTitle = currentEvent?.title || "Advancing Speech-Language Pathology 2025";
-  const heroDescription = currentEvent?.subtitle || "Join leading experts for a two-day conference focused on advancing clinical practice, enhancing research impact, and exploring innovation across speech, swallowing, language disorders, and audiology.";
+  // Get dynamic title and description from current event's hero section fields
+  const heroTitle = currentEvent?.heroTitle || "Advancing Speech-Language Pathology 2025";
+  const heroDescription = currentEvent?.heroDescription || "Join leading experts for a two-day conference focused on advancing clinical practice, enhancing research impact, and exploring innovation across speech, swallowing, language disorders, and audiology.";
 
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-[#f7f8fa] py-20">
@@ -223,12 +223,12 @@ const HeroSection = () => {
         <div className="space-y-6 flex flex-col items-center md:items-start">
 
           {/* Dynamic Title from Current Event */}
-          <h1 className="text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight text-center md:text-left">
+          <h1 className="text-4xl md:text-5xl lg:text-5xl font-extrabold text-gray-900 leading-smug text-center md:text-left">
             {heroTitle}
           </h1>
 
           {/* Dynamic Description from Current Event */}
-          <p className="text-base md:text-lg lg:text-[1.1rem] font-normal text-[#5a6270] max-w-[42rem] text-center md:text-left">
+          <p className="text-base md:text-lg lg:text-[1rem] font-normal text-[#5a6270] max-w-[40rem] text-center md:text-left">
             {heroDescription}
           </p>
 

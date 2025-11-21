@@ -4,6 +4,8 @@ import { eventsService } from '../../services/eventsService';
 
 const EventEditForm = ({ event, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
+    heroTitle: '',
+    heroDescription: '',
     title: '',
     subtitle: '',
     headerInfo1: 'Two Days Conference',
@@ -38,6 +40,8 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
   useEffect(() => {
     if (event) {
       setFormData({
+        heroTitle: event.heroTitle || '',
+        heroDescription: event.heroDescription || '',
         title: event.title || '',
         subtitle: event.subtitle || '',
         headerInfo1: event.headerInfo1 || 'Two Days Conference',
@@ -242,6 +246,41 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {/* Hero Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Hero Section</h3>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Hero Title *
+              </label>
+              <input
+                type="text"
+                name="heroTitle"
+                value={formData.heroTitle}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                placeholder="Advancing Speech-Language Pathology 2025"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Hero Description *
+              </label>
+              <textarea
+                name="heroDescription"
+                value={formData.heroDescription}
+                onChange={handleChange}
+                rows={3}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#4C9A8F]"
+                placeholder="Join leading experts for a two-day conference focused on advancing clinical practice, enhancing research impact, and exploring innovation across speech, swallowing, language disorders, and audiology."
+                required
+              />
+            </div>
+          </div>
+
           {/* Header Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Header Information</h3>

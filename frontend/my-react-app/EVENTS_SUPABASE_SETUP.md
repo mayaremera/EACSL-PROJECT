@@ -14,6 +14,8 @@ Run this SQL script in your Supabase SQL Editor:
 -- Create events table
 CREATE TABLE IF NOT EXISTS events (
   id BIGSERIAL PRIMARY KEY,
+  hero_title TEXT, -- Title displayed in the hero section (separate from event title)
+  hero_description TEXT, -- Description displayed in the hero section (separate from event subtitle)
   title TEXT NOT NULL,
   subtitle TEXT,
   member_fee DECIMAL(10, 2) DEFAULT 500.00,

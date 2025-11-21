@@ -116,6 +116,8 @@ export const eventsService = {
     try {
       // Map local event structure to Supabase structure
       const supabaseEvent = {
+        hero_title: event.heroTitle || null,
+        hero_description: event.heroDescription || null,
         title: event.title || '',
         subtitle: event.subtitle || '',
         member_fee: event.memberFee || 500.00,
@@ -164,6 +166,8 @@ export const eventsService = {
     try {
       // Map local event structure to Supabase structure
       const supabaseEvent = {
+        hero_title: event.heroTitle || null,
+        hero_description: event.heroDescription || null,
         title: event.title || '',
         subtitle: event.subtitle || '',
         member_fee: event.memberFee || 500.00,
@@ -295,6 +299,8 @@ export const eventsService = {
   mapSupabaseToLocal(supabaseEvent) {
     return {
       id: supabaseEvent.id,
+      heroTitle: supabaseEvent.hero_title || null,
+      heroDescription: supabaseEvent.hero_description || null,
       title: supabaseEvent.title,
       subtitle: supabaseEvent.subtitle,
       memberFee: supabaseEvent.member_fee,
@@ -316,6 +322,8 @@ export const eventsService = {
   // Map local event structure to Supabase structure
   mapLocalToSupabase(localEvent) {
     return {
+      hero_title: localEvent.heroTitle || null,
+      hero_description: localEvent.heroDescription || null,
       title: localEvent.title || '',
       subtitle: localEvent.subtitle || '',
       member_fee: localEvent.memberFee || 500.00,

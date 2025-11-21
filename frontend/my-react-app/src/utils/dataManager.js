@@ -1138,6 +1138,8 @@ export const eventsManager = {
 
 // Initialize default event data (used when no events exist)
 const getDefaultEvent = () => ({
+  heroTitle: "Advancing Speech-Language Pathology 2025",
+  heroDescription: "Join leading experts for a two-day conference focused on advancing clinical practice, enhancing research impact, and exploring innovation across speech, swallowing, language disorders, and audiology.",
   title: "Conference Schedule",
   subtitle:
     "Advancing Practice and Research in Speech-Language Pathology: Bridging Science and Clinical Impact",
