@@ -56,8 +56,6 @@ function NotFoundPage() {
               <Link to="/about" className="text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors">About</Link>
               <Link to="/upcoming-events" className="text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors">Events</Link>
               <Link to="/members-overview" className="text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors">Members</Link>
-              <Link to="/education" className="text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors">Education</Link>
-              <Link to="/services" className="text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors">Services</Link>
               <Link to="/contact" className="text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors">Contact</Link>
             </div>
           </div>

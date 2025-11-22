@@ -1,26 +1,31 @@
 import React from 'react';
+import kabaLogo from '../../assets/kaba.png';
+import ashaLogo from '../../assets/asha.png';
+import slpipLogo from '../../assets/slpip.png';
+import talktoolsLogo from '../../assets/talktools.png';
+import saudiLogo from '../../assets/saudi.png';
 
 const TrustedBrandsSection = () => {
     const brands = [
         {
-            name: 'Google',
-            logo: 'https://www.google.com/images/branding/googlelogo/2x/googlelogo_color_272x92dp.png'
+            name: 'KABA',
+            logo: kabaLogo
         },
         {
-            name: 'Atlassian',
-            logo: 'https://wac-cdn.atlassian.com/dam/jcr:e33efd9e-e0b8-4d61-a24d-68a48ef99ed5/Atlassian-horizontal-blue-rgb.svg'
+            name: 'ASHA',
+            logo: ashaLogo
         },
         {
-            name: 'Microsoft',
-            logo: 'https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg'
+            name: 'SLPIP',
+            logo: slpipLogo
         },
         {
-            name: 'Walmart',
-            logo: 'https://www.vectorlogo.zone/logos/walmart/walmart-ar21.svg'
+            name: 'TalkTools',
+            logo: talktoolsLogo
         },
         {
-            name: 'Amazon',
-            logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/2560px-Amazon_logo.svg.png'
+            name: 'Saudi',
+            logo: saudiLogo
         }
     ];
 
@@ -36,37 +41,19 @@ const TrustedBrandsSection = () => {
                     </div>
 
                     {/* Brand Logos */}
-                    <div className="lg:w-[50%] flex flex-wrap items-center justify-center lg:justify-end gap-6 lg:gap-6">
-                        {brands
-                            .filter(brand => brand.name !== 'Walmart' && brand.name !== 'Amazon')
-                            .map((brand, index) => (
-                                <div
-                                    key={index}
-                                    className="grayscale hover:grayscale-0 transition-all duration-300 opacity-60 hover:opacity-100"
-                                >
-                                    <img
-                                        src={brand.logo}
-                                        alt={brand.name}
-                                        className="h-6 w-auto object-contain"
-                                    />
-                                </div>
-                            ))}
-                        {/* Walmart Logo - Manually placed for custom sizing */}
-                        <div className="grayscale hover:grayscale-0 transition-all duration-300 opacity-60 hover:opacity-100">
-                            <img
-                                src="https://www.vectorlogo.zone/logos/walmart/walmart-ar21.svg"
-                                alt="Walmart"
-                                className="h-[3.7rem] w-auto object-contain"
-                            />
-                        </div>
-                        {/* Amazon Logo - Manually placed for custom sizing and positioning */}
-                        <div className="grayscale hover:grayscale-0 transition-all duration-300 opacity-60 hover:opacity-100">
-                            <img
-                                src="https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/2560px-Amazon_logo.svg.png"
-                                alt="Amazon"
-                                className="mt-2 h-6 w-auto object-cover"
-                            />
-                        </div>
+                    <div className="lg:w-[50%] flex flex-wrap items-center justify-center lg:justify-end gap-8 lg:gap-12">
+                        {brands.map((brand, index) => (
+                            <div
+                                key={index}
+                                className="grayscale hover:grayscale-0 transition-all duration-300 opacity-60 hover:opacity-100"
+                            >
+                                <img
+                                    src={brand.logo}
+                                    alt={brand.name}
+                                    className="h-12 lg:h-16 w-auto object-contain"
+                                />
+                            </div>
+                        ))}
                     </div>
                 </div>
             </div>
