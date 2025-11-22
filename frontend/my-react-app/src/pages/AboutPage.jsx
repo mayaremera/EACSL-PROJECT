@@ -1,27 +1,41 @@
 import React from 'react';
 import { Target, Eye, Users, Calendar, Award, ExternalLink } from 'lucide-react';
+import SaharAAlsamahi from '../assets/MembersImages/sahar-samahi.png';
+import OsamaElsayed from '../assets/MembersImages/osama-sayed.avif';
+import RehamAli from '../assets/MembersImages/reham-ali.avif';
+import EmanMostafa from '../assets/MembersImages/eman-moustafa.avif';
+import MohamedBahaa from '../assets/MembersImages/mohamed-bahaa.avif';
+import SaraAlhenawy from '../assets/MembersImages/sara-henawy.webp';
+import MohamedAbdelMola from '../assets/MembersImages/mohammed-abdelmola.avif';
+import MohamedGwida from '../assets/MembersImages/mohamed-gwida.avif';
+import NahlaAssem from '../assets/MembersImages/nahla-assem.avif';
+import SamehAlsaghir from '../assets/MembersImages/sameh-elsagheer.jpg';
+import AhmedFawzy from '../assets/MembersImages/ahmed-fawzy.avif';
+import SohaSamy from '../assets/MembersImages/soha-samy.jpg';
+import SaniNaiim from '../assets/MembersImages/sami-naiim.jpg';
+import DrWaelAlDakroury from '../assets/MembersImages/dr-wael.avif';
 
 const AboutPage = () => {
   const boardMembers = [
-    { name: "Sehar A.Alswaieh", role: "EACSL President", image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=300&h=300&fit=crop" },
-    { name: "Osama Elseied", role: "Vice President", image: "https://images.unsplash.com/photo-1560250097-0b93528c311a?w=300&h=300&fit=crop" },
-    { name: "Mohamed Roken", role: "General Secretary", image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=300&h=300&fit=crop" },
-    { name: "Reham Ali", role: "Board Member", image: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&h=300&fit=crop" },
-    { name: "Eman Mostafa", role: "Board Member", image: "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=300&h=300&fit=crop" },
+    { name: "Sahar A.Alsamahi", role: "EACSL President/ SLP", image: SaharAAlsamahi },
+    { name: "Osama Elsayed", role: "Board member/SLP", image: OsamaElsayed },
+    { name: "Reham Ali", role: "Board member/SLP", image: RehamAli },
+    { name: "Eman Mostafa", role: "Board member/SLP", image: EmanMostafa },
+    { name: "Mohamed Bahaa", role: "Board member/ legal consultant", image: MohamedBahaa },
   ];
 
-  const executiveBoard = [
-    { name: "Dr. Ahmed Hassan", image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=300&h=300&fit=crop" },
-    { name: "Dr. Sara Mohamed", image: "https://images.unsplash.com/photo-1594744803329-e58b31de8bf5?w=300&h=300&fit=crop" },
-    { name: "Dr. Khaled Ibrahim", image: "https://images.unsplash.com/photo-1566492031773-4f4e44671857?w=300&h=300&fit=crop" },
-    { name: "Dr. Layla Ahmed", image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=300&h=300&fit=crop" },
-    { name: "Dr. Fatima Ali", image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&h=300&fit=crop" },
-    { name: "Dr. Omar Youssef", image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=300&fit=crop" },
-    { name: "Dr. Nadia Farid", image: "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?w=300&h=300&fit=crop" },
-    { name: "Dr. Tarek Samir", image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&h=300&fit=crop" },
-    { name: "Dr. Hanan Mustafa", image: "https://images.unsplash.com/photo-1489424731084-a5d8b219a5bb?w=300&h=300&fit=crop" },
-    { name: "Dr. Mona Salem", image: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&h=300&fit=crop" },
-    { name: "Dr. Yasser Nabil", image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=300&h=300&fit=crop" }
+  const founders = [
+    { name: "Dr.Sara Alhenawy", image: SaraAlhenawy },
+    { name: "Osama Elsayed", image: OsamaElsayed },
+    { name: "Mohamed Abdel-Mola", image: MohamedAbdelMola },
+    { name: "Reham Ali", image: RehamAli },
+    { name: "Mohamed Gwida", image: MohamedGwida },
+    { name: "Nahla Assem", image: NahlaAssem },
+    { name: "Sameh Alsaghir", image: SamehAlsaghir },
+    { name: "Ahmed Fawzy", image: AhmedFawzy },
+    { name: "Soha Samy", image: SohaSamy },
+    { name: "Sani Naiim", image: SaniNaiim },
+    { name: "Alshaimaa Salem"},
   ];
 
   return (
@@ -104,7 +118,7 @@ const AboutPage = () => {
             <div className="lg:col-span-1 flex flex-col items-center">
               <div className="w-full max-w-xs overflow-hidden rounded-xl shadow-lg mb-4 aspect-[3/4] bg-gray-100">
                 <img 
-                  src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=314,h=314,fit=crop/m5KvEjaDo4UxePa2/wael-egypt-YZ9bbVKwprs7Ekrr.jpg"
+                  src={DrWaelAlDakroury}
                   alt="Dr. Wael A. Al-Dakroury"
                   className="w-full h-full object-cover object-center"
                 />
@@ -113,7 +127,7 @@ const AboutPage = () => {
               <p className="text-sm text-gray-600 text-center mb-2">Ph.D., CCC-SLP</p>
               <p className="text-sm text-[#4C9A8F] font-medium text-center mb-3">Honorary President</p>
               <a 
-                href="https://linkedin.com/in/waelslp" 
+                href="https://www.linkedin.com/in/waelslp/" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-sm text-[#4C9A8F] hover:text-[#3d8178] transition-colors"
@@ -160,7 +174,7 @@ const AboutPage = () => {
                   <img 
                     src={member.image} 
                     alt={member.name}
-                    className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover object-top transition-transform duration-300"
                   />
                 </div>
                 <h4 className="font-bold text-gray-900 text-sm mb-1">{member.name}</h4>
@@ -169,15 +183,15 @@ const AboutPage = () => {
             ))}
           </div>
 
-          <h3 className="text-xl font-bold text-gray-900 mb-6 pt-6 border-t border-gray-200">Executive Board Members</h3>
+          <h3 className="text-xl font-bold text-gray-900 mb-6 pt-6 border-t border-gray-200">Founders</h3>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            {executiveBoard.map((member, index) => (
+            {founders.map((member, index) => (
               <div key={index} className="text-center">
                 <div className="mb-2 overflow-hidden rounded-lg shadow-md aspect-square bg-gray-100">
                   <img 
                     src={member.image} 
                     alt={member.name}
-                    className="w-full h-full object-cover object-center hover:scale-105 transition-transform duration-300"
+                    className="w-full h-full object-cover object-top hover:scale-105 transition-transform duration-300"
                   />
                 </div>
                 <h4 className="font-semibold text-gray-900 text-xs">{member.name}</h4>
