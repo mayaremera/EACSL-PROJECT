@@ -1577,6 +1577,259 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         }
     };
 
+    // Sync localStorage data TO Supabase (upload)
+    const syncToSupabase = async () => {
+        const results = {
+            memberForms: { synced: 0, skipped: 0, errors: 0 },
+            contactForms: { synced: 0, skipped: 0, errors: 0 },
+            reservations: { synced: 0, skipped: 0, errors: 0 },
+            eventRegistrations: { synced: 0, skipped: 0, errors: 0 }
+        };
+
+        try {
+            // 1. Sync Member Forms
+            const localMemberForms = formsManager.getAll();
+            if (localMemberForms.length > 0) {
+                // Get existing forms from Supabase to check for duplicates
+                const existingFormsResult = await membershipFormsService.getAll();
+                const existingEmails = new Set();
+                if (existingFormsResult.data && !existingFormsResult.error) {
+                    existingFormsResult.data.forEach(form => {
+                        if (form.email) existingEmails.add(form.email.toLowerCase());
+                    });
+                }
+
+                for (const form of localMemberForms) {
+                    try {
+                        // Check if form already exists (by email)
+                        if (form.email && existingEmails.has(form.email.toLowerCase())) {
+                            results.memberForms.skipped++;
+                            continue;
+                        }
+
+                        // Check if form has Supabase ID (already synced)
+                        if (form.id && !isNaN(parseInt(form.id)) && parseInt(form.id) > 1000) {
+                            // Likely a Supabase ID, skip
+                            results.memberForms.skipped++;
+                            continue;
+                        }
+
+                        const result = await membershipFormsService.add(form);
+                        if (result.error) {
+                            if (result.error.code === 'DUPLICATE_EMAIL' || result.error.code === '23505') {
+                                results.memberForms.skipped++;
+                            } else {
+                                results.memberForms.errors++;
+                                console.error('Error syncing member form:', result.error);
+                            }
+                        } else {
+                            results.memberForms.synced++;
+                        }
+                    } catch (error) {
+                        results.memberForms.errors++;
+                        console.error('Error syncing member form:', error);
+                    }
+                }
+            }
+
+            // 2. Sync Contact Forms
+            const localContactForms = contactFormsManager.getAll();
+            if (localContactForms.length > 0) {
+                // Get existing forms from Supabase to check for duplicates
+                const existingFormsResult = await contactFormsService.getAll();
+                const existingEmails = new Set();
+                if (existingFormsResult.data && !existingFormsResult.error) {
+                    existingFormsResult.data.forEach(form => {
+                        if (form.email) existingEmails.add(form.email.toLowerCase());
+                    });
+                }
+
+                for (const form of localContactForms) {
+                    try {
+                        // Check if form already exists (by email and subject)
+                        const key = `${form.email?.toLowerCase()}_${form.subject}`;
+                        if (form.email && existingEmails.has(form.email.toLowerCase())) {
+                            // Check if same subject exists
+                            const existing = existingFormsResult.data?.find(
+                                f => f.email?.toLowerCase() === form.email?.toLowerCase() && 
+                                f.subject === form.subject
+                            );
+                            if (existing) {
+                                results.contactForms.skipped++;
+                                continue;
+                            }
+                        }
+
+                        // Check if form has Supabase ID (already synced)
+                        if (form.id && !isNaN(parseInt(form.id)) && parseInt(form.id) > 1000) {
+                            results.contactForms.skipped++;
+                            continue;
+                        }
+
+                        const result = await contactFormsService.add(form);
+                        if (result.error) {
+                            results.contactForms.errors++;
+                            console.error('Error syncing contact form:', result.error);
+                        } else {
+                            results.contactForms.synced++;
+                        }
+                    } catch (error) {
+                        results.contactForms.errors++;
+                        console.error('Error syncing contact form:', error);
+                    }
+                }
+            }
+
+            // 3. Sync Reservations
+            const localReservations = reservationsManager.getAll();
+            if (localReservations.length > 0) {
+                // Get existing reservations from Supabase to check for duplicates
+                const existingReservationsResult = await reservationsService.getAll();
+                const existingKeys = new Set();
+                if (existingReservationsResult.data && !existingReservationsResult.error) {
+                    existingReservationsResult.data.forEach(res => {
+                        const key = `${res.phoneNumber}_${res.yourName}_${res.submittedAt}`;
+                        existingKeys.add(key);
+                    });
+                }
+
+                for (const reservation of localReservations) {
+                    try {
+                        // Check if reservation already exists
+                        const key = `${reservation.phoneNumber}_${reservation.yourName}_${reservation.submittedAt}`;
+                        if (existingKeys.has(key)) {
+                            results.reservations.skipped++;
+                            continue;
+                        }
+
+                        // Check if reservation has Supabase ID (already synced)
+                        if (reservation.id && !isNaN(parseInt(reservation.id)) && parseInt(reservation.id) > 1000) {
+                            results.reservations.skipped++;
+                            continue;
+                        }
+
+                        const result = await reservationsService.add(reservation);
+                        if (result.error) {
+                            results.reservations.errors++;
+                            console.error('Error syncing reservation:', result.error);
+                        } else {
+                            results.reservations.synced++;
+                        }
+                    } catch (error) {
+                        results.reservations.errors++;
+                        console.error('Error syncing reservation:', error);
+                    }
+                }
+            }
+
+            // 4. Sync Event Registrations
+            const localEventRegistrations = eventRegistrationsManager.getAllFromLocalStorage();
+            if (localEventRegistrations.length > 0) {
+                // Get existing registrations from Supabase to check for duplicates
+                let existingRegistrations = [];
+                try {
+                    const { data, error } = await supabase
+                        .from('event_registrations')
+                        .select('*');
+                    if (!error && data) {
+                        existingRegistrations = data;
+                    }
+                } catch (err) {
+                    console.warn('Could not fetch existing event registrations:', err);
+                }
+
+                const existingEmails = new Set();
+                existingRegistrations.forEach(reg => {
+                    if (reg.email) existingEmails.add(reg.email.toLowerCase());
+                });
+
+                for (const registration of localEventRegistrations) {
+                    try {
+                        // Check if registration already exists (by email)
+                        if (registration.email && existingEmails.has(registration.email.toLowerCase())) {
+                            results.eventRegistrations.skipped++;
+                            continue;
+                        }
+
+                        // Check if registration has Supabase ID (already synced)
+                        if (registration.id && !isNaN(parseInt(registration.id)) && parseInt(registration.id) > 1000) {
+                            results.eventRegistrations.skipped++;
+                            continue;
+                        }
+
+                        // Map local format to Supabase format
+                        const supabaseReg = {
+                            event_id: registration.eventId || null,
+                            full_name: registration.fullName,
+                            email: registration.email,
+                            phone: registration.phone,
+                            organization: registration.organization || null,
+                            membership_type: registration.membershipType,
+                            selected_tracks: Array.isArray(registration.selectedTracks) ? registration.selectedTracks : [],
+                            special_requirements: registration.specialRequirements || null,
+                            registration_fee: registration.registrationFee || 0,
+                            status: registration.status || 'pending',
+                            submitted_at: registration.submittedAt || new Date().toISOString(),
+                            reviewed_at: registration.reviewedAt || null,
+                            reviewed_by: registration.reviewedBy || null,
+                            review_notes: registration.reviewNotes || null
+                        };
+
+                        const { error } = await supabase
+                            .from('event_registrations')
+                            .insert([supabaseReg]);
+
+                        if (error) {
+                            if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
+                                alert('Event registrations table not found in Supabase. Please create it first.');
+                                break;
+                            }
+                            results.eventRegistrations.errors++;
+                            console.error('Error syncing event registration:', error);
+                        } else {
+                            results.eventRegistrations.synced++;
+                        }
+                    } catch (error) {
+                        results.eventRegistrations.errors++;
+                        console.error('Error syncing event registration:', error);
+                    }
+                }
+            }
+
+            // Show summary
+            const totalSynced = results.memberForms.synced + results.contactForms.synced + 
+                              results.reservations.synced + results.eventRegistrations.synced;
+            const totalSkipped = results.memberForms.skipped + results.contactForms.skipped + 
+                               results.reservations.skipped + results.eventRegistrations.skipped;
+            const totalErrors = results.memberForms.errors + results.contactForms.errors + 
+                              results.reservations.errors + results.eventRegistrations.errors;
+
+            let message = '✅ Sync to Supabase Complete!\n\n';
+            message += `📤 Synced: ${totalSynced} item(s)\n`;
+            message += `⏭️ Skipped (already exists): ${totalSkipped} item(s)\n`;
+            if (totalErrors > 0) {
+                message += `❌ Errors: ${totalErrors} item(s)\n`;
+            }
+            message += '\nDetails:\n';
+            message += `• Member Forms: ${results.memberForms.synced} synced, ${results.memberForms.skipped} skipped, ${results.memberForms.errors} errors\n`;
+            message += `• Contact Forms: ${results.contactForms.synced} synced, ${results.contactForms.skipped} skipped, ${results.contactForms.errors} errors\n`;
+            message += `• Reservations: ${results.reservations.synced} synced, ${results.reservations.skipped} skipped, ${results.reservations.errors} errors\n`;
+            message += `• Event Registrations: ${results.eventRegistrations.synced} synced, ${results.eventRegistrations.skipped} skipped, ${results.eventRegistrations.errors} errors`;
+
+            alert(message);
+
+            // Refresh data from Supabase after sync
+            await loadForms();
+            await loadContactForms();
+            await loadReservations();
+            await loadEventRegistrations();
+
+        } catch (error) {
+            console.error('Error syncing to Supabase:', error);
+            alert(`Error syncing to Supabase: ${error.message || 'Unknown error'}`);
+        }
+    };
+
     const loadEvents = () => {
         const allEvents = eventsManager.getAll();
         // Ensure we have the correct structure
@@ -2457,6 +2710,53 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                     Sync
                                 </button>
                                 <button
+                                    onClick={async () => {
+                                        const localMembers = membersManager.getAll();
+                                        if (localMembers.length === 0) {
+                                            alert('No members in localStorage to sync.');
+                                            return;
+                                        }
+                                        const confirmed = window.confirm(
+                                            `Sync ${localMembers.length} member(s) from localStorage to Supabase?\n\n` +
+                                            `This will upload any members that don't already exist in Supabase, or update existing ones.`
+                                        );
+                                        if (!confirmed) return;
+
+                                        try {
+                                            const result = await membersManager.syncToSupabase();
+                                            if (result.synced) {
+                                                loadMembers();
+                                                let message = `✅ Sync Complete!\n\n`;
+                                                message += `📤 Synced: ${result.syncedCount} member(s)\n`;
+                                                message += `📊 Total: ${result.total} member(s)\n`;
+                                                if (result.errorCount > 0) {
+                                                    message += `❌ Errors: ${result.errorCount} member(s)\n`;
+                                                }
+                                                if (result.errors && result.errors.length > 0) {
+                                                    message += `\nFailed members:\n`;
+                                                    result.errors.slice(0, 5).forEach(err => {
+                                                        message += `• ${err.member}\n`;
+                                                    });
+                                                    if (result.errors.length > 5) {
+                                                        message += `... and ${result.errors.length - 5} more\n`;
+                                                    }
+                                                }
+                                                alert(message);
+                                            } else {
+                                                alert(`Failed to sync members: ${result.error?.message || 'Unknown error'}`);
+                                            }
+                                        } catch (error) {
+                                            console.error('Error syncing members to Supabase:', error);
+                                            alert(`Error syncing members: ${error.message || 'Unknown error'}`);
+                                        }
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                    title="Sync to Supabase (Upload from localStorage)"
+                                >
+                                    <RefreshCw size={18} className="rotate-180" />
+                                    Sync to Supabase
+                                </button>
+                                <button
                                     onClick={() => setIsAddingMember(true)}
                                     className="flex items-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md"
                                 >
@@ -3098,6 +3398,26 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                     {/* Applications Tab */}
                     {activeTab === 'applications' && (
                         <div className="space-y-8">
+                            {/* Main Sync All Button */}
+                            <div className="bg-gradient-to-r from-blue-50 to-teal-50 border border-blue-200 rounded-lg p-4 mb-6">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <h3 className="text-lg font-semibold text-gray-900 mb-1">Sync All Data to Supabase</h3>
+                                        <p className="text-sm text-gray-600">
+                                            Upload all localStorage data (Member Forms, Contact Forms, Reservations, Event Registrations) to Supabase
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={syncToSupabase}
+                                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md"
+                                        title="Sync all localStorage data to Supabase"
+                                    >
+                                        <RefreshCw size={18} className="rotate-180" />
+                                        Sync All to Supabase
+                                    </button>
+                                </div>
+                            </div>
+
                             {/* Section 1: Member Applications */}
                             <div>
                                 <div className="flex items-center justify-between mb-4">
@@ -3115,6 +3435,67 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             >
                                                 <RefreshCw size={16} />
                                                 Sync from Supabase
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    const localForms = formsManager.getAll();
+                                                    if (localForms.length === 0) {
+                                                        alert('No member forms in localStorage to sync.');
+                                                        return;
+                                                    }
+                                                    const confirmed = window.confirm(
+                                                        `Sync ${localForms.length} member form(s) from localStorage to Supabase?\n\n` +
+                                                        `This will upload any forms that don't already exist in Supabase.`
+                                                    );
+                                                    if (!confirmed) return;
+
+                                                    const results = { synced: 0, skipped: 0, errors: 0 };
+                                                    const existingFormsResult = await membershipFormsService.getAll();
+                                                    const existingEmails = new Set();
+                                                    if (existingFormsResult.data && !existingFormsResult.error) {
+                                                        existingFormsResult.data.forEach(form => {
+                                                            if (form.email) existingEmails.add(form.email.toLowerCase());
+                                                        });
+                                                    }
+
+                                                    for (const form of localForms) {
+                                                        try {
+                                                            if (form.email && existingEmails.has(form.email.toLowerCase())) {
+                                                                results.skipped++;
+                                                                continue;
+                                                            }
+                                                            if (form.id && !isNaN(parseInt(form.id)) && parseInt(form.id) > 1000) {
+                                                                results.skipped++;
+                                                                continue;
+                                                            }
+                                                            const result = await membershipFormsService.add(form);
+                                                            if (result.error) {
+                                                                if (result.error.code === 'DUPLICATE_EMAIL' || result.error.code === '23505') {
+                                                                    results.skipped++;
+                                                                } else {
+                                                                    results.errors++;
+                                                                }
+                                                            } else {
+                                                                results.synced++;
+                                                            }
+                                                        } catch (error) {
+                                                            results.errors++;
+                                                        }
+                                                    }
+
+                                                    alert(
+                                                        `✅ Sync Complete!\n\n` +
+                                                        `📤 Synced: ${results.synced}\n` +
+                                                        `⏭️ Skipped: ${results.skipped}\n` +
+                                                        (results.errors > 0 ? `❌ Errors: ${results.errors}` : '')
+                                                    );
+                                                    await loadForms();
+                                                }}
+                                                className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                                title="Sync to Supabase (Upload from localStorage)"
+                                            >
+                                                <RefreshCw size={16} className="rotate-180" />
+                                                Sync to Supabase
                                             </button>
                                         <button
                                             onClick={loadForms}
@@ -3273,6 +3654,94 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             />
                                             {isSyncingEventRegistrations ? 'Syncing...' : 'Sync from Supabase'}
                                         </button>
+                                        <button
+                                            onClick={async () => {
+                                                const localRegs = eventRegistrationsManager.getAllFromLocalStorage();
+                                                if (localRegs.length === 0) {
+                                                    alert('No event registrations in localStorage to sync.');
+                                                    return;
+                                                }
+                                                const confirmed = window.confirm(
+                                                    `Sync ${localRegs.length} event registration(s) from localStorage to Supabase?\n\n` +
+                                                    `This will upload any registrations that don't already exist in Supabase.`
+                                                );
+                                                if (!confirmed) return;
+
+                                                const results = { synced: 0, skipped: 0, errors: 0 };
+                                                let existingRegistrations = [];
+                                                try {
+                                                    const { data, error } = await supabase
+                                                        .from('event_registrations')
+                                                        .select('*');
+                                                    if (!error && data) {
+                                                        existingRegistrations = data;
+                                                    }
+                                                } catch (err) {
+                                                    console.warn('Could not fetch existing event registrations:', err);
+                                                }
+
+                                                const existingEmails = new Set();
+                                                existingRegistrations.forEach(reg => {
+                                                    if (reg.email) existingEmails.add(reg.email.toLowerCase());
+                                                });
+
+                                                for (const registration of localRegs) {
+                                                    try {
+                                                        if (registration.email && existingEmails.has(registration.email.toLowerCase())) {
+                                                            results.skipped++;
+                                                            continue;
+                                                        }
+                                                        if (registration.id && !isNaN(parseInt(registration.id)) && parseInt(registration.id) > 1000) {
+                                                            results.skipped++;
+                                                            continue;
+                                                        }
+                                                        const supabaseReg = {
+                                                            event_id: registration.eventId || null,
+                                                            full_name: registration.fullName,
+                                                            email: registration.email,
+                                                            phone: registration.phone,
+                                                            organization: registration.organization || null,
+                                                            membership_type: registration.membershipType,
+                                                            selected_tracks: Array.isArray(registration.selectedTracks) ? registration.selectedTracks : [],
+                                                            special_requirements: registration.specialRequirements || null,
+                                                            registration_fee: registration.registrationFee || 0,
+                                                            status: registration.status || 'pending',
+                                                            submitted_at: registration.submittedAt || new Date().toISOString(),
+                                                            reviewed_at: registration.reviewedAt || null,
+                                                            reviewed_by: registration.reviewedBy || null,
+                                                            review_notes: registration.reviewNotes || null
+                                                        };
+                                                        const { error } = await supabase
+                                                            .from('event_registrations')
+                                                            .insert([supabaseReg]);
+                                                        if (error) {
+                                                            if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
+                                                                alert('Event registrations table not found in Supabase. Please create it first.');
+                                                                break;
+                                                            }
+                                                            results.errors++;
+                                                        } else {
+                                                            results.synced++;
+                                                        }
+                                                    } catch (error) {
+                                                        results.errors++;
+                                                    }
+                                                }
+
+                                                alert(
+                                                    `✅ Sync Complete!\n\n` +
+                                                    `📤 Synced: ${results.synced}\n` +
+                                                    `⏭️ Skipped: ${results.skipped}\n` +
+                                                    (results.errors > 0 ? `❌ Errors: ${results.errors}` : '')
+                                                );
+                                                await loadEventRegistrations();
+                                            }}
+                                            className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                            title="Sync to Supabase (Upload from localStorage)"
+                                        >
+                                            <RefreshCw size={16} className="rotate-180" />
+                                            Sync to Supabase
+                                        </button>
                                     </div>
                                 </div>
 
@@ -3403,6 +3872,69 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             >
                                                 <RefreshCw size={16} />
                                                 Sync from Supabase
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    const localForms = contactFormsManager.getAll();
+                                                    if (localForms.length === 0) {
+                                                        alert('No contact forms in localStorage to sync.');
+                                                        return;
+                                                    }
+                                                    const confirmed = window.confirm(
+                                                        `Sync ${localForms.length} contact form(s) from localStorage to Supabase?\n\n` +
+                                                        `This will upload any forms that don't already exist in Supabase.`
+                                                    );
+                                                    if (!confirmed) return;
+
+                                                    const results = { synced: 0, skipped: 0, errors: 0 };
+                                                    const existingFormsResult = await contactFormsService.getAll();
+                                                    const existingEmails = new Set();
+                                                    if (existingFormsResult.data && !existingFormsResult.error) {
+                                                        existingFormsResult.data.forEach(form => {
+                                                            if (form.email) existingEmails.add(form.email.toLowerCase());
+                                                        });
+                                                    }
+
+                                                    for (const form of localForms) {
+                                                        try {
+                                                            if (form.email && existingEmails.has(form.email.toLowerCase())) {
+                                                                const existing = existingFormsResult.data?.find(
+                                                                    f => f.email?.toLowerCase() === form.email?.toLowerCase() && 
+                                                                    f.subject === form.subject
+                                                                );
+                                                                if (existing) {
+                                                                    results.skipped++;
+                                                                    continue;
+                                                                }
+                                                            }
+                                                            if (form.id && !isNaN(parseInt(form.id)) && parseInt(form.id) > 1000) {
+                                                                results.skipped++;
+                                                                continue;
+                                                            }
+                                                            const result = await contactFormsService.add(form);
+                                                            if (result.error) {
+                                                                results.errors++;
+                                                            } else {
+                                                                results.synced++;
+                                                            }
+                                                        } catch (error) {
+                                                            results.errors++;
+                                                        }
+                                                    }
+
+                                                    alert(
+                                                        `✅ Sync Complete!\n\n` +
+                                                        `📤 Synced: ${results.synced}\n` +
+                                                        `⏭️ Skipped: ${results.skipped}\n` +
+                                                        (results.errors > 0 ? `❌ Errors: ${results.errors}` : '')
+                                                    );
+                                                    await loadContactForms();
+                                                }}
+                                                className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                                title="Sync to Supabase (Upload from localStorage)"
+                                            >
+                                                <RefreshCw size={16} className="rotate-180" />
+                                                Sync to Supabase
                                             </button>
                                         <button
                                             onClick={loadContactForms}
@@ -3539,6 +4071,65 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             >
                                                 <RefreshCw size={16} />
                                                 Sync from Supabase
+                                            </button>
+                                            <button
+                                                onClick={async () => {
+                                                    const localReservations = reservationsManager.getAll();
+                                                    if (localReservations.length === 0) {
+                                                        alert('No reservations in localStorage to sync.');
+                                                        return;
+                                                    }
+                                                    const confirmed = window.confirm(
+                                                        `Sync ${localReservations.length} reservation(s) from localStorage to Supabase?\n\n` +
+                                                        `This will upload any reservations that don't already exist in Supabase.`
+                                                    );
+                                                    if (!confirmed) return;
+
+                                                    const results = { synced: 0, skipped: 0, errors: 0 };
+                                                    const existingReservationsResult = await reservationsService.getAll();
+                                                    const existingKeys = new Set();
+                                                    if (existingReservationsResult.data && !existingReservationsResult.error) {
+                                                        existingReservationsResult.data.forEach(res => {
+                                                            const key = `${res.phoneNumber}_${res.yourName}_${res.submittedAt}`;
+                                                            existingKeys.add(key);
+                                                        });
+                                                    }
+
+                                                    for (const reservation of localReservations) {
+                                                        try {
+                                                            const key = `${reservation.phoneNumber}_${reservation.yourName}_${reservation.submittedAt}`;
+                                                            if (existingKeys.has(key)) {
+                                                                results.skipped++;
+                                                                continue;
+                                                            }
+                                                            if (reservation.id && !isNaN(parseInt(reservation.id)) && parseInt(reservation.id) > 1000) {
+                                                                results.skipped++;
+                                                                continue;
+                                                            }
+                                                            const result = await reservationsService.add(reservation);
+                                                            if (result.error) {
+                                                                results.errors++;
+                                                            } else {
+                                                                results.synced++;
+                                                            }
+                                                        } catch (error) {
+                                                            results.errors++;
+                                                        }
+                                                    }
+
+                                                    alert(
+                                                        `✅ Sync Complete!\n\n` +
+                                                        `📤 Synced: ${results.synced}\n` +
+                                                        `⏭️ Skipped: ${results.skipped}\n` +
+                                                        (results.errors > 0 ? `❌ Errors: ${results.errors}` : '')
+                                                    );
+                                                    await loadReservations();
+                                                }}
+                                                className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                                title="Sync to Supabase (Upload from localStorage)"
+                                            >
+                                                <RefreshCw size={16} className="rotate-180" />
+                                                Sync to Supabase
                                             </button>
                                             <button
                                                 onClick={loadReservations}
