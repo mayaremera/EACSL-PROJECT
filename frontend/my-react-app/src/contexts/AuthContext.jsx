@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { membersManager } from '../utils/dataManager';
+import { membersService } from '../services/membersService';
 
 const AuthContext = createContext({});
 
@@ -53,40 +54,74 @@ export const AuthProvider = ({ children }) => {
         }
         
         if (!existingMember) {
-          // Only create member record if it truly doesn't exist
-          const fullName = session.user.user_metadata?.full_name || 
-                          session.user.email?.split('@')[0] || 
-                          'Member';
-          const currentDate = new Date();
-          const membershipDate = currentDate.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'long' 
-          });
+          // Not found in local storage - check Supabase before creating
+          const { data: supabaseMember, error: fetchError } = await membersService.getByUserId(session.user.id);
           
-          const newMember = {
-            supabaseUserId: session.user.id,
-            name: fullName,
-            email: session.user.email || '',
-            role: 'Member',
-            nationality: session.user.user_metadata?.nationality || 'Egyptian',
-            flagCode: session.user.user_metadata?.flagCode || 'eg',
-            description: `Member of EACSL since ${membershipDate}`,
-            fullDescription: `${fullName} is a valued member of the EACSL community.`,
-            membershipDate: membershipDate,
-            isActive: session.user.email_confirmed_at ? true : false, // Active only if email confirmed
-            activeTill: new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), currentDate.getDate()).getFullYear().toString(),
-            certificates: [],
-            phone: session.user.user_metadata?.phone || '',
-            location: session.user.user_metadata?.location || '',
-            website: session.user.user_metadata?.website || '',
-            linkedin: session.user.user_metadata?.linkedin || '',
-            image: session.user.user_metadata?.image || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.1.0&auto=format&fit=crop&q=60&w=600',
-          };
-          
-          await membersManager.add(newMember);
-          // Trigger UI update
-          const allMembers = membersManager.getAll();
-          window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
+          if (supabaseMember && !fetchError) {
+            // Found in Supabase - sync to local storage
+            const mappedMember = membersService.mapSupabaseToLocal(supabaseMember);
+            
+            // Add to local storage
+            const allMembers = membersManager.getAll();
+            const exists = allMembers.some(m => 
+              m.id === mappedMember.id || 
+              m.supabaseUserId === mappedMember.supabaseUserId ||
+              m.email === mappedMember.email
+            );
+            
+            if (!exists) {
+              allMembers.push(mappedMember);
+              membersManager.saveAll(allMembers);
+              window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
+            } else {
+              // Update existing member
+              const existingIndex = allMembers.findIndex(m => 
+                m.id === mappedMember.id || 
+                m.supabaseUserId === mappedMember.supabaseUserId ||
+                m.email === mappedMember.email
+              );
+              if (existingIndex >= 0) {
+                allMembers[existingIndex] = mappedMember;
+                membersManager.saveAll(allMembers);
+                window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
+              }
+            }
+          } else if (!supabaseMember) {
+            // Not found in Supabase either - only now create a new member
+            const fullName = session.user.user_metadata?.full_name || 
+                            session.user.email?.split('@')[0] || 
+                            'Member';
+            const currentDate = new Date();
+            const membershipDate = currentDate.toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long' 
+            });
+            
+            const newMember = {
+              supabaseUserId: session.user.id,
+              name: fullName,
+              email: session.user.email || '',
+              role: 'Member',
+              nationality: session.user.user_metadata?.nationality || 'Egyptian',
+              flagCode: session.user.user_metadata?.flagCode || 'eg',
+              description: `Member of EACSL since ${membershipDate}`,
+              fullDescription: `${fullName} is a valued member of the EACSL community.`,
+              membershipDate: membershipDate,
+              isActive: session.user.email_confirmed_at ? true : false, // Active only if email confirmed
+              activeTill: new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), currentDate.getDate()).getFullYear().toString(),
+              certificates: [],
+              phone: session.user.user_metadata?.phone || '',
+              location: session.user.user_metadata?.location || '',
+              website: session.user.user_metadata?.website || '',
+              linkedin: session.user.user_metadata?.linkedin || '',
+              image: session.user.user_metadata?.image || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.1.0&auto=format&fit=crop&q=60&w=600',
+            };
+            
+            await membersManager.add(newMember);
+            // Trigger UI update
+            const allMembers = membersManager.getAll();
+            window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
+          }
         }
       }
       
@@ -101,7 +136,10 @@ export const AuthProvider = ({ children }) => {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
       
-      console.log('Auth state change:', event, session ? 'Session exists' : 'No session');
+      // Only log non-token-refresh events to reduce console spam
+      if (event !== 'TOKEN_REFRESHED') {
+        console.log('Auth state change:', event, session ? 'Session exists' : 'No session');
+      }
       
       // Handle different auth events
       if (event === 'SIGNED_OUT') {
@@ -179,44 +217,87 @@ export const AuthProvider = ({ children }) => {
         }
         
         if (!existingMember) {
-          // Only create member record if it truly doesn't exist
-          // This is a fallback in case signUp didn't create the member
-          const fullName = session.user.user_metadata?.full_name || 
-                          session.user.email?.split('@')[0] || 
-                          'Member';
-          const currentDate = new Date();
-          const membershipDate = currentDate.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'long' 
-          });
+          // Not found in local storage - check Supabase before creating
+          console.log('onAuthStateChange: Member not found locally, checking Supabase...');
+          const { data: supabaseMember, error: fetchError } = await membersService.getByUserId(session.user.id);
           
-          const newMember = {
-            supabaseUserId: session.user.id,
-            name: fullName,
-            email: session.user.email || '',
-            role: 'Member',
-            nationality: session.user.user_metadata?.nationality || 'Egyptian',
-            flagCode: session.user.user_metadata?.flagCode || 'eg',
-            description: `Member of EACSL since ${membershipDate}`,
-            fullDescription: `${fullName} is a valued member of the EACSL community.`,
-            membershipDate: membershipDate,
-            isActive: true, // Active for new signups (not from approval flow)
-            activeTill: new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), currentDate.getDate()).getFullYear().toString(),
-            certificates: [],
-            phone: session.user.user_metadata?.phone || '',
-            location: session.user.user_metadata?.location || '',
-            website: session.user.user_metadata?.website || '',
-            linkedin: session.user.user_metadata?.linkedin || '',
-            image: session.user.user_metadata?.image || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.1.0&auto=format&fit=crop&q=60&w=600',
-          };
-          
-          console.log('onAuthStateChange: Creating fallback member record for user:', session.user.email);
-          await membersManager.add(newMember);
-          // Trigger UI update
-          const allMembers = membersManager.getAll();
-          window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
+          if (supabaseMember && !fetchError) {
+            // Found in Supabase - sync to local storage
+            const mappedMember = membersService.mapSupabaseToLocal(supabaseMember);
+            console.log('✅ Found member in Supabase, syncing to local storage:', {
+              id: mappedMember.id,
+              email: mappedMember.email,
+              role: mappedMember.role
+            });
+            
+            // Add to local storage
+            const allMembers = membersManager.getAll();
+            const exists = allMembers.some(m => 
+              m.id === mappedMember.id || 
+              m.supabaseUserId === mappedMember.supabaseUserId ||
+              m.email === mappedMember.email
+            );
+            
+            if (!exists) {
+              allMembers.push(mappedMember);
+              membersManager.saveAll(allMembers);
+              window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
+            } else {
+              // Update existing member
+              const existingIndex = allMembers.findIndex(m => 
+                m.id === mappedMember.id || 
+                m.supabaseUserId === mappedMember.supabaseUserId ||
+                m.email === mappedMember.email
+              );
+              if (existingIndex >= 0) {
+                allMembers[existingIndex] = mappedMember;
+                membersManager.saveAll(allMembers);
+                window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
+              }
+            }
+          } else if (!supabaseMember) {
+            // Not found in Supabase either - only now create a new member
+            // This is a fallback for new signups where member wasn't created during signup
+            const fullName = session.user.user_metadata?.full_name || 
+                            session.user.email?.split('@')[0] || 
+                            'Member';
+            const currentDate = new Date();
+            const membershipDate = currentDate.toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'long' 
+            });
+            
+            const newMember = {
+              supabaseUserId: session.user.id,
+              name: fullName,
+              email: session.user.email || '',
+              role: 'Member',
+              nationality: session.user.user_metadata?.nationality || 'Egyptian',
+              flagCode: session.user.user_metadata?.flagCode || 'eg',
+              description: `Member of EACSL since ${membershipDate}`,
+              fullDescription: `${fullName} is a valued member of the EACSL community.`,
+              membershipDate: membershipDate,
+              isActive: true, // Active for new signups (not from approval flow)
+              activeTill: new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), currentDate.getDate()).getFullYear().toString(),
+              certificates: [],
+              phone: session.user.user_metadata?.phone || '',
+              location: session.user.user_metadata?.location || '',
+              website: session.user.user_metadata?.website || '',
+              linkedin: session.user.user_metadata?.linkedin || '',
+              image: session.user.user_metadata?.image || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.1.0&auto=format&fit=crop&q=60&w=600',
+            };
+            
+            console.log('onAuthStateChange: Creating new member record (not found in Supabase):', session.user.email);
+            await membersManager.add(newMember);
+            // Trigger UI update
+            const allMembers = membersManager.getAll();
+            window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
+          } else {
+            // Error fetching from Supabase - log but don't fail
+            console.warn('onAuthStateChange: Error checking Supabase for member:', fetchError);
+          }
         } else {
-          console.log('onAuthStateChange: Member already exists for user:', session.user.email);
+          console.log('onAuthStateChange: Member already exists locally for user:', session.user.email);
         }
       }
       

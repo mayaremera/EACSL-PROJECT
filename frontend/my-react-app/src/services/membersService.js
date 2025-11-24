@@ -230,9 +230,12 @@ export const membersService = {
 
   // Map Supabase member structure to local structure
   mapSupabaseToLocal(supabaseMember) {
+    // Handle both supabase_user_id and auth_uid (some views/aliases may use auth_uid)
+    const supabaseUserId = supabaseMember.supabase_user_id || supabaseMember.auth_uid || null;
+    
     return {
       id: supabaseMember.id,
-      supabaseUserId: supabaseMember.supabase_user_id,
+      supabaseUserId: supabaseUserId,
       name: supabaseMember.name,
       email: supabaseMember.email,
       role: supabaseMember.role,

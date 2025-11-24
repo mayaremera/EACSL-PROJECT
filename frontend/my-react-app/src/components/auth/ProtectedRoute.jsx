@@ -4,6 +4,10 @@ import { useAuth } from '../../contexts/AuthContext';
 import { membersManager } from '../../utils/dataManager';
 import { membersService } from '../../services/membersService';
 
+// Cache admin check results to prevent excessive Supabase requests
+const adminCheckCache = new Map();
+const ADMIN_CHECK_CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 const ProtectedRoute = ({ children, requireAdmin = false }) => {
   const { user, loading, getMemberByUserId } = useAuth();
   const [checkingAdmin, setCheckingAdmin] = useState(false);
@@ -31,30 +35,131 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
       setCheckingAdmin(true);
       
       try {
-        // First, sync from Supabase to get latest data (only once per user session)
-        // Use force: false to respect cooldown and prevent excessive requests
-        await membersManager.syncFromSupabase({ force: false });
-        
-        // Get member from local storage (now synced)
+        // Check cache first to avoid excessive Supabase requests
+        const cacheKey = user.id;
+        const cached = adminCheckCache.get(cacheKey);
+        if (cached && (Date.now() - cached.timestamp) < ADMIN_CHECK_CACHE_DURATION) {
+          console.log('✅ Using cached admin check result');
+          setIsAdmin(cached.isAdmin);
+          setCheckingAdmin(false);
+          setAdminCheckComplete(true);
+          return;
+        }
+
+        // First, check local storage (fastest, no network request)
         let member = getMemberByUserId(user.id);
         
-        // If not found by userId, try by email
         if (!member) {
           const allMembers = membersManager.getAll();
           member = allMembers.find(m => m.email === user.email);
         }
+
+        // If found in local storage and has Admin role, use it (but still verify with Supabase in background)
+        if (member && member.role === 'Admin') {
+          console.log('✅ Found admin member in local storage, using cached result');
+          const adminStatus = true;
+          setIsAdmin(adminStatus);
+          
+          // Cache the result
+          adminCheckCache.set(cacheKey, {
+            isAdmin: adminStatus,
+            timestamp: Date.now()
+          });
+          
+          // Verify with Supabase in background (non-blocking)
+          membersService.getByUserId(user.id).then(({ data: supabaseMember, error }) => {
+            if (!error && supabaseMember) {
+              const mappedMember = membersService.mapSupabaseToLocal(supabaseMember);
+              // Update local storage if Supabase has newer data
+              if (mappedMember.role === 'Admin') {
+                const existingMembers = membersManager.getAll();
+                const existingIndex = existingMembers.findIndex(m => 
+                  m.id === mappedMember.id || 
+                  m.supabaseUserId === mappedMember.supabaseUserId ||
+                  m.email === mappedMember.email
+                );
+                
+                if (existingIndex >= 0) {
+                  existingMembers[existingIndex] = mappedMember;
+                } else {
+                  existingMembers.push(mappedMember);
+                }
+                membersManager.saveAll(existingMembers);
+              }
+            }
+          }).catch(err => {
+            console.warn('Background Supabase verification failed:', err);
+            // Don't fail the admin check if background verification fails
+          });
+          
+          setCheckingAdmin(false);
+          setAdminCheckComplete(true);
+          return;
+        }
+
+        // If not found in local storage or not admin, fetch from Supabase
+        console.log('🔄 Fetching member from Supabase...');
+        const { data: supabaseMember, error: fetchError } = await membersService.getByUserId(user.id);
         
-        // If still not found, try fetching directly from Supabase
-        if (!member) {
-          const { data: supabaseMember, error } = await membersService.getByUserId(user.id);
-          if (supabaseMember && !error) {
-            const mappedMember = membersService.mapSupabaseToLocal(supabaseMember);
-            member = mappedMember;
-            // Add to local storage for future use
-            const existingMembers = membersManager.getAll();
-            const exists = existingMembers.some(m => m.id === mappedMember.id);
-            if (!exists) {
-              membersManager.saveAll([...existingMembers, mappedMember]);
+        if (supabaseMember && !fetchError) {
+          // Found in Supabase - map and use it
+          member = membersService.mapSupabaseToLocal(supabaseMember);
+          console.log('✅ Found member in Supabase:', {
+            id: member.id,
+            email: member.email,
+            role: member.role,
+            supabaseUserId: member.supabaseUserId
+          });
+          
+          // Update local storage with the latest data from Supabase
+          const existingMembers = membersManager.getAll();
+          const existingIndex = existingMembers.findIndex(m => 
+            m.id === member.id || 
+            m.supabaseUserId === member.supabaseUserId ||
+            m.email === member.email
+          );
+          
+          if (existingIndex >= 0) {
+            // Update existing member
+            existingMembers[existingIndex] = member;
+          } else {
+            // Add new member
+            existingMembers.push(member);
+          }
+          membersManager.saveAll(existingMembers);
+        } else if (!member) {
+          // Not found by userId, try by email (only if we don't have local data)
+          console.log('⚠️ Member not found by userId, trying email...');
+          const { data: allMembers, error: allError } = await membersService.getAll();
+          
+          if (!allError && allMembers) {
+            const mappedMembers = allMembers.map(m => membersService.mapSupabaseToLocal(m));
+            member = mappedMembers.find(m => 
+              m.email === user.email || 
+              m.supabaseUserId === user.id
+            );
+            
+            if (member) {
+              console.log('✅ Found member by email:', {
+                id: member.id,
+                email: member.email,
+                role: member.role
+              });
+              
+              // Update local storage
+              const existingMembers = membersManager.getAll();
+              const existingIndex = existingMembers.findIndex(m => 
+                m.id === member.id || 
+                m.supabaseUserId === member.supabaseUserId ||
+                m.email === member.email
+              );
+              
+              if (existingIndex >= 0) {
+                existingMembers[existingIndex] = member;
+              } else {
+                existingMembers.push(member);
+              }
+              membersManager.saveAll(existingMembers);
             }
           }
         }
@@ -64,17 +169,24 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
                            user.user_metadata?.role === 'Admin' ||
                            member?.role?.toLowerCase() === 'admin';
         
-        console.log('Admin check:', {
+        console.log('🔍 Admin check result:', {
           userId: user.id,
           userEmail: user.email,
           memberFound: !!member,
+          memberId: member?.id,
           memberRole: member?.role,
           isAdmin: adminStatus
         });
         
+        // Cache the result
+        adminCheckCache.set(cacheKey, {
+          isAdmin: adminStatus,
+          timestamp: Date.now()
+        });
+        
         setIsAdmin(adminStatus);
       } catch (error) {
-        console.error('Error checking admin status:', error);
+        console.error('❌ Error checking admin status:', error);
         setIsAdmin(false);
       } finally {
         setCheckingAdmin(false);
