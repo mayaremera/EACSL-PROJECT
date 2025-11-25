@@ -30,7 +30,8 @@ export const AuthProvider = ({ children }) => {
       
       // Sync user to members list if they exist
       if (session?.user) {
-        const existingMembers = membersManager.getAll();
+        // Use cached data for fast synchronous access
+        const existingMembers = membersManager._getAllFromLocalStorage();
         // Check by supabaseUserId first, then by email as fallback
         let existingMember = existingMembers.find(m => m.supabaseUserId === session.user.id);
         
@@ -191,7 +192,8 @@ export const AuthProvider = ({ children }) => {
         // This prevents race conditions where onAuthStateChange runs before signUp finishes
         await new Promise(resolve => setTimeout(resolve, 100));
         
-        const existingMembers = membersManager.getAll();
+        // Use cached data for fast synchronous access
+        const existingMembers = membersManager._getAllFromLocalStorage();
         // Check by supabaseUserId first, then by email as fallback
         let existingMember = existingMembers.find(m => m.supabaseUserId === session.user.id);
         
@@ -230,8 +232,8 @@ export const AuthProvider = ({ children }) => {
               role: mappedMember.role
             });
             
-            // Add to local storage
-            const allMembers = membersManager.getAll();
+            // Add to local storage (use cached data for fast access)
+            const allMembers = membersManager._getAllFromLocalStorage();
             const exists = allMembers.some(m => 
               m.id === mappedMember.id || 
               m.supabaseUserId === mappedMember.supabaseUserId ||
@@ -289,8 +291,8 @@ export const AuthProvider = ({ children }) => {
             
             console.log('onAuthStateChange: Creating new member record (not found in Supabase):', session.user.email);
             await membersManager.add(newMember);
-            // Trigger UI update
-            const allMembers = membersManager.getAll();
+            // Trigger UI update (use cached data for fast access)
+            const allMembers = membersManager._getAllFromLocalStorage();
             window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
           } else {
             // Error fetching from Supabase - log but don't fail
@@ -405,8 +407,8 @@ export const AuthProvider = ({ children }) => {
           month: 'long' 
         });
         
-        // Check if member already exists for this user
-        const existingMembers = membersManager.getAll();
+        // Check if member already exists for this user (use cached data for fast access)
+        const existingMembers = membersManager._getAllFromLocalStorage();
         const existingMember = existingMembers.find(m => m.supabaseUserId === data.user.id || m.email === email);
         
         if (!existingMember) {
@@ -436,8 +438,8 @@ export const AuthProvider = ({ children }) => {
           const createdMember = await membersManager.add(newMember);
           console.log('Member created successfully:', createdMember);
           
-          // Verify member was added and trigger UI update
-          const allMembers = membersManager.getAll();
+          // Verify member was added and trigger UI update (use cached data for fast access)
+          const allMembers = membersManager._getAllFromLocalStorage();
           const verifyMember = allMembers.find(m => m.supabaseUserId === data.user.id || m.email === email);
           if (verifyMember) {
             console.log('Member verified in localStorage:', verifyMember);
@@ -488,7 +490,8 @@ export const AuthProvider = ({ children }) => {
         return { error: 'No user logged in' };
       }
 
-      const existingMembers = membersManager.getAll();
+      // Use cached data for fast synchronous access
+      const existingMembers = membersManager._getAllFromLocalStorage();
       const existingMember = existingMembers.find(m => m.supabaseUserId === user.id);
       
       if (existingMember) {
@@ -535,7 +538,8 @@ export const AuthProvider = ({ children }) => {
 
   // Get member by Supabase user ID (memoized to prevent unnecessary re-renders)
   const getMemberByUserId = useCallback((userId) => {
-    const members = membersManager.getAll();
+    // Use cached data for fast synchronous access
+    const members = membersManager._getAllFromLocalStorage();
     return members.find(m => m.supabaseUserId === userId);
   }, []);
 

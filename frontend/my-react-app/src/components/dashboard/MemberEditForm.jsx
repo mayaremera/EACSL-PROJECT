@@ -113,8 +113,8 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
   useEffect(() => {
     const handleMemberUpdate = () => {
       if (member && member.id) {
-        // Get the latest member data from membersManager
-        const updatedMember = membersManager.getAll().find(m => m.id === member.id);
+        // Get the latest member data from membersManager (use cached data for fast access)
+        const updatedMember = membersManager._getAllFromLocalStorage().find(m => m.id === member.id);
         if (updatedMember) {
           // Update form data with latest member data
           let memberIsActive = true;
@@ -333,8 +333,8 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
       if (!member) {
         console.log('Checking if email exists before adding member...');
         
-        // Check in existing members
-        const existingMembers = membersManager.getAll();
+        // Check in existing members (use cached data for fast access)
+        const existingMembers = membersManager._getAllFromLocalStorage();
         const existingMember = existingMembers.find(m => 
           m.email && m.email.toLowerCase() === formData.email.toLowerCase()
         );

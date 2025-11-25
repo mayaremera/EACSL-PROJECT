@@ -4,6 +4,7 @@ import { eventsService } from "../services/eventsService";
 import { articlesService } from "../services/articlesService";
 import { therapyProgramsService } from "../services/therapyProgramsService";
 import { forParentsService } from "../services/forParentsService";
+import { supabase } from "../lib/supabase";
 
 // Shared throttling state for expensive Supabase syncs
 const MEMBERS_SYNC_COOLDOWN_MS = 60 * 1000; // 1 minute
@@ -68,37 +69,115 @@ export const coursesManager = {
 
 // Members Management
 export const membersManager = {
-  // Get all members (from localStorage)
-  getAll: () => {
+  // Real-time subscription channel
+  _subscription: null,
+  
+  // Get all members - Fetches from Supabase first (source of truth), falls back to localStorage
+  getAll: async (options = {}) => {
     if (typeof window === "undefined") return [];
-    const stored = localStorage.getItem("eacsl_members");
-    if (stored) {
-      const members = JSON.parse(stored);
-      // Ensure all members have isActive field (migrate old data)
-      // IMPORTANT: Preserve false values - only add isActive if it doesn't exist
-      const normalizedMembers = members.map((m) => {
+    
+    const useCache = options.useCache !== false; // Default to true for performance
+    const forceRefresh = options.forceRefresh === true;
+    
+    // If we have cached data and not forcing refresh, return it immediately
+    // Then refresh in background
+    if (useCache && !forceRefresh) {
+      const cached = localStorage.getItem("eacsl_members");
+      if (cached) {
+        try {
+          const cachedMembers = JSON.parse(cached);
+          // Return cached data immediately, then refresh in background
+          membersManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
+            console.warn('Background refresh failed:', err);
+          });
+          return cachedMembers;
+        } catch (e) {
+          console.error('Error parsing cached members:', e);
+        }
+      }
+    }
+    
+    // Fetch from Supabase (source of truth)
+    try {
+      console.log("🔄 Fetching members from Supabase...");
+      const { data, error } = await membersService.getAll();
+      
+      if (error) {
+        // If table doesn't exist, fall back to localStorage
+        if (error.code === "TABLE_NOT_FOUND") {
+          console.warn("⚠️ Members table not found in Supabase. Using localStorage fallback.");
+          return membersManager._getAllFromLocalStorage();
+        }
+        
+        // Other errors - log and fall back to localStorage
+        console.error("❌ Error fetching from Supabase:", error);
+        return membersManager._getAllFromLocalStorage();
+      }
+      
+      // Map Supabase data to local format
+      const supabaseMembers = data
+        ? data.map((m) => membersService.mapSupabaseToLocal(m))
+        : [];
+      
+      // Normalize members (ensure isActive field exists)
+      const normalizedMembers = supabaseMembers.map((m) => {
         if (m.hasOwnProperty("isActive")) {
-          // Property exists, preserve its value (false stays false, true stays true)
           return {
             ...m,
             isActive: Boolean(m.isActive),
           };
         } else {
-          // Property doesn't exist, default to true (migration for old data)
           return {
             ...m,
             isActive: true,
           };
         }
       });
-
-      // Check if any member was missing isActive and save normalized data back
-      const needsMigration = members.some((m) => !m.hasOwnProperty("isActive"));
-      if (needsMigration) {
-        membersManager.saveAll(normalizedMembers);
-      }
-
+      
+      // Save to localStorage as cache
+      membersManager.saveAll(normalizedMembers);
+      
+      console.log(`✅ Fetched ${normalizedMembers.length} members from Supabase`);
       return normalizedMembers;
+    } catch (err) {
+      console.error("❌ Exception fetching from Supabase:", err);
+      return membersManager._getAllFromLocalStorage();
+    }
+  },
+  
+  // Internal helper to get from localStorage (fallback)
+  _getAllFromLocalStorage: () => {
+    if (typeof window === "undefined") return [];
+    const stored = localStorage.getItem("eacsl_members");
+    if (stored) {
+      try {
+        const members = JSON.parse(stored);
+        // Ensure all members have isActive field (migrate old data)
+        const normalizedMembers = members.map((m) => {
+          if (m.hasOwnProperty("isActive")) {
+            return {
+              ...m,
+              isActive: Boolean(m.isActive),
+            };
+          } else {
+            return {
+              ...m,
+              isActive: true,
+            };
+          }
+        });
+
+        // Check if any member was missing isActive and save normalized data back
+        const needsMigration = members.some((m) => !m.hasOwnProperty("isActive"));
+        if (needsMigration) {
+          membersManager.saveAll(normalizedMembers);
+        }
+
+        return normalizedMembers;
+      } catch (e) {
+        console.error('Error parsing localStorage members:', e);
+        return [];
+      }
     }
     return [];
   },
@@ -123,231 +202,239 @@ export const membersManager = {
     }
   },
 
-  // Add new member (syncs with Supabase)
+  // Add new member - Saves to Supabase first (source of truth), then updates localStorage
   add: async (member) => {
     console.log("membersManager.add() called with member:", member);
-    const members = membersManager.getAll();
-    const tempId =
-      members.length > 0 ? Math.max(...members.map((m) => m.id)) + 1 : 1;
+    
+    // Prepare member data
     const newMember = {
       ...member,
-      id: tempId,
       isActive: member.isActive !== undefined ? member.isActive : true,
     };
 
-    console.log(
-      "Creating member with tempId:",
-      tempId,
-      "Member data:",
-      newMember
-    );
-
-    // Save to local storage first for immediate UI update
-    const updated = [...members, newMember];
-    membersManager.saveAll(updated);
-    console.log(
-      "Member saved to localStorage. Total members now:",
-      updated.length
-    );
-
-    // Verify it was saved
-    const verifySave = membersManager.getAll();
-    const foundMember = verifySave.find((m) => m.id === tempId);
-    if (foundMember) {
-      console.log("Member verified in localStorage after save:", foundMember);
-    } else {
-      console.error(
-        "ERROR: Member not found in localStorage immediately after save!"
-      );
-    }
-
-    // Sync with Supabase (await to ensure it completes)
+    // Save to Supabase FIRST (source of truth)
     try {
-      console.log("Attempting to sync member to Supabase...");
+      console.log("💾 Saving member to Supabase...");
       const { data, error } = await membersService.add(newMember);
-      if (data && !error) {
-        console.log("✅ Member successfully synced to Supabase:", data);
-        // Update local member with Supabase ID if different
-        const localMembers = membersManager.getAll();
-        const index = localMembers.findIndex((m) => m.id === tempId);
-        if (index !== -1) {
-          localMembers[index] = { ...data, id: data.id || tempId };
-          membersManager.saveAll(localMembers);
-          console.log("Local member updated with Supabase ID");
-        }
-        return data;
-      } else if (error) {
-        // Log detailed error information
-        console.warn("⚠️ Failed to sync member to Supabase:", {
-          errorCode: error.code,
-          errorMessage: error.message,
-          errorDetails: error
-        });
+      
+      if (error) {
+        // Handle table not found error - allow local storage fallback for development
         if (error.code === 'TABLE_NOT_FOUND') {
-          console.log("ℹ️ Members table doesn't exist in Supabase yet. Member saved locally.");
-        } else {
-          console.log("⚠️ Member saved locally but not in Supabase. Will retry on update.");
+          console.warn("⚠️ Members table doesn't exist in Supabase. Saving to localStorage only.");
+          // For development: save to localStorage as fallback
+          const localMembers = membersManager._getAllFromLocalStorage();
+          const tempId = localMembers.length > 0 ? Math.max(...localMembers.map((m) => m.id)) + 1 : 1;
+          const localMember = { ...newMember, id: tempId };
+          const updated = [...localMembers, localMember];
+          membersManager.saveAll(updated);
+          return localMember;
         }
-        // Still return the local member even if Supabase sync fails
-        return newMember;
+        
+        // Other errors - throw to show to user
+        console.error("❌ Failed to save member to Supabase:", error);
+        throw new Error(`Failed to save member: ${error.message || 'Unknown error'}`);
       }
+      
+      if (!data) {
+        throw new Error('No data returned from Supabase');
+      }
+      
+      console.log("✅ Member successfully saved to Supabase:", data);
+      
+      // Update localStorage cache with the new member
+      const localMembers = membersManager._getAllFromLocalStorage();
+      const exists = localMembers.some(m => 
+        m.id === data.id || 
+        (data.supabaseUserId && m.supabaseUserId === data.supabaseUserId) ||
+        (data.email && m.email === data.email)
+      );
+      
+      if (!exists) {
+        localMembers.push(data);
+        membersManager.saveAll(localMembers);
+        console.log("✅ Member added to localStorage cache");
+      } else {
+        // Update existing member
+        const index = localMembers.findIndex(m => 
+          m.id === data.id || 
+          (data.supabaseUserId && m.supabaseUserId === data.supabaseUserId) ||
+          (data.email && m.email === data.email)
+        );
+        if (index >= 0) {
+          localMembers[index] = data;
+          membersManager.saveAll(localMembers);
+          console.log("✅ Member updated in localStorage cache");
+        }
+      }
+      
+      return data;
     } catch (err) {
-      console.error("❌ Exception syncing member to Supabase:", err);
-      console.log("Returning local member despite exception");
-      // Still return the local member even if Supabase sync fails
-      return newMember;
+      console.error("❌ Exception saving member to Supabase:", err);
+      // Re-throw to let caller handle the error
+      throw err;
     }
-
-    console.log("Returning new member:", newMember);
-    return newMember;
   },
 
-  // Update member (syncs with Supabase)
+  // Update member - Updates Supabase first (source of truth), then updates localStorage cache
   update: async (id, updatedMember) => {
     console.log('membersManager.update called with id:', id, 'data:', updatedMember);
-    const members = membersManager.getAll();
-    const index = members.findIndex((m) => m.id === id);
-    if (index === -1) {
+    
+    // Get current member from cache to merge with updates
+    const localMembers = membersManager._getAllFromLocalStorage();
+    const existingMember = localMembers.find((m) => m.id === id);
+    
+    if (!existingMember) {
       console.error('Member not found with id:', id);
-      return null;
+      throw new Error(`Member with id ${id} not found`);
     }
-    console.log('Found member at index:', index, 'Current member:', members[index]);
-
-    const updated = [...members];
+    
+    // Merge updated fields with existing member data
     // IMPORTANT: Preserve exact isActive value from updatedMember if provided
-    // If not provided, keep existing value (don't default to true)
     const isActiveValue = updatedMember.hasOwnProperty("isActive")
-      ? Boolean(updatedMember.isActive) // Use the value from form (can be false or true)
-      : members[index].hasOwnProperty("isActive")
-      ? Boolean(members[index].isActive)
-      : true; // Only default to true if never set
+      ? Boolean(updatedMember.isActive)
+      : existingMember.hasOwnProperty("isActive")
+      ? Boolean(existingMember.isActive)
+      : true;
 
-    // Explicitly set all fields to ensure nothing is lost
-    // Preserve existing values if new values are empty/undefined
-    updated[index] = {
+    // Build complete member object with all fields
+    const completeMember = {
       id, // Preserve ID
-      supabaseUserId:
-        members[index].supabaseUserId ||
-        updatedMember.supabaseUserId ||
-        undefined, // Preserve Supabase user ID link
+      supabaseUserId: existingMember.supabaseUserId || updatedMember.supabaseUserId || undefined,
       name: updatedMember.name !== undefined && updatedMember.name !== null && String(updatedMember.name).trim() !== ""
         ? String(updatedMember.name).trim()
-        : (members[index].name || ""),
+        : (existingMember.name || ""),
       role: updatedMember.role !== undefined && updatedMember.role !== null && String(updatedMember.role).trim() !== ""
         ? String(updatedMember.role).trim()
-        : (members[index].role || "Member"),
+        : (existingMember.role || "Member"),
       nationality: updatedMember.nationality !== undefined && updatedMember.nationality !== null && String(updatedMember.nationality).trim() !== ""
         ? String(updatedMember.nationality).trim()
-        : (members[index].nationality || "Egyptian"),
+        : (existingMember.nationality || "Egyptian"),
       flagCode: updatedMember.flagCode !== undefined && updatedMember.flagCode !== null && String(updatedMember.flagCode).trim() !== ""
         ? String(updatedMember.flagCode).trim()
-        : (members[index].flagCode || "eg"),
+        : (existingMember.flagCode || "eg"),
       description: updatedMember.description !== undefined && updatedMember.description !== null && String(updatedMember.description).trim() !== ""
         ? String(updatedMember.description).trim()
-        : (members[index].description || ""),
+        : (existingMember.description || ""),
       fullDescription: updatedMember.fullDescription !== undefined && updatedMember.fullDescription !== null && String(updatedMember.fullDescription).trim() !== ""
         ? String(updatedMember.fullDescription).trim()
-        : (members[index].fullDescription || ""),
+        : (existingMember.fullDescription || ""),
       email: updatedMember.email !== undefined && updatedMember.email !== null && String(updatedMember.email).trim() !== ""
         ? String(updatedMember.email).trim()
-        : (members[index].email || ""),
+        : (existingMember.email || ""),
       membershipDate: updatedMember.membershipDate !== undefined && updatedMember.membershipDate !== null && String(updatedMember.membershipDate).trim() !== ""
         ? String(updatedMember.membershipDate).trim()
-        : (members[index].membershipDate || ""),
-      isActive: isActiveValue, // Use the preserved value
+        : (existingMember.membershipDate || ""),
+      isActive: isActiveValue,
       activeTill: updatedMember.activeTill !== undefined && updatedMember.activeTill !== null && String(updatedMember.activeTill).trim() !== ""
         ? String(updatedMember.activeTill).trim()
-        : (members[index].activeTill || ""),
+        : (existingMember.activeTill || ""),
       certificates: Array.isArray(updatedMember.certificates) && updatedMember.certificates.length > 0
         ? updatedMember.certificates
-        : (Array.isArray(members[index].certificates) ? members[index].certificates : []),
+        : (Array.isArray(existingMember.certificates) ? existingMember.certificates : []),
       phone: updatedMember.phone !== undefined && updatedMember.phone !== null && String(updatedMember.phone).trim() !== ""
         ? String(updatedMember.phone).trim()
-        : (members[index].phone || ""),
+        : (existingMember.phone || ""),
       location: updatedMember.location !== undefined && updatedMember.location !== null && String(updatedMember.location).trim() !== ""
         ? String(updatedMember.location).trim()
-        : (members[index].location || ""),
+        : (existingMember.location || ""),
       website: updatedMember.website !== undefined && updatedMember.website !== null && String(updatedMember.website).trim() !== ""
         ? String(updatedMember.website).trim()
-        : (members[index].website || ""),
+        : (existingMember.website || ""),
       linkedin: updatedMember.linkedin !== undefined && updatedMember.linkedin !== null && String(updatedMember.linkedin).trim() !== ""
         ? String(updatedMember.linkedin).trim()
-        : (members[index].linkedin || ""),
-      // Preserve image: only update if a new image is explicitly provided
-      // If updatedMember.image is undefined/null/empty, keep the existing image
+        : (existingMember.linkedin || ""),
       image: updatedMember.hasOwnProperty("image")
         ? (updatedMember.image !== null && updatedMember.image !== "" && String(updatedMember.image).trim() !== ""
           ? String(updatedMember.image).trim()
-          : "") // Explicitly set to empty if provided as empty/null
-        : (members[index].image || ""), // Preserve existing if not provided
-      totalMoneySpent: updatedMember.totalMoneySpent !== undefined ? updatedMember.totalMoneySpent : (members[index].totalMoneySpent || '0 EGP'),
-      coursesEnrolled: updatedMember.coursesEnrolled !== undefined ? updatedMember.coursesEnrolled : (members[index].coursesEnrolled || 0),
-      totalHoursLearned: updatedMember.totalHoursLearned !== undefined ? updatedMember.totalHoursLearned : (members[index].totalHoursLearned || 0),
-      activeCourses: updatedMember.activeCourses !== undefined ? updatedMember.activeCourses : (members[index].activeCourses || []),
-      completedCourses: updatedMember.completedCourses !== undefined ? updatedMember.completedCourses : (members[index].completedCourses || []),
+          : "")
+        : (existingMember.image || ""),
+      totalMoneySpent: updatedMember.totalMoneySpent !== undefined ? updatedMember.totalMoneySpent : (existingMember.totalMoneySpent || '0 EGP'),
+      coursesEnrolled: updatedMember.coursesEnrolled !== undefined ? updatedMember.coursesEnrolled : (existingMember.coursesEnrolled || 0),
+      totalHoursLearned: updatedMember.totalHoursLearned !== undefined ? updatedMember.totalHoursLearned : (existingMember.totalHoursLearned || 0),
+      activeCourses: updatedMember.activeCourses !== undefined ? updatedMember.activeCourses : (existingMember.activeCourses || []),
+      completedCourses: updatedMember.completedCourses !== undefined ? updatedMember.completedCourses : (existingMember.completedCourses || []),
     };
 
-    console.log('Updated member data:', updated[index]);
-    console.log('Before save - localStorage has:', membersManager.getAll().length, 'members');
-    
-    // Save to local storage first for immediate UI update
-    // This MUST happen synchronously before any async operations
-    membersManager.saveAll(updated);
-    
-    // Verify the save worked
-    const verifyMembers = membersManager.getAll();
-    console.log('After save - localStorage has:', verifyMembers.length, 'members');
-    const savedMember = verifyMembers.find(m => m.id === id);
-    if (savedMember) {
-      console.log('✅ Verified: Updated member is in localStorage:', savedMember.name);
-    } else {
-      console.error('❌ ERROR: Updated member NOT found in localStorage after save!');
-    }
-
-    // Sync with Supabase - try to sync but don't block if it fails
-    // This ensures data is saved locally even if Supabase is unavailable
+    // Update in Supabase FIRST (source of truth)
     try {
-      const { error } = await membersService.update(id, updated[index]);
+      console.log("💾 Updating member in Supabase...");
+      const { data, error } = await membersService.update(id, completeMember);
+      
       if (error) {
-        // If update failed because member doesn't exist, try to add it instead
+        // If member doesn't exist in Supabase, try to add it
         if (error.code === 'PGRST116' || error.message?.includes('No rows found') || error.message?.includes('not found')) {
           console.log("Member not found in Supabase, attempting to add instead...");
-          const addResult = await membersService.add(updated[index]);
+          const addResult = await membersService.add(completeMember);
           if (addResult.data && !addResult.error) {
             console.log("✅ Successfully added member to Supabase (was missing)");
-            // Update local member with Supabase ID if different
-            const localMembers = membersManager.getAll();
-            const memberIndex = localMembers.findIndex(m => m.id === id);
-            if (memberIndex !== -1 && addResult.data.id && addResult.data.id !== id) {
-              localMembers[memberIndex] = { ...addResult.data, id: addResult.data.id };
+            // Update localStorage with the new data
+            const index = localMembers.findIndex(m => m.id === id);
+            if (index >= 0) {
+              localMembers[index] = addResult.data;
               membersManager.saveAll(localMembers);
             }
+            return addResult.data;
           } else if (addResult.error) {
-            console.warn("Failed to add member to Supabase:", addResult.error);
+            if (addResult.error.code === 'TABLE_NOT_FOUND') {
+              // Table doesn't exist - fallback to localStorage for development
+              console.warn("⚠️ Members table doesn't exist. Saving to localStorage only.");
+              const index = localMembers.findIndex(m => m.id === id);
+              if (index >= 0) {
+                localMembers[index] = completeMember;
+                membersManager.saveAll(localMembers);
+              }
+              return completeMember;
+            }
+            throw new Error(`Failed to add member: ${addResult.error.message || 'Unknown error'}`);
           }
-        } else if (error.code !== 'TABLE_NOT_FOUND') {
-          console.warn("Failed to sync member update to Supabase:", error);
-        } else {
-          // Table doesn't exist - this is fine, data is saved locally
-          console.log("Member updated locally. Supabase table not created yet.");
+        } else if (error.code === 'TABLE_NOT_FOUND') {
+          // Table doesn't exist - fallback to localStorage for development
+          console.warn("⚠️ Members table doesn't exist. Saving to localStorage only.");
+          const index = localMembers.findIndex(m => m.id === id);
+          if (index >= 0) {
+            localMembers[index] = completeMember;
+            membersManager.saveAll(localMembers);
+          }
+          return completeMember;
         }
-        // Data is still saved locally, so it will persist
-      } else {
-        console.log("Successfully synced member update to Supabase");
+        
+        // Other errors - throw to show to user
+        console.error("❌ Failed to update member in Supabase:", error);
+        throw new Error(`Failed to update member: ${error.message || 'Unknown error'}`);
       }
+      
+      if (!data) {
+        throw new Error('No data returned from Supabase');
+      }
+      
+      console.log("✅ Member successfully updated in Supabase:", data);
+      
+      // Update localStorage cache
+      const index = localMembers.findIndex(m => m.id === id);
+      if (index >= 0) {
+        localMembers[index] = data;
+        membersManager.saveAll(localMembers);
+        console.log("✅ Member updated in localStorage cache");
+      }
+      
+      return data;
     } catch (err) {
-      console.warn("Exception syncing member update to Supabase:", err);
-      // Data is still saved locally, so it will persist
+      console.error("❌ Exception updating member in Supabase:", err);
+      // Re-throw to let caller handle the error
+      throw err;
     }
-
-    console.log('Returning updated member:', updated[index]);
-    return updated[index];
   },
 
-  // Delete member (syncs with Supabase)
+  // Delete member - Deletes from Supabase first (source of truth), then updates localStorage cache
   delete: async (id) => {
-    const members = membersManager.getAll();
-    const memberToDelete = members.find((m) => m.id === id);
+    // Get member from cache first (for image deletion)
+    const localMembers = membersManager._getAllFromLocalStorage();
+    const memberToDelete = localMembers.find((m) => m.id === id);
+    
+    if (!memberToDelete) {
+      console.warn(`Member with id ${id} not found in cache`);
+      // Still try to delete from Supabase in case it exists there
+    }
     
     // Delete member's image from storage if it exists in Supabase Storage
     if (memberToDelete && memberToDelete.image && memberToDelete.image.includes('dashboardmemberimages')) {
@@ -356,29 +443,123 @@ export const membersManager = {
         console.log('✅ Deleted member image from storage');
       } catch (deleteError) {
         console.warn('Could not delete member image from storage:', deleteError);
+        // Continue with member deletion even if image deletion fails
       }
     }
 
-    const filtered = members.filter((m) => m.id !== id);
-
-    // Save to local storage first for immediate UI update
-    membersManager.saveAll(filtered);
-
-    // Sync with Supabase (async, don't block)
-    membersService
-      .delete(id)
-      .then(({ error }) => {
-        if (error) {
-          console.warn("Failed to sync member deletion to Supabase:", error);
-          // If Supabase delete fails, we could restore from local storage
-          // But for now, we'll keep the local deletion
+    // Delete from Supabase FIRST (source of truth)
+    try {
+      console.log("🗑️ Deleting member from Supabase...");
+      const { error } = await membersService.delete(id);
+      
+      if (error) {
+        if (error.code === 'TABLE_NOT_FOUND') {
+          // Table doesn't exist - fallback to localStorage for development
+          console.warn("⚠️ Members table doesn't exist. Deleting from localStorage only.");
+          const filtered = localMembers.filter((m) => m.id !== id);
+          membersManager.saveAll(filtered);
+          return true;
         }
-      })
-      .catch((err) => {
-        console.warn("Exception syncing member deletion to Supabase:", err);
+        
+        // Other errors - throw to show to user
+        console.error("❌ Failed to delete member from Supabase:", error);
+        throw new Error(`Failed to delete member: ${error.message || 'Unknown error'}`);
+      }
+      
+      console.log("✅ Member successfully deleted from Supabase");
+      
+      // Update localStorage cache
+      const filtered = localMembers.filter((m) => m.id !== id);
+      membersManager.saveAll(filtered);
+      console.log("✅ Member removed from localStorage cache");
+      
+      return true;
+    } catch (err) {
+      console.error("❌ Exception deleting member from Supabase:", err);
+      // Re-throw to let caller handle the error
+      throw err;
+    }
+  },
+
+  // Subscribe to real-time changes from Supabase
+  subscribe: (callback) => {
+    // Unsubscribe from previous subscription if exists
+    if (membersManager._subscription) {
+      membersManager._subscription.unsubscribe();
+    }
+
+    console.log("🔔 Setting up real-time subscription for members...");
+    
+    membersManager._subscription = supabase
+      .channel('members-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'members'
+        },
+        async (payload) => {
+          console.log('🔔 Real-time member change detected:', payload.eventType, payload);
+          
+          try {
+            // Refresh members from Supabase
+            const { data, error } = await membersService.getAll();
+            
+            if (!error && data) {
+              const supabaseMembers = data.map((m) => membersService.mapSupabaseToLocal(m));
+              
+              // Normalize members
+              const normalizedMembers = supabaseMembers.map((m) => {
+                if (m.hasOwnProperty("isActive")) {
+                  return { ...m, isActive: Boolean(m.isActive) };
+                } else {
+                  return { ...m, isActive: true };
+                }
+              });
+              
+              // Update localStorage cache
+              membersManager.saveAll(normalizedMembers);
+              
+              // Call the callback to notify UI
+              if (callback && typeof callback === 'function') {
+                callback(normalizedMembers, payload);
+              }
+              
+              console.log('✅ Real-time update applied:', payload.eventType);
+            } else {
+              console.warn('⚠️ Failed to refresh members after real-time change:', error);
+            }
+          } catch (err) {
+            console.error('❌ Exception handling real-time change:', err);
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Real-time subscription active for members');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.warn('⚠️ Real-time subscription error - table may not exist');
+        }
       });
 
-    return true;
+    // Return unsubscribe function
+    return () => {
+      if (membersManager._subscription) {
+        membersManager._subscription.unsubscribe();
+        membersManager._subscription = null;
+        console.log('🔕 Real-time subscription unsubscribed');
+      }
+    };
+  },
+
+  // Unsubscribe from real-time changes
+  unsubscribe: () => {
+    if (membersManager._subscription) {
+      membersManager._subscription.unsubscribe();
+      membersManager._subscription = null;
+      console.log('🔕 Real-time subscription unsubscribed');
+    }
   },
 
   // Fetch members from Supabase and sync with local storage
@@ -432,7 +613,7 @@ export const membersManager = {
           : [];
 
         // Get existing local members
-        const localMembers = membersManager.getAll();
+        const localMembers = membersManager._getAllFromLocalStorage();
 
         // Merge Supabase and local members intelligently
         // IMPORTANT: Prefer LOCAL data as source of truth when member exists in both
@@ -586,7 +767,7 @@ export const membersManager = {
   syncToSupabase: async () => {
     try {
       console.log("🔄 Starting member sync to Supabase...");
-      const localMembers = membersManager.getAll();
+      const localMembers = membersManager._getAllFromLocalStorage();
       let syncedCount = 0;
       let errorCount = 0;
       const errors = [];

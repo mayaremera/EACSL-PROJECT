@@ -57,8 +57,8 @@ function ContinuingEducationMember() {
           return;
         }
         
-        // If member doesn't exist, try to find by email
-        const allMembers = membersManager.getAll();
+        // If member doesn't exist, try to find by email (use cached data for fast access)
+        const allMembers = membersManager._getAllFromLocalStorage();
         memberData = allMembers.find(m => m.email === user.email);
         if (memberData) {
           setMember(memberData);
@@ -112,8 +112,9 @@ function ContinuingEducationMember() {
         setLoading(false);
         return;
       } else if (memberId) {
-        // Use memberId from URL
-        const memberData = membersManager.getAll().find(m => m.id === parseInt(memberId));
+        // Use memberId from URL (use cached data for fast access)
+        const allMembers = membersManager._getAllFromLocalStorage();
+        const memberData = allMembers.find(m => m.id === parseInt(memberId));
         if (memberData) {
           setMember(memberData);
         }
@@ -126,16 +127,28 @@ function ContinuingEducationMember() {
     
     loadMember();
 
-    const handleMemberUpdate = () => {
+    const handleMemberUpdate = (e) => {
       let updatedMember = null;
-      if (user && !memberId) {
-        updatedMember = getMemberByUserId(user.id);
-        if (!updatedMember) {
-          const allMembers = membersManager.getAll();
-          updatedMember = allMembers.find(m => m.email === user.email);
+      // If event has detail (members array), use it directly
+      if (e && e.detail && Array.isArray(e.detail)) {
+        if (user && !memberId) {
+          updatedMember = e.detail.find(m => 
+            m.supabaseUserId === user.id || m.email === user.email
+          );
+        } else if (memberId) {
+          updatedMember = e.detail.find(m => m.id === parseInt(memberId));
         }
-      } else if (memberId) {
-        updatedMember = membersManager.getAll().find(m => m.id === parseInt(memberId));
+      } else {
+        // Fallback to cached data
+        const allMembers = membersManager._getAllFromLocalStorage();
+        if (user && !memberId) {
+          updatedMember = getMemberByUserId(user.id);
+          if (!updatedMember) {
+            updatedMember = allMembers.find(m => m.email === user.email);
+          }
+        } else if (memberId) {
+          updatedMember = allMembers.find(m => m.id === parseInt(memberId));
+        }
       }
       if (updatedMember) {
         setMember(updatedMember);

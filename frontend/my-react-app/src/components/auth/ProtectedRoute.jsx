@@ -50,7 +50,8 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
         let member = getMemberByUserId(user.id);
         
         if (!member) {
-          const allMembers = membersManager.getAll();
+          // Use cached data for synchronous access (fast auth check)
+          const allMembers = membersManager._getAllFromLocalStorage();
           member = allMembers.find(m => m.email === user.email);
         }
 
@@ -72,7 +73,8 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
               const mappedMember = membersService.mapSupabaseToLocal(supabaseMember);
               // Update local storage if Supabase has newer data
               if (mappedMember.role === 'Admin') {
-                const existingMembers = membersManager.getAll();
+                // Use cached data for synchronous access
+                const existingMembers = membersManager._getAllFromLocalStorage();
                 const existingIndex = existingMembers.findIndex(m => 
                   m.id === mappedMember.id || 
                   m.supabaseUserId === mappedMember.supabaseUserId ||
@@ -112,7 +114,8 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
           });
           
           // Update local storage with the latest data from Supabase
-          const existingMembers = membersManager.getAll();
+          // Use cached data for synchronous access
+          const existingMembers = membersManager._getAllFromLocalStorage();
           const existingIndex = existingMembers.findIndex(m => 
             m.id === member.id || 
             m.supabaseUserId === member.supabaseUserId ||
@@ -147,7 +150,8 @@ const ProtectedRoute = ({ children, requireAdmin = false }) => {
               });
               
               // Update local storage
-              const existingMembers = membersManager.getAll();
+              // Use cached data for synchronous access
+              const existingMembers = membersManager._getAllFromLocalStorage();
               const existingIndex = existingMembers.findIndex(m => 
                 m.id === member.id || 
                 m.supabaseUserId === member.supabaseUserId ||

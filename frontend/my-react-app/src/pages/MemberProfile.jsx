@@ -27,17 +27,37 @@ function MemberProfile() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        initializeData();
-        const memberData = membersManager.getAll().find(m => m.id === parseInt(memberId));
-        if (memberData) {
-            setMember(memberData);
-        }
-        setLoading(false);
+        const loadMember = async () => {
+            initializeData();
+            try {
+                const allMembers = await membersManager.getAll();
+                const memberData = allMembers.find(m => m.id === parseInt(memberId));
+                if (memberData) {
+                    setMember(memberData);
+                }
+            } catch (error) {
+                console.error('Error loading member:', error);
+                // Fallback to cached data
+                const cachedMembers = membersManager._getAllFromLocalStorage();
+                const memberData = cachedMembers.find(m => m.id === parseInt(memberId));
+                if (memberData) {
+                    setMember(memberData);
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
 
-        const handleMemberUpdate = () => {
-            const updatedMember = membersManager.getAll().find(m => m.id === parseInt(memberId));
-            if (updatedMember) {
-                setMember(updatedMember);
+        loadMember();
+
+        const handleMemberUpdate = (e) => {
+            if (e.detail && Array.isArray(e.detail)) {
+                const updatedMember = e.detail.find(m => m.id === parseInt(memberId));
+                if (updatedMember) {
+                    setMember(updatedMember);
+                }
+            } else {
+                loadMember();
             }
         };
 

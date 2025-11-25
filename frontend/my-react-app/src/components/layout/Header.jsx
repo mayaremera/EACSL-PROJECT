@@ -35,8 +35,8 @@ const Header = () => {
       if (member) {
         setMemberData(member);
       } else {
-        // Try to find by email as fallback
-        const allMembers = membersManager.getAll();
+        // Try to find by email as fallback (use cached data for fast access)
+        const allMembers = membersManager._getAllFromLocalStorage();
         const memberByEmail = allMembers.find(m => m.email === user.email);
         if (memberByEmail) {
           setMemberData(memberByEmail);

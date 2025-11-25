@@ -47,8 +47,8 @@ export const memberApprovalService = {
         return { success: false, error: 'Invalid email format' };
       }
 
-      // Check if member already exists
-      const existingMembers = membersManager.getAll();
+      // Check if member already exists (use cached data for fast access)
+      const existingMembers = membersManager._getAllFromLocalStorage();
       const existingMember = existingMembers.find(m => m.email === email);
       
       if (existingMember) {
@@ -155,9 +155,10 @@ export const memberApprovalService = {
 
       // Add to local storage for immediate UI update
       // IMPORTANT: Use saveAll directly to avoid double-syncing (membersManager.add() would sync again)
+      // Use cached data for fast synchronous access
       if (memberResult) {
         const mappedMember = membersService.mapSupabaseToLocal(memberResult);
-        const existingMembers = membersManager.getAll();
+        const existingMembers = membersManager._getAllFromLocalStorage();
         
         // Check if member already exists (by email or ID) to prevent duplicates
         const alreadyExists = existingMembers.some(
@@ -170,7 +171,7 @@ export const memberApprovalService = {
         }
       } else {
         // If Supabase table doesn't exist, add to local storage only
-        const existingMembers = membersManager.getAll();
+        const existingMembers = membersManager._getAllFromLocalStorage();
         const alreadyExists = existingMembers.some(m => m.email === memberData.email);
         
         if (!alreadyExists) {

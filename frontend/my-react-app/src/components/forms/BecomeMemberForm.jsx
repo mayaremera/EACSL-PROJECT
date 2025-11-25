@@ -778,7 +778,8 @@ const BecomeMemberForm = ({ onSubmit }) => {
         setEmailExistsError(null); // Reset error state
         
         // Check in existing members
-        const existingMembers = membersManager.getAll();
+        // Use cached data for fast access
+        const existingMembers = membersManager._getAllFromLocalStorage();
         const existingMember = existingMembers.find(m => 
             m.email && m.email.toLowerCase() === formData.email.toLowerCase()
         );

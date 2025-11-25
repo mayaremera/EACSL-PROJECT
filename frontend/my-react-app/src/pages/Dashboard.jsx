@@ -1150,7 +1150,10 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     useEffect(() => {
         initializeData();
         loadCourses();
-        loadMembers();
+        // loadMembers() is now async and fetches from Supabase first
+        loadMembers().catch(err => {
+            console.error('Failed to load members:', err);
+        });
         loadForms();
         loadEventRegistrations();
         loadContactForms();
@@ -1162,22 +1165,19 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         loadTherapyPrograms();
         loadForParentsArticles();
         
-        // Sync members from Supabase on initial load (silently fail if table doesn't exist)
-        // IMPORTANT: Delay sync to ensure any pending local changes are saved first
-        // This prevents sync from overwriting recent local changes
-        setTimeout(() => {
-            membersManager.syncFromSupabase().then((result) => {
-                if (result.synced) {
-                    loadMembers();
-                } else if (result.error?.code === 'TABLE_NOT_FOUND') {
-                    // Table doesn't exist yet - this is okay, just log a warning
-                    console.info('Supabase members table not found. Members will be stored locally only until the table is created.');
-                }
-            }).catch(err => {
-                // Silently handle errors on initial load
-                console.warn('Could not sync members on initial load:', err);
-            });
-        }, 500); // Small delay to ensure localStorage writes complete
+        // Set up real-time subscription for members
+        const unsubscribe = membersManager.subscribe((updatedMembers, payload) => {
+            console.log('Real-time members update received:', payload.eventType);
+            setMembers(updatedMembers);
+        });
+        
+        // Cleanup subscription on unmount
+        return () => {
+            if (unsubscribe) {
+                unsubscribe();
+            }
+            membersManager.unsubscribe();
+        };
 
         // Sync events from Supabase on initial load (silently fail if table doesn't exist)
         eventsManager.syncFromSupabase().then((result) => {
@@ -1368,9 +1368,17 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         setCourses(allCourses);
     };
 
-    const loadMembers = () => {
-        const allMembers = membersManager.getAll();
-        setMembers(allMembers);
+    const loadMembers = async () => {
+        try {
+            // getAll() is now async and fetches from Supabase first
+            const allMembers = await membersManager.getAll();
+            setMembers(allMembers);
+        } catch (error) {
+            console.error('Error loading members:', error);
+            // Fallback to cached data
+            const cachedMembers = membersManager._getAllFromLocalStorage();
+            setMembers(cachedMembers);
+        }
     };
 
     const loadForms = async () => {
@@ -2125,13 +2133,14 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 const result = await membersManager.update(editingMember.id, memberDataWithoutFlag);
                 console.log('Update result:', result);
                 
-                // Force reload to ensure UI updates
-                const updatedMembers = membersManager.getAll();
-                console.log('Updated members count:', updatedMembers.length);
-                setMembers(updatedMembers);
+                // Reload members to ensure UI updates (getAll is now async)
+                await loadMembers();
+                
+                alert('✅ Member updated successfully!');
             } else {
                 // Add the member first
                 const createdMember = await membersManager.add(memberDataWithoutFlag);
+                console.log('Member created:', createdMember);
                 
                 // If createAuthAccount is checked, create auth account and send password email
                 if (createAuthAccount && memberData.email) {
@@ -2150,41 +2159,45 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             };
                             await membersManager.update(createdMember.id, updatedMember);
                             
-                            // Force reload to ensure UI updates
-                            const updatedMembers = membersManager.getAll();
-                            setMembers(updatedMembers);
+                            // Reload members to ensure UI updates
+                            await loadMembers();
                             
                             // Show success message
                             alert(`✅ Member created successfully!\n\n${result.message || 'Authentication account created and password setup email sent.'}`);
                         } else if (result.success && result.warning) {
                             // Account created but email failed
+                            await loadMembers();
                             alert(`✅ Member created successfully!\n\n⚠️ ${result.warning}`);
                         } else {
                             // Auth account creation failed
+                            await loadMembers();
                             alert(`✅ Member created successfully!\n\n⚠️ Failed to create authentication account: ${result.error || 'Unknown error'}\n\nThe member can still use "Forgot Password" to set up their account later.`);
                         }
                     } catch (error) {
                         console.error('Error creating auth account:', error);
+                        await loadMembers();
                         alert(`✅ Member created successfully!\n\n⚠️ Failed to create authentication account. The member can use "Forgot Password" to set up their account later.`);
                     }
                 } else {
-                    // Force reload to ensure UI updates
-                    const updatedMembers = membersManager.getAll();
-                    setMembers(updatedMembers);
+                    // Reload members to ensure UI updates
+                    await loadMembers();
+                    alert('✅ Member created successfully!');
                 }
             }
         } catch (error) {
             console.error('Error saving member:', error);
-            alert('Failed to save member. Please try again.');
+            const errorMessage = error.message || 'Unknown error occurred';
+            alert(`❌ Failed to save member: ${errorMessage}\n\nPlease check your connection and try again.`);
             return;
         }
         
-        // Reload members and close form
-        loadMembers();
-        
         // Dispatch event to update all listeners
-        const allMembers = membersManager.getAll();
-        window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
+        try {
+            const allMembers = await membersManager.getAll();
+            window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
+        } catch (err) {
+            console.warn('Could not dispatch membersUpdated event:', err);
+        }
         
         setEditingMember(null);
         setIsAddingMember(false);
@@ -2192,8 +2205,15 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
 
     const handleDeleteMember = async (id) => {
         if (window.confirm('Are you sure you want to delete this member? This will also remove them from Supabase.')) {
-            await membersManager.delete(id);
-            loadMembers();
+            try {
+                await membersManager.delete(id);
+                await loadMembers();
+                alert('✅ Member deleted successfully!');
+            } catch (error) {
+                console.error('Error deleting member:', error);
+                const errorMessage = error.message || 'Unknown error occurred';
+                alert(`❌ Failed to delete member: ${errorMessage}\n\nPlease check your connection and try again.`);
+            }
         }
     };
 
@@ -2217,7 +2237,9 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 let message = `✅ Successfully synced from Supabase!\n\n`;
                 message += `📊 Supabase members: ${result.count}\n`;
                 message += `💾 Local members before: ${result.localCount || 'N/A'}\n`;
-                message += `💾 Local members after: ${membersManager.getAll().length}\n`;
+                // Get count from cache (synchronous access)
+                const afterCount = membersManager._getAllFromLocalStorage().length;
+                message += `💾 Local members after: ${afterCount}\n`;
                 
                 if (result.removed > 0) {
                     message += `\n🗑️ Removed ${result.removed} deleted member(s) from local storage.`;
@@ -2227,7 +2249,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                     alert(message);
                 } else {
                     // If no members in Supabase, offer to push local members
-                    const localMembers = membersManager.getAll();
+                    const localMembers = membersManager._getAllFromLocalStorage();
                     if (localMembers.length > 0) {
                         const pushToSupabase = window.confirm(
                             `${message}\n\nNo members found in Supabase. Would you like to upload ${localMembers.length} local member(s) to Supabase?`
@@ -2711,7 +2733,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 </button>
                                 <button
                                     onClick={async () => {
-                                        const localMembers = membersManager.getAll();
+                                        const localMembers = membersManager._getAllFromLocalStorage();
                                         if (localMembers.length === 0) {
                                             alert('No members in localStorage to sync.');
                                             return;
@@ -2957,10 +2979,16 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                         key={member.id}
                                         {...member}
                                         isDashboard={true}
-                                        onEdit={(memberData) => {
+                                        onEdit={async (memberData) => {
                                             // Refresh member data from membersManager before opening edit form
-                                            const latestMember = membersManager.getAll().find(m => m.id === memberData.id);
-                                            setEditingMember(latestMember || memberData);
+                                            try {
+                                                const allMembers = await membersManager.getAll();
+                                                const latestMember = allMembers.find(m => m.id === memberData.id);
+                                                setEditingMember(latestMember || memberData);
+                                            } catch (err) {
+                                                console.warn('Could not refresh member data, using provided data:', err);
+                                                setEditingMember(memberData);
+                                            }
                                         }}
                                         onDelete={handleDeleteMember}
                                     />

@@ -11,17 +11,32 @@ function MembersOverviewPage() {
   const [members, setMembers] = useState([]);
 
   useEffect(() => {
-    const loadMembers = () => {
-      setMembers(membersManager.getAll());
+    const loadMembers = async () => {
+      try {
+        const allMembers = await membersManager.getAll();
+        setMembers(allMembers);
+      } catch (error) {
+        console.error('Error loading members:', error);
+        // Fallback to cached data
+        const cachedMembers = membersManager._getAllFromLocalStorage();
+        setMembers(cachedMembers);
+      }
     };
     
     loadMembers();
-    window.addEventListener('membersUpdated', (e) => {
-      setMembers(e.detail);
-    });
+    
+    const handleMembersUpdate = (e) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setMembers(e.detail);
+      } else {
+        loadMembers();
+      }
+    };
+    
+    window.addEventListener('membersUpdated', handleMembersUpdate);
 
     return () => {
-      window.removeEventListener('membersUpdated', loadMembers);
+      window.removeEventListener('membersUpdated', handleMembersUpdate);
     };
   }, []);
 
