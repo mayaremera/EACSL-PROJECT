@@ -2661,7 +2661,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                     activeTab === 'therapy-programs' ? 'Therapy Programs Management' :
                                     activeTab === 'for-parents' ? 'For Parents Management' :
                                     activeTab === 'applications' ? 'All Applications' :
-                                        'Settings'}
+                                    'Settings'}
                             </h1>
                             <p className="text-gray-600">
                                 {activeTab === 'courses' ? 'Manage all courses on the website' :
