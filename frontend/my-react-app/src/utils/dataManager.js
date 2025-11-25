@@ -4,6 +4,7 @@ import { eventsService } from "../services/eventsService";
 import { articlesService } from "../services/articlesService";
 import { therapyProgramsService } from "../services/therapyProgramsService";
 import { forParentsService } from "../services/forParentsService";
+import { coursesService } from "../services/coursesService";
 import { supabase } from "../lib/supabase";
 
 // Shared throttling state for expensive Supabase syncs
@@ -13,57 +14,631 @@ let lastMembersSyncTime = 0;
 
 // Courses Management
 export const coursesManager = {
-  // Get all courses (from localStorage)
-  getAll: () => {
+  // Real-time subscription channel
+  _subscription: null,
+
+  // Get all courses - Fetches from Supabase first (source of truth), falls back to localStorage
+  getAll: async (options = {}) => {
+    if (typeof window === "undefined") return [];
+    
+    const useCache = options.useCache !== false; // Default to true for performance
+    const forceRefresh = options.forceRefresh === true;
+    
+    // If we have cached data and not forcing refresh, return it immediately
+    // Then refresh in background
+    if (useCache && !forceRefresh) {
+      const cached = localStorage.getItem("eacsl_courses");
+      if (cached) {
+        try {
+          const cachedCourses = JSON.parse(cached);
+          // Return cached data immediately, then refresh in background
+          coursesManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
+            console.warn('Background refresh failed:', err);
+          });
+          return cachedCourses;
+        } catch (e) {
+          console.error('Error parsing cached courses:', e);
+        }
+      }
+    }
+    
+    // Fetch from Supabase (source of truth)
+    try {
+      console.log("🔄 Fetching courses from Supabase...");
+      const { data, error } = await coursesService.getAll();
+      
+      if (error) {
+        // If table doesn't exist, fall back to localStorage
+        if (error.code === "TABLE_NOT_FOUND") {
+          console.warn("⚠️ Courses table not found in Supabase. Using localStorage fallback.");
+          return coursesManager._getAllFromLocalStorage();
+        }
+        
+        // Other errors - log and fall back to localStorage
+        console.error("❌ Error fetching from Supabase:", error);
+        return coursesManager._getAllFromLocalStorage();
+      }
+      
+      // Map Supabase courses to local format
+      const supabaseCourses = data
+        ? data.map((c) => coursesService.mapSupabaseToLocal(c))
+        : [];
+      
+      // Save to localStorage as cache
+      coursesManager.saveAll(supabaseCourses);
+      
+      console.log(`✅ Fetched ${supabaseCourses.length} courses from Supabase`);
+      return supabaseCourses;
+    } catch (err) {
+      console.error("❌ Exception fetching from Supabase:", err);
+      return coursesManager._getAllFromLocalStorage();
+    }
+  },
+  
+  // Internal helper to get from localStorage (fallback)
+  _getAllFromLocalStorage: () => {
     if (typeof window === "undefined") return [];
     const stored = localStorage.getItem("eacsl_courses");
     if (stored) {
+      try {
       return JSON.parse(stored);
+      } catch (e) {
+        console.error("Error parsing courses from localStorage:", e);
+        return [];
+      }
     }
     return [];
   },
 
-  // Save courses to localStorage
+  // Save courses to localStorage (lightweight version without large image data)
   saveAll: (courses) => {
-    localStorage.setItem("eacsl_courses", JSON.stringify(courses));
-    // Also update the module (for immediate reflection)
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("coursesUpdated", { detail: courses })
-      );
+    try {
+      // Create a lightweight version without large data URLs to avoid quota issues
+      const lightweightCourses = courses.map(course => {
+        const { image, instructorImage, ...rest } = course;
+        // Only keep image URLs/paths, not full data URLs
+        return {
+          ...rest,
+          // Keep image path/URL if it's a URL, otherwise remove large data URLs
+          image: typeof image === 'string' && image.length < 500 ? image : (image?.substring(0, 100) || ''),
+          instructorImage: typeof instructorImage === 'string' && instructorImage.length < 500 ? instructorImage : (instructorImage?.substring(0, 100) || ''),
+        };
+      });
+      
+      localStorage.setItem("eacsl_courses", JSON.stringify(lightweightCourses));
+      // Also update the module (for immediate reflection)
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("coursesUpdated", { detail: courses })
+        );
+      }
+    } catch (error) {
+      // Handle quota exceeded or other localStorage errors gracefully
+      if (error.name === 'QuotaExceededError' || error.message?.includes('quota')) {
+        console.warn("⚠️ localStorage quota exceeded. Skipping cache. Supabase is the source of truth.");
+        // Try to clear old data and save a minimal version
+        try {
+          const minimalCourses = courses.map(course => ({
+            id: course.id,
+            title: course.title,
+            category: course.category,
+            // Remove all large fields
+          }));
+          localStorage.setItem("eacsl_courses", JSON.stringify(minimalCourses));
+          console.log("✅ Saved minimal course data to localStorage");
+        } catch (retryError) {
+          console.warn("⚠️ Could not save even minimal data to localStorage. Using Supabase only.");
+          // Remove the item entirely if it's causing issues
+          try {
+            localStorage.removeItem("eacsl_courses");
+          } catch (e) {
+            // Ignore errors when removing
+          }
+        }
+      } else {
+        console.error("❌ Error saving to localStorage:", error);
+      }
     }
   },
 
-  // Add new course
-  add: (course) => {
-    const courses = coursesManager.getAll();
-    const newCourse = {
-      ...course,
-      id: courses.length > 0 ? Math.max(...courses.map((c) => c.id)) + 1 : 1,
+  // Add new course - Saves to Supabase first (source of truth), then updates localStorage cache
+  add: async (course) => {
+    // Prepare course data for Supabase
+    const supabaseCourse = coursesService.mapLocalToSupabase(course);
+    console.log("📤 Course data to save:", { original: course, mapped: supabaseCourse });
+
+    // Save to Supabase FIRST (source of truth)
+    try {
+      console.log("💾 Saving course to Supabase...");
+      const { data, error } = await coursesService.add(supabaseCourse);
+      
+      if (error) {
+        // Handle table not found error - allow local storage fallback for development
+        if (error.code === 'TABLE_NOT_FOUND') {
+          console.warn("⚠️ Courses table doesn't exist in Supabase. Saving to localStorage only.");
+          // For development: save to localStorage as fallback
+          const localCourses = coursesManager._getAllFromLocalStorage();
+          const tempId = localCourses.length > 0 ? Math.max(...localCourses.map((c) => c.id)) + 1 : 1;
+          const localCourse = { ...course, id: tempId };
+          coursesManager.saveAll([...localCourses, localCourse]);
+          return localCourse;
+        }
+        
+        // Check for RLS policy errors
+        if (error.code === '42501' || error.message?.includes('permission denied') || error.message?.includes('RLS')) {
+          console.error("❌ RLS Policy Error - Permission denied:", error);
+          throw new Error(
+            `Permission denied: ${error.message || 'You may not have permission to add courses. ' +
+            'Please check your Supabase RLS policies or contact an administrator.'}`
+          );
+        }
+        
+        // Check for column/field errors
+        if (error.code === '42703' || error.message?.includes('column') || error.message?.includes('does not exist')) {
+          console.error("❌ Column Error - Field doesn't exist in table:", error);
+          throw new Error(
+            `Database schema error: ${error.message || 'One or more fields don\'t exist in the courses table. ' +
+            'Please update your Supabase table schema to include all required fields.'}`
+          );
+        }
+        
+        // Other errors - throw to show to user
+        console.error("❌ Failed to save course to Supabase:", error);
+        throw new Error(`Failed to save course: ${error.message || 'Unknown error'}`);
+      }
+      
+      if (!data) {
+        throw new Error('No data returned from Supabase');
+      }
+      
+      console.log("✅ Course successfully saved to Supabase:", data);
+      
+      // Map back to local format and merge with original course data to preserve extra fields
+      const localCourse = {
+        ...coursesService.mapSupabaseToLocal(data),
+        // Preserve extra fields that aren't in Supabase
+        ...Object.fromEntries(
+          Object.entries(course).filter(([key]) => 
+            !['id', 'title', 'description', 'instructor', 'price', 'duration', 'level', 'image_url', 'image_path', 'category', 'createdAt', 'updatedAt'].includes(key)
+          )
+        )
+      };
+      
+      // Update localStorage cache (lightweight version - Supabase is source of truth)
+      // If this fails due to quota, it's okay - we'll fetch from Supabase next time
+      try {
+        const localCourses = coursesManager._getAllFromLocalStorage();
+        const exists = localCourses.some(c => c.id === localCourse.id);
+        
+        if (!exists) {
+          coursesManager.saveAll([...localCourses, localCourse]);
+          console.log("✅ Course added to localStorage cache");
+        } else {
+          // Update existing course
+          const index = localCourses.findIndex(c => c.id === localCourse.id);
+          if (index >= 0) {
+            localCourses[index] = localCourse;
+            coursesManager.saveAll(localCourses);
+            console.log("✅ Course updated in localStorage cache");
+          }
+        }
+      } catch (cacheError) {
+        // localStorage cache failed, but that's okay - Supabase is the source of truth
+        console.warn("⚠️ Could not update localStorage cache (quota exceeded?), but course is saved to Supabase:", cacheError);
+        // Dispatch event anyway so UI updates
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("coursesUpdated"));
+        }
+      }
+      
+      return localCourse;
+    } catch (err) {
+      console.error("❌ Exception saving course to Supabase:", err);
+      // Re-throw to let caller handle the error
+      throw err;
+    }
+  },
+
+  // Update course - Updates Supabase first (source of truth), then updates localStorage cache
+  update: async (id, updatedCourse) => {
+    // Get current course from cache to merge with updates
+    const localCourses = coursesManager._getAllFromLocalStorage();
+    const existingCourse = localCourses.find((c) => c.id === id);
+    
+    if (!existingCourse) {
+      console.error('Course not found with id:', id);
+      throw new Error(`Course with id ${id} not found`);
+    }
+
+    // Merge updated fields with existing course data
+    const completeCourse = {
+      ...existingCourse,
+      ...updatedCourse,
+      id, // Preserve ID
     };
-    const updated = [...courses, newCourse];
-    coursesManager.saveAll(updated);
-    return newCourse;
+
+    // Map to Supabase format
+    const supabaseCourse = coursesService.mapLocalToSupabase(completeCourse);
+
+    // Update in Supabase FIRST (source of truth)
+    try {
+      console.log("💾 Updating course in Supabase...");
+      const { data, error } = await coursesService.update(id, supabaseCourse);
+      
+      if (error) {
+        // If course doesn't exist in Supabase, try to add it
+        if (error.code === 'PGRST116' || error.message?.includes('No rows found') || error.message?.includes('not found')) {
+          console.log("Course not found in Supabase, attempting to add instead...");
+          const addResult = await coursesService.add(supabaseCourse);
+          if (addResult.data && !addResult.error) {
+            console.log("✅ Successfully added course to Supabase (was missing)");
+            // Update localStorage with the new data
+            const localCourse = coursesService.mapSupabaseToLocal(addResult.data);
+            const localCourses = coursesManager._getAllFromLocalStorage();
+            const index = localCourses.findIndex(c => c.id === id);
+            if (index >= 0) {
+              localCourses[index] = localCourse;
+            } else {
+              localCourses.push(localCourse);
+            }
+            coursesManager.saveAll(localCourses);
+            return localCourse;
+          } else if (addResult.error) {
+            if (addResult.error.code === 'TABLE_NOT_FOUND') {
+              // Table doesn't exist - fallback to localStorage for development
+              console.warn("⚠️ Courses table doesn't exist. Saving to localStorage only.");
+              const localCourses = coursesManager._getAllFromLocalStorage();
+              const index = localCourses.findIndex((c) => c.id === id);
+              if (index >= 0) {
+                localCourses[index] = completeCourse;
+                coursesManager.saveAll(localCourses);
+              }
+              return completeCourse;
+            }
+            throw new Error(`Failed to add course: ${addResult.error.message || 'Unknown error'}`);
+          }
+        } else if (error.code === 'TABLE_NOT_FOUND') {
+          // Table doesn't exist - fallback to localStorage for development
+          console.warn("⚠️ Courses table doesn't exist. Saving to localStorage only.");
+          const localCourses = coursesManager._getAllFromLocalStorage();
+          const index = localCourses.findIndex((c) => c.id === id);
+          if (index >= 0) {
+            localCourses[index] = completeCourse;
+            coursesManager.saveAll(localCourses);
+          }
+          return completeCourse;
+        }
+        
+        // Other errors - throw to show to user
+        console.error("❌ Failed to update course in Supabase:", error);
+        throw new Error(`Failed to update course: ${error.message || 'Unknown error'}`);
+      }
+      
+      if (!data) {
+        throw new Error('No data returned from Supabase');
+      }
+      
+      console.log("✅ Course successfully updated in Supabase:", data);
+      
+      // Map back to local format
+      const localCourse = coursesService.mapSupabaseToLocal(data);
+      
+      // Update localStorage cache (lightweight version - Supabase is source of truth)
+      // If this fails due to quota, it's okay - we'll fetch from Supabase next time
+      try {
+        const localCourses = coursesManager._getAllFromLocalStorage();
+        const index = localCourses.findIndex((c) => c.id === id);
+        if (index >= 0) {
+          localCourses[index] = localCourse;
+          coursesManager.saveAll(localCourses);
+          console.log("✅ Course updated in localStorage cache");
+        } else {
+          // Course was added (new ID from Supabase)
+          coursesManager.saveAll([...localCourses, localCourse]);
+          console.log("✅ Course added to localStorage cache");
+        }
+      } catch (cacheError) {
+        // localStorage cache failed, but that's okay - Supabase is the source of truth
+        console.warn("⚠️ Could not update localStorage cache (quota exceeded?), but course is updated in Supabase:", cacheError);
+        // Dispatch event anyway so UI updates
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("coursesUpdated"));
+        }
+      }
+      
+      return localCourse;
+    } catch (err) {
+      console.error("❌ Exception updating course in Supabase:", err);
+      // Re-throw to let caller handle the error
+      throw err;
+    }
   },
 
-  // Update course
-  update: (id, updatedCourse) => {
-    const courses = coursesManager.getAll();
-    const index = courses.findIndex((c) => c.id === id);
-    if (index === -1) return null;
-
-    const updated = [...courses];
-    updated[index] = { ...updatedCourse, id };
-    coursesManager.saveAll(updated);
-    return updated[index];
-  },
-
-  // Delete course
-  delete: (id) => {
-    const courses = coursesManager.getAll();
-    const filtered = courses.filter((c) => c.id !== id);
+  // Delete course - Deletes from Supabase first (source of truth), then updates localStorage cache
+  delete: async (id) => {
+    // Delete from Supabase FIRST (source of truth)
+    try {
+      console.log("🗑️ Deleting course from Supabase...");
+      const { error } = await coursesService.delete(id);
+      
+      if (error) {
+        if (error.code === 'TABLE_NOT_FOUND') {
+          // Table doesn't exist - fallback to localStorage for development
+          console.warn("⚠️ Courses table doesn't exist. Deleting from localStorage only.");
+          const localCourses = coursesManager._getAllFromLocalStorage();
+          const filtered = localCourses.filter((c) => c.id !== id);
     coursesManager.saveAll(filtered);
     return true;
+        }
+        
+        // Other errors - throw to show to user
+        console.error("❌ Failed to delete course from Supabase:", error);
+        throw new Error(`Failed to delete course: ${error.message || 'Unknown error'}`);
+      }
+      
+      console.log("✅ Course successfully deleted from Supabase");
+      
+      // Update localStorage cache
+      const localCourses = coursesManager._getAllFromLocalStorage();
+      const filtered = localCourses.filter((c) => c.id !== id);
+      coursesManager.saveAll(filtered);
+      console.log("✅ Course removed from localStorage cache");
+      
+      return true;
+    } catch (err) {
+      console.error("❌ Exception deleting course from Supabase:", err);
+      // Re-throw to let caller handle the error
+      throw err;
+    }
+  },
+  
+  // Subscribe to real-time changes from Supabase
+  subscribe: (callback) => {
+    // Unsubscribe from previous subscription if exists
+    if (coursesManager._subscription) {
+      coursesManager._subscription.unsubscribe();
+    }
+
+    console.log("🔔 Setting up real-time subscription for courses...");
+    
+    coursesManager._subscription = supabase
+      .channel('courses-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'courses'
+        },
+        async (payload) => {
+          console.log('🔔 Real-time course change detected:', payload.eventType, payload);
+          
+          try {
+            // Refresh courses from Supabase
+            const { data, error } = await coursesService.getAll();
+            
+            if (!error && data) {
+              const supabaseCourses = data.map((c) => coursesService.mapSupabaseToLocal(c));
+              
+              // Update localStorage cache
+              coursesManager.saveAll(supabaseCourses);
+              
+              // Call the callback to notify UI
+              if (callback && typeof callback === 'function') {
+                callback(supabaseCourses, payload);
+              }
+              
+              console.log('✅ Real-time update applied:', payload.eventType);
+            } else {
+              console.warn('⚠️ Failed to refresh courses after real-time change:', error);
+            }
+          } catch (err) {
+            console.error('❌ Exception handling real-time change:', err);
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Real-time subscription active for courses');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.warn('⚠️ Real-time subscription error - table may not exist');
+        }
+      });
+
+    // Return unsubscribe function
+    return () => {
+      if (coursesManager._subscription) {
+        coursesManager._subscription.unsubscribe();
+        coursesManager._subscription = null;
+        console.log('🔕 Real-time subscription unsubscribed');
+      }
+    };
+  },
+
+  // Unsubscribe from real-time changes
+  unsubscribe: () => {
+    if (coursesManager._subscription) {
+      coursesManager._subscription.unsubscribe();
+      coursesManager._subscription = null;
+      console.log('🔕 Real-time subscription unsubscribed');
+    }
+  },
+
+  // Fetch courses from Supabase and sync with local storage
+  syncFromSupabase: async () => {
+    try {
+      const { data, error } = await coursesService.getAll();
+
+      if (error) {
+        if (
+          error.code === "TABLE_NOT_FOUND" ||
+          error.message?.includes("Table does not exist")
+        ) {
+          console.warn(
+            "Courses table does not exist in Supabase. Please create it first."
+          );
+          return {
+            synced: false,
+            error: {
+              ...error,
+              userMessage:
+                "Courses table does not exist. Please create it in Supabase first.",
+            },
+          };
+        }
+        console.warn("Failed to fetch courses from Supabase:", error);
+        return { synced: false, error };
+      }
+
+      // Map Supabase courses to local format
+      const supabaseCourses = data
+        ? data.map((c) => coursesService.mapSupabaseToLocal(c))
+        : [];
+
+      // Get existing local courses (use cached data for fast access)
+      const localCourses = coursesManager._getAllFromLocalStorage();
+
+      // Start with Supabase courses as the source of truth
+      const uniqueCourses = [...supabaseCourses];
+
+      // Helper function to check if a course exists
+      const courseExists = (course, coursesArray) => {
+        return coursesArray.some(
+          (existing) =>
+            course.id && existing.id && course.id === existing.id
+        );
+      };
+
+      // Get all Supabase course IDs
+      const supabaseIds = new Set(
+        supabaseCourses
+          .map((c) => c.id)
+          .filter((id) => id != null)
+          .map((id) => Number(id))
+      );
+
+      // Add local-only courses (those that don't exist in Supabase)
+      localCourses.forEach((localCourse) => {
+        const existsInSupabase = courseExists(localCourse, supabaseCourses);
+
+        if (!existsInSupabase) {
+          const localId = localCourse.id ? Number(localCourse.id) : null;
+          const wasSyncedBefore =
+            localId !== null && !isNaN(localId) && !supabaseIds.has(localId);
+
+          if (!wasSyncedBefore) {
+            // This is a truly local-only course
+            uniqueCourses.push(localCourse);
+          }
+        }
+      });
+
+      coursesManager.saveAll(uniqueCourses);
+
+      // Dispatch event to notify UI
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("coursesUpdated", { detail: uniqueCourses })
+        );
+      }
+
+      return {
+        synced: true,
+        count: supabaseCourses.length,
+        error: null,
+      };
+    } catch (err) {
+      console.error("Exception syncing courses from Supabase:", err);
+      return { synced: false, error: err };
+    }
+  },
+
+  // Push local courses to Supabase (for initial sync)
+  syncToSupabase: async () => {
+    try {
+      const localCourses = coursesManager._getAllFromLocalStorage();
+      let syncedCount = 0;
+      let errorCount = 0;
+      const errors = [];
+
+      if (localCourses.length === 0) {
+        console.log("ℹ️ No local courses to sync");
+        return {
+          synced: true,
+          syncedCount: 0,
+          errorCount: 0,
+          total: 0,
+          error: null,
+        };
+      }
+
+      console.log(`📤 Syncing ${localCourses.length} course(s) to Supabase...`);
+
+      for (const course of localCourses) {
+        try {
+          // Check if course already exists in Supabase
+          let existingCourse = null;
+
+          if (course.id) {
+            const { data, error } = await coursesService.getById(course.id);
+            if (!error && data) {
+              existingCourse = data;
+            }
+          }
+
+          if (existingCourse) {
+            // Update existing course
+            const { error } = await coursesService.update(course.id, course);
+            if (!error) {
+              syncedCount++;
+              console.log(`✅ Updated course: ${course.title || course.id}`);
+            } else if (error.code !== "TABLE_NOT_FOUND") {
+              errorCount++;
+              errors.push({ course: course.title || course.id, error });
+              console.warn(`❌ Failed to update course ${course.title || course.id}:`, error);
+            }
+          } else {
+            // Add new course
+            const { error } = await coursesService.add(course);
+            if (!error) {
+              syncedCount++;
+              console.log(`✅ Added course: ${course.title || course.id}`);
+            } else if (error.code !== "TABLE_NOT_FOUND") {
+              errorCount++;
+              errors.push({ course: course.title || course.id, error });
+              console.warn(`❌ Failed to add course ${course.title || course.id}:`, error);
+            }
+          }
+        } catch (courseErr) {
+          errorCount++;
+          errors.push({ course: course.title || course.id, error: courseErr });
+          console.error(`❌ Exception syncing course ${course.title || course.id}:`, courseErr);
+        }
+      }
+
+      console.log(`✅ Sync to Supabase completed: ${syncedCount} synced, ${errorCount} errors`);
+
+      return {
+        synced: true,
+        syncedCount,
+        errorCount,
+        total: localCourses.length,
+        errors: errors.length > 0 ? errors : undefined,
+        error:
+          errorCount > 0
+            ? { message: `${errorCount} course(s) failed to sync`, details: errors }
+            : null,
+      };
+    } catch (err) {
+      console.error("❌ Exception syncing to Supabase:", err);
+      return { 
+        synced: false, 
+        error: {
+          message: err.message || 'Unknown error occurred during sync',
+          originalError: err
+        }
+      };
+    }
   },
 };
 
@@ -151,29 +726,29 @@ export const membersManager = {
     const stored = localStorage.getItem("eacsl_members");
     if (stored) {
       try {
-        const members = JSON.parse(stored);
-        // Ensure all members have isActive field (migrate old data)
-        const normalizedMembers = members.map((m) => {
-          if (m.hasOwnProperty("isActive")) {
-            return {
-              ...m,
-              isActive: Boolean(m.isActive),
-            };
-          } else {
-            return {
-              ...m,
-              isActive: true,
-            };
-          }
-        });
-
-        // Check if any member was missing isActive and save normalized data back
-        const needsMigration = members.some((m) => !m.hasOwnProperty("isActive"));
-        if (needsMigration) {
-          membersManager.saveAll(normalizedMembers);
+      const members = JSON.parse(stored);
+      // Ensure all members have isActive field (migrate old data)
+      const normalizedMembers = members.map((m) => {
+        if (m.hasOwnProperty("isActive")) {
+          return {
+            ...m,
+            isActive: Boolean(m.isActive),
+          };
+        } else {
+          return {
+            ...m,
+            isActive: true,
+          };
         }
+      });
 
-        return normalizedMembers;
+      // Check if any member was missing isActive and save normalized data back
+      const needsMigration = members.some((m) => !m.hasOwnProperty("isActive"));
+      if (needsMigration) {
+        membersManager.saveAll(normalizedMembers);
+      }
+
+      return normalizedMembers;
       } catch (e) {
         console.error('Error parsing localStorage members:', e);
         return [];
@@ -226,7 +801,7 @@ export const membersManager = {
           const tempId = localMembers.length > 0 ? Math.max(...localMembers.map((m) => m.id)) + 1 : 1;
           const localMember = { ...newMember, id: tempId };
           const updated = [...localMembers, localMember];
-          membersManager.saveAll(updated);
+    membersManager.saveAll(updated);
           return localMember;
         }
         
@@ -253,7 +828,7 @@ export const membersManager = {
         localMembers.push(data);
         membersManager.saveAll(localMembers);
         console.log("✅ Member added to localStorage cache");
-      } else {
+    } else {
         // Update existing member
         const index = localMembers.findIndex(m => 
           m.id === data.id || 
@@ -287,7 +862,7 @@ export const membersManager = {
       console.error('Member not found with id:', id);
       throw new Error(`Member with id ${id} not found`);
     }
-    
+
     // Merge updated fields with existing member data
     // IMPORTANT: Preserve exact isActive value from updatedMember if provided
     const isActiveValue = updatedMember.hasOwnProperty("isActive")
@@ -457,7 +1032,7 @@ export const membersManager = {
           // Table doesn't exist - fallback to localStorage for development
           console.warn("⚠️ Members table doesn't exist. Deleting from localStorage only.");
           const filtered = localMembers.filter((m) => m.id !== id);
-          membersManager.saveAll(filtered);
+    membersManager.saveAll(filtered);
           return true;
         }
         
@@ -472,8 +1047,8 @@ export const membersManager = {
       const filtered = localMembers.filter((m) => m.id !== id);
       membersManager.saveAll(filtered);
       console.log("✅ Member removed from localStorage cache");
-      
-      return true;
+
+    return true;
     } catch (err) {
       console.error("❌ Exception deleting member from Supabase:", err);
       // Re-throw to let caller handle the error
@@ -876,8 +1451,80 @@ export const eventsManager = {
   _cacheTimestamp: null,
   _cacheTimeout: 5 * 60 * 1000, // 5 minutes
 
-  // Get all events (from cache or Supabase, fallback to localStorage)
-  getAll: () => {
+  // Real-time subscription channel
+  _subscription: null,
+
+  // Get all events - Fetches from Supabase first (source of truth), falls back to localStorage
+  getAll: async (options = {}) => {
+    if (typeof window === "undefined") return { upcoming: [], past: [] };
+    
+    const useCache = options.useCache !== false; // Default to true for performance
+    const forceRefresh = options.forceRefresh === true;
+    
+    // If we have cached data and not forcing refresh, return it immediately
+    // Then refresh in background
+    if (useCache && !forceRefresh) {
+      const cached = localStorage.getItem("eacsl_events");
+      if (cached) {
+        try {
+          const cachedEvents = JSON.parse(cached);
+          // Return cached data immediately, then refresh in background
+          eventsManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
+            console.warn('Background refresh failed:', err);
+          });
+          return {
+            upcoming: Array.isArray(cachedEvents.upcoming) ? cachedEvents.upcoming : [],
+            past: Array.isArray(cachedEvents.past) ? cachedEvents.past : [],
+          };
+        } catch (e) {
+          console.error('Error parsing cached events:', e);
+        }
+      }
+    }
+    
+    // Fetch from Supabase (source of truth)
+    try {
+      console.log("🔄 Fetching events from Supabase...");
+      const { data, error } = await eventsService.getAll();
+      
+      if (error) {
+        // If table doesn't exist, fall back to localStorage
+        if (error.code === "TABLE_NOT_FOUND") {
+          console.warn("⚠️ Events table not found in Supabase. Using localStorage fallback.");
+          return eventsManager._getAllFromLocalStorage();
+        }
+        
+        // Other errors - log and fall back to localStorage
+        console.error("❌ Error fetching from Supabase:", error);
+        return eventsManager._getAllFromLocalStorage();
+      }
+      
+      // Map Supabase events to local format and organize by status
+      const supabaseEvents = data
+        ? data.map((e) => eventsService.mapSupabaseToLocal(e))
+        : [];
+      
+      const upcoming = supabaseEvents.filter((e) => e.status === "upcoming");
+      const past = supabaseEvents.filter((e) => e.status === "past");
+      
+      const events = {
+        upcoming,
+        past,
+      };
+      
+      // Save to localStorage as cache
+      eventsManager.saveAll(events);
+      
+      console.log(`✅ Fetched ${supabaseEvents.length} events from Supabase (${upcoming.length} upcoming, ${past.length} past)`);
+      return events;
+    } catch (err) {
+      console.error("❌ Exception fetching from Supabase:", err);
+      return eventsManager._getAllFromLocalStorage();
+    }
+  },
+  
+  // Internal helper to get from localStorage (fallback)
+  _getAllFromLocalStorage: () => {
     if (typeof window === "undefined") return { upcoming: [], past: [] };
     
     // Check cache first
@@ -905,21 +1552,43 @@ export const eventsManager = {
     return { upcoming: [], past: [] };
   },
 
-  // Get only upcoming events
-  getUpcoming: () => {
-    const all = eventsManager.getAll();
+  // Get only upcoming events (async - fetches from Supabase)
+  getUpcoming: async () => {
+    const all = await eventsManager.getAll();
     return all.upcoming || [];
   },
 
-  // Get only past events
-  getPast: () => {
-    const all = eventsManager.getAll();
+  // Get only upcoming events (synchronous - uses cache)
+  getUpcomingSync: () => {
+    const all = eventsManager._getAllFromLocalStorage();
+    return all.upcoming || [];
+  },
+
+  // Get only past events (async - fetches from Supabase)
+  getPast: async () => {
+    const all = await eventsManager.getAll();
     return all.past || [];
   },
 
-  // Get event by ID (searches both upcoming and past)
-  getById: (id) => {
-    const all = eventsManager.getAll();
+  // Get only past events (synchronous - uses cache)
+  getPastSync: () => {
+    const all = eventsManager._getAllFromLocalStorage();
+    return all.past || [];
+  },
+
+  // Get event by ID (async - searches both upcoming and past)
+  getById: async (id) => {
+    const all = await eventsManager.getAll();
+    const upcoming = all.upcoming || [];
+    const past = all.past || [];
+    const event =
+      upcoming.find((e) => e.id === id) || past.find((e) => e.id === id);
+    return event || null;
+  },
+  
+  // Get event by ID (synchronous - uses cache)
+  getByIdSync: (id) => {
+    const all = eventsManager._getAllFromLocalStorage();
     const upcoming = all.upcoming || [];
     const past = all.past || [];
     const event =
@@ -939,78 +1608,213 @@ export const eventsManager = {
     }
   },
 
-  // Add new event (syncs with Supabase)
+  // Add new event - Saves to Supabase first (source of truth), then updates localStorage cache
   add: async (event) => {
-    const all = eventsManager.getAll();
-    const upcoming = all.upcoming || [];
-    const tempId = upcoming.length > 0 ? Math.max(...upcoming.map((e) => e.id)) + 1 : 1;
+    // Prepare event data
     const newEvent = {
       ...event,
-      id: tempId,
       status: event.status || "upcoming",
       createdAt: new Date().toISOString(),
     };
 
-    // Save to local storage first for immediate UI update
+    // Save to Supabase FIRST (source of truth)
+    try {
+      console.log("💾 Saving event to Supabase...");
+      const { data, error } = await eventsService.add(newEvent);
+      
+      if (error) {
+        // Handle table not found error - allow local storage fallback for development
+        if (error.code === 'TABLE_NOT_FOUND') {
+          console.warn("⚠️ Events table doesn't exist in Supabase. Saving to localStorage only.");
+          // For development: save to localStorage as fallback
+          const localEvents = eventsManager._getAllFromLocalStorage();
+          const upcoming = localEvents.upcoming || [];
+          const tempId = upcoming.length > 0 ? Math.max(...upcoming.map((e) => e.id)) + 1 : 1;
+          const localEvent = { ...newEvent, id: tempId };
     const updated = {
-      upcoming: event.status === "past" ? upcoming : [...upcoming, newEvent],
-      past: event.status === "past" ? [...(all.past || []), newEvent] : all.past || [],
+            upcoming: localEvent.status === "past" ? upcoming : [...upcoming, localEvent],
+            past: localEvent.status === "past" ? [...(localEvents.past || []), localEvent] : localEvents.past || [],
     };
     eventsManager.saveAll(updated);
-
-    // Sync with Supabase
-    try {
-      const { data, error } = await eventsService.add(newEvent);
-      if (data && !error) {
-        // Update local event with Supabase ID if different
-        const localEvents = eventsManager.getAll();
+          return localEvent;
+        }
+        
+        // Other errors - throw to show to user
+        console.error("❌ Failed to save event to Supabase:", error);
+        throw new Error(`Failed to save event: ${error.message || 'Unknown error'}`);
+      }
+      
+      if (!data) {
+        throw new Error('No data returned from Supabase');
+      }
+      
+      console.log("✅ Event successfully saved to Supabase:", data);
+      
+      // Update localStorage cache with the new event
+      const localEvents = eventsManager._getAllFromLocalStorage();
+      const exists = (localEvents.upcoming || []).some(e => e.id === data.id) || 
+                     (localEvents.past || []).some(e => e.id === data.id);
+      
+      if (!exists) {
         if (data.status === "upcoming") {
-          const index = localEvents.upcoming.findIndex((e) => e.id === tempId);
-          if (index !== -1) {
-            localEvents.upcoming[index] = { ...data, id: data.id || tempId };
+          localEvents.upcoming = [...(localEvents.upcoming || []), data];
+        } else {
+          localEvents.past = [...(localEvents.past || []), data];
+        }
             eventsManager.saveAll(localEvents);
+        console.log("✅ Event added to localStorage cache");
+      } else {
+        // Update existing event
+        if (data.status === "upcoming") {
+          const index = (localEvents.upcoming || []).findIndex(e => e.id === data.id);
+          if (index >= 0) {
+            localEvents.upcoming[index] = data;
+          } else {
+            // Move from past to upcoming
+            localEvents.past = (localEvents.past || []).filter(e => e.id !== data.id);
+            localEvents.upcoming = [...(localEvents.upcoming || []), data];
           }
         } else {
-          const index = localEvents.past.findIndex((e) => e.id === tempId);
-          if (index !== -1) {
-            localEvents.past[index] = { ...data, id: data.id || tempId };
-            eventsManager.saveAll(localEvents);
+          const index = (localEvents.past || []).findIndex(e => e.id === data.id);
+          if (index >= 0) {
+            localEvents.past[index] = data;
+          } else {
+            // Move from upcoming to past
+            localEvents.upcoming = (localEvents.upcoming || []).filter(e => e.id !== data.id);
+            localEvents.past = [...(localEvents.past || []), data];
           }
         }
-        return data;
-      } else if (error && error.code !== "TABLE_NOT_FOUND") {
-        console.warn("Failed to sync event to Supabase:", error);
+        eventsManager.saveAll(localEvents);
+        console.log("✅ Event updated in localStorage cache");
       }
+      
+      return data;
     } catch (err) {
-      console.error("Exception syncing event to Supabase:", err);
+      console.error("❌ Exception saving event to Supabase:", err);
+      // Re-throw to let caller handle the error
+      throw err;
     }
-
-    return newEvent;
   },
 
-  // Update event (syncs with Supabase)
+  // Update event - Updates Supabase first (source of truth), then updates localStorage cache
   update: async (id, updatedEvent) => {
-    const all = eventsManager.getAll();
-    const upcoming = all.upcoming || [];
-    const past = all.past || [];
+    // Get current event from cache to merge with updates
+    const localEvents = eventsManager._getAllFromLocalStorage();
+    const upcoming = localEvents.upcoming || [];
+    const past = localEvents.past || [];
 
     // Check in upcoming events
-    let index = upcoming.findIndex((e) => e.id === id);
+    let existingEvent = upcoming.find((e) => e.id === id);
     let isUpcoming = true;
-    if (index === -1) {
+    if (!existingEvent) {
       // Check in past events
-      index = past.findIndex((e) => e.id === id);
+      existingEvent = past.find((e) => e.id === id);
       isUpcoming = false;
     }
 
-    if (index === -1) return null;
+    if (!existingEvent) {
+      console.error('Event not found with id:', id);
+      throw new Error(`Event with id ${id} not found`);
+    }
 
-    const updated = isUpcoming ? [...upcoming] : [...past];
-    updated[index] = { ...updatedEvent, id };
+    // Merge updated fields with existing event data
+    const completeEvent = {
+      ...existingEvent,
+      ...updatedEvent,
+      id, // Preserve ID
+      status: updatedEvent.status || existingEvent.status || "upcoming",
+    };
+
+    // Update in Supabase FIRST (source of truth)
+    try {
+      console.log("💾 Updating event in Supabase...");
+      const { data, error } = await eventsService.update(id, completeEvent);
+      
+      if (error) {
+        // If event doesn't exist in Supabase, try to add it
+        if (error.code === 'PGRST116' || error.message?.includes('No rows found') || error.message?.includes('not found')) {
+          console.log("Event not found in Supabase, attempting to add instead...");
+          const addResult = await eventsService.add(completeEvent);
+          if (addResult.data && !addResult.error) {
+            console.log("✅ Successfully added event to Supabase (was missing)");
+            // Update localStorage with the new data
+            const localEvents = eventsManager._getAllFromLocalStorage();
+            if (addResult.data.status === "upcoming") {
+              localEvents.upcoming = [...(localEvents.upcoming || []), addResult.data];
+              localEvents.past = (localEvents.past || []).filter(e => e.id !== id);
+            } else {
+              localEvents.past = [...(localEvents.past || []), addResult.data];
+              localEvents.upcoming = (localEvents.upcoming || []).filter(e => e.id !== id);
+            }
+            eventsManager.saveAll(localEvents);
+            return addResult.data;
+          } else if (addResult.error) {
+            if (addResult.error.code === 'TABLE_NOT_FOUND') {
+              // Table doesn't exist - fallback to localStorage for development
+              console.warn("⚠️ Events table doesn't exist. Saving to localStorage only.");
+              const localEvents = eventsManager._getAllFromLocalStorage();
+              const upcoming = localEvents.upcoming || [];
+              const past = localEvents.past || [];
+    let index = upcoming.findIndex((e) => e.id === id);
+    let isUpcoming = true;
+    if (index === -1) {
+      index = past.findIndex((e) => e.id === id);
+      isUpcoming = false;
+              }
+              if (index >= 0) {
+                if (isUpcoming) {
+                  upcoming[index] = completeEvent;
+                } else {
+                  past[index] = completeEvent;
+                }
+                eventsManager.saveAll({ upcoming, past });
+              }
+              return completeEvent;
+            }
+            throw new Error(`Failed to add event: ${addResult.error.message || 'Unknown error'}`);
+          }
+        } else if (error.code === 'TABLE_NOT_FOUND') {
+          // Table doesn't exist - fallback to localStorage for development
+          console.warn("⚠️ Events table doesn't exist. Saving to localStorage only.");
+          const localEvents = eventsManager._getAllFromLocalStorage();
+          const upcoming = localEvents.upcoming || [];
+          const past = localEvents.past || [];
+          let index = upcoming.findIndex((e) => e.id === id);
+          let isUpcoming = true;
+          if (index === -1) {
+            index = past.findIndex((e) => e.id === id);
+            isUpcoming = false;
+          }
+          if (index >= 0) {
+            if (isUpcoming) {
+              upcoming[index] = completeEvent;
+            } else {
+              past[index] = completeEvent;
+            }
+            eventsManager.saveAll({ upcoming, past });
+          }
+          return completeEvent;
+        }
+        
+        // Other errors - throw to show to user
+        console.error("❌ Failed to update event in Supabase:", error);
+        throw new Error(`Failed to update event: ${error.message || 'Unknown error'}`);
+      }
+      
+      if (!data) {
+        throw new Error('No data returned from Supabase');
+      }
+      
+      console.log("✅ Event successfully updated in Supabase:", data);
+      
+      // Update localStorage cache
+      const localEvents = eventsManager._getAllFromLocalStorage();
+      const upcoming = localEvents.upcoming || [];
+      const past = localEvents.past || [];
 
     // Handle status change (upcoming <-> past)
     const oldStatus = isUpcoming ? "upcoming" : "past";
-    const newStatus = updatedEvent.status || oldStatus;
+      const newStatus = data.status || oldStatus;
 
     let finalUpcoming = upcoming;
     let finalPast = past;
@@ -1019,17 +1823,25 @@ export const eventsManager = {
       // Status changed - move event between arrays
       if (newStatus === "past") {
         finalUpcoming = upcoming.filter((e) => e.id !== id);
-        finalPast = [...past, updated[index]];
+          finalPast = [...past, data];
       } else {
         finalPast = past.filter((e) => e.id !== id);
-        finalUpcoming = [...upcoming, updated[index]];
+          finalUpcoming = [...upcoming, data];
       }
     } else {
       // Status unchanged - just update in place
       if (isUpcoming) {
-        finalUpcoming = updated;
+          const index = upcoming.findIndex((e) => e.id === id);
+          if (index >= 0) {
+            finalUpcoming = [...upcoming];
+            finalUpcoming[index] = data;
+          }
       } else {
-        finalPast = updated;
+          const index = past.findIndex((e) => e.id === id);
+          if (index >= 0) {
+            finalPast = [...past];
+            finalPast[index] = data;
+          }
       }
     }
 
@@ -1037,122 +1849,259 @@ export const eventsManager = {
       upcoming: finalUpcoming,
       past: finalPast,
     });
-
-    // Sync with Supabase
-    eventsService
-      .update(id, updated[index])
-      .then(({ error }) => {
-        if (error && error.code !== "TABLE_NOT_FOUND") {
-          console.warn("Failed to sync event update to Supabase:", error);
-        }
-      })
-      .catch((err) => {
-        console.warn("Exception syncing event update to Supabase:", err);
-      });
-
-    return updated[index];
+      console.log("✅ Event updated in localStorage cache");
+      
+      return data;
+    } catch (err) {
+      console.error("❌ Exception updating event in Supabase:", err);
+      // Re-throw to let caller handle the error
+      throw err;
+    }
   },
 
-  // Delete event (syncs with Supabase)
+  // Delete event - Deletes from Supabase first (source of truth), then updates localStorage cache
   delete: async (id) => {
-    const all = eventsManager.getAll();
-    const upcoming = (all.upcoming || []).filter((e) => e.id !== id);
-    const past = (all.past || []).filter((e) => e.id !== id);
+    // Get event from cache first (for image deletion if needed)
+    const localEvents = eventsManager._getAllFromLocalStorage();
+    const eventToDelete = (localEvents.upcoming || []).find((e) => e.id === id) || 
+                         (localEvents.past || []).find((e) => e.id === id);
+    
+    if (!eventToDelete) {
+      console.warn(`Event with id ${id} not found in cache`);
+      // Still try to delete from Supabase in case it exists there
+    }
+    
+    // Delete event's image from storage if it exists in Supabase Storage
+    if (eventToDelete && eventToDelete.heroImagePath) {
+      try {
+        await eventsService.deleteImage(eventToDelete.heroImagePath);
+        console.log('✅ Deleted event image from storage');
+      } catch (deleteError) {
+        console.warn('Could not delete event image from storage:', deleteError);
+        // Continue with event deletion even if image deletion fails
+      }
+    }
 
-    // Save to local storage first for immediate UI update
+    // Delete from Supabase FIRST (source of truth)
+    try {
+      console.log("🗑️ Deleting event from Supabase...");
+      const { error } = await eventsService.delete(id);
+      
+      if (error) {
+        if (error.code === 'TABLE_NOT_FOUND') {
+          // Table doesn't exist - fallback to localStorage for development
+          console.warn("⚠️ Events table doesn't exist. Deleting from localStorage only.");
+          const upcoming = (localEvents.upcoming || []).filter((e) => e.id !== id);
+          const past = (localEvents.past || []).filter((e) => e.id !== id);
     eventsManager.saveAll({ upcoming, past });
-
-    // Sync with Supabase
-    eventsService
-      .delete(id)
-      .then(({ error }) => {
-        if (error && error.code !== "TABLE_NOT_FOUND") {
-          console.warn("Failed to sync event deletion to Supabase:", error);
+          return true;
         }
-      })
-      .catch((err) => {
-        console.warn("Exception syncing event deletion to Supabase:", err);
-      });
+        
+        // Other errors - throw to show to user
+        console.error("❌ Failed to delete event from Supabase:", error);
+        throw new Error(`Failed to delete event: ${error.message || 'Unknown error'}`);
+      }
+      
+      console.log("✅ Event successfully deleted from Supabase");
+      
+      // Update localStorage cache
+      const upcoming = (localEvents.upcoming || []).filter((e) => e.id !== id);
+      const past = (localEvents.past || []).filter((e) => e.id !== id);
+      eventsManager.saveAll({ upcoming, past });
+      console.log("✅ Event removed from localStorage cache");
 
     return true;
+    } catch (err) {
+      console.error("❌ Exception deleting event from Supabase:", err);
+      // Re-throw to let caller handle the error
+      throw err;
+    }
   },
 
-  // Move event from upcoming to past
+  // Move event from upcoming to past - Updates Supabase first, then updates cache
   moveToPast: async (id) => {
-    const all = eventsManager.getAll();
-    const upcoming = all.upcoming || [];
-    const past = all.past || [];
+    // Get event from cache
+    const localEvents = eventsManager._getAllFromLocalStorage();
+    const upcoming = localEvents.upcoming || [];
+    const past = localEvents.past || [];
 
-    const eventIndex = upcoming.findIndex((e) => e.id === id);
-    if (eventIndex === -1) return null;
+    const event = upcoming.find((e) => e.id === id);
+    if (!event) {
+      throw new Error(`Event with id ${id} not found in upcoming events`);
+    }
 
-    const event = upcoming[eventIndex];
     const updatedEvent = {
       ...event,
       status: "past",
       movedToPastAt: new Date().toISOString(),
     };
 
+    // Update in Supabase FIRST (source of truth)
+    try {
+      console.log("💾 Moving event to past in Supabase...");
+      const { data, error } = await eventsService.update(id, updatedEvent);
+      
+      if (error) {
+        if (error.code === 'TABLE_NOT_FOUND') {
+          // Table doesn't exist - fallback to localStorage for development
+          console.warn("⚠️ Events table doesn't exist. Moving to past in localStorage only.");
     const updatedUpcoming = upcoming.filter((e) => e.id !== id);
     const updatedPast = [...past, updatedEvent];
-
-    eventsManager.saveAll({
-      upcoming: updatedUpcoming,
-      past: updatedPast,
-    });
-
-    // Sync with Supabase
-    eventsService
-      .update(id, updatedEvent)
-      .then(({ error }) => {
-        if (error && error.code !== "TABLE_NOT_FOUND") {
-          console.warn("Failed to sync event move to Supabase:", error);
+          eventsManager.saveAll({ upcoming: updatedUpcoming, past: updatedPast });
+          return updatedEvent;
         }
-      })
-      .catch((err) => {
-        console.warn("Exception syncing event move to Supabase:", err);
-      });
-
-    return updatedEvent;
+        throw new Error(`Failed to move event to past: ${error.message || 'Unknown error'}`);
+      }
+      
+      if (!data) {
+        throw new Error('No data returned from Supabase');
+      }
+      
+      console.log("✅ Event successfully moved to past in Supabase");
+      
+      // Update localStorage cache
+      const updatedUpcoming = upcoming.filter((e) => e.id !== id);
+      const updatedPast = [...past, data];
+      eventsManager.saveAll({ upcoming: updatedUpcoming, past: updatedPast });
+      console.log("✅ Event moved to past in localStorage cache");
+      
+      return data;
+    } catch (err) {
+      console.error("❌ Exception moving event to past:", err);
+      throw err;
+    }
   },
 
-  // Move event from past to upcoming
+  // Move event from past to upcoming - Updates Supabase first, then updates cache
   moveToUpcoming: async (id) => {
-    const all = eventsManager.getAll();
-    const upcoming = all.upcoming || [];
-    const past = all.past || [];
+    // Get event from cache
+    const localEvents = eventsManager._getAllFromLocalStorage();
+    const upcoming = localEvents.upcoming || [];
+    const past = localEvents.past || [];
 
-    const eventIndex = past.findIndex((e) => e.id === id);
-    if (eventIndex === -1) return null;
+    const event = past.find((e) => e.id === id);
+    if (!event) {
+      throw new Error(`Event with id ${id} not found in past events`);
+    }
 
-    const event = past[eventIndex];
     const updatedEvent = {
       ...event,
       status: "upcoming",
       movedToUpcomingAt: new Date().toISOString(),
     };
 
+    // Update in Supabase FIRST (source of truth)
+    try {
+      console.log("💾 Moving event to upcoming in Supabase...");
+      const { data, error } = await eventsService.update(id, updatedEvent);
+      
+      if (error) {
+        if (error.code === 'TABLE_NOT_FOUND') {
+          // Table doesn't exist - fallback to localStorage for development
+          console.warn("⚠️ Events table doesn't exist. Moving to upcoming in localStorage only.");
     const updatedPast = past.filter((e) => e.id !== id);
     const updatedUpcoming = [...upcoming, updatedEvent];
-
-    eventsManager.saveAll({
-      upcoming: updatedUpcoming,
-      past: updatedPast,
-    });
-
-    // Sync with Supabase
-    eventsService
-      .update(id, updatedEvent)
-      .then(({ error }) => {
-        if (error && error.code !== "TABLE_NOT_FOUND") {
-          console.warn("Failed to sync event move to Supabase:", error);
+          eventsManager.saveAll({ upcoming: updatedUpcoming, past: updatedPast });
+          return updatedEvent;
         }
-      })
-      .catch((err) => {
-        console.warn("Exception syncing event move to Supabase:", err);
+        throw new Error(`Failed to move event to upcoming: ${error.message || 'Unknown error'}`);
+      }
+      
+      if (!data) {
+        throw new Error('No data returned from Supabase');
+      }
+      
+      console.log("✅ Event successfully moved to upcoming in Supabase");
+      
+      // Update localStorage cache
+      const updatedPast = past.filter((e) => e.id !== id);
+      const updatedUpcoming = [...upcoming, data];
+      eventsManager.saveAll({ upcoming: updatedUpcoming, past: updatedPast });
+      console.log("✅ Event moved to upcoming in localStorage cache");
+      
+      return data;
+    } catch (err) {
+      console.error("❌ Exception moving event to upcoming:", err);
+      throw err;
+    }
+  },
+  
+  // Subscribe to real-time changes from Supabase
+  subscribe: (callback) => {
+    // Unsubscribe from previous subscription if exists
+    if (eventsManager._subscription) {
+      eventsManager._subscription.unsubscribe();
+    }
+
+    console.log("🔔 Setting up real-time subscription for events...");
+    
+    eventsManager._subscription = supabase
+      .channel('events-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'events'
+        },
+        async (payload) => {
+          console.log('🔔 Real-time event change detected:', payload.eventType, payload);
+          
+          try {
+            // Refresh events from Supabase
+            const { data, error } = await eventsService.getAll();
+            
+            if (!error && data) {
+              const supabaseEvents = data.map((e) => eventsService.mapSupabaseToLocal(e));
+              
+              // Organize by status
+              const upcoming = supabaseEvents.filter((e) => e.status === "upcoming");
+              const past = supabaseEvents.filter((e) => e.status === "past");
+              
+              const events = { upcoming, past };
+              
+              // Update localStorage cache
+              eventsManager.saveAll(events);
+              
+              // Call the callback to notify UI
+              if (callback && typeof callback === 'function') {
+                callback(events, payload);
+              }
+              
+              console.log('✅ Real-time update applied:', payload.eventType);
+            } else {
+              console.warn('⚠️ Failed to refresh events after real-time change:', error);
+            }
+          } catch (err) {
+            console.error('❌ Exception handling real-time change:', err);
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Real-time subscription active for events');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.warn('⚠️ Real-time subscription error - table may not exist');
+        }
       });
 
-    return updatedEvent;
+    // Return unsubscribe function
+    return () => {
+      if (eventsManager._subscription) {
+        eventsManager._subscription.unsubscribe();
+        eventsManager._subscription = null;
+        console.log('🔕 Real-time subscription unsubscribed');
+      }
+    };
+  },
+
+  // Unsubscribe from real-time changes
+  unsubscribe: () => {
+    if (eventsManager._subscription) {
+      eventsManager._subscription.unsubscribe();
+      eventsManager._subscription = null;
+      console.log('🔕 Real-time subscription unsubscribed');
+    }
   },
 
   // Fetch events from Supabase and sync with local storage
@@ -1189,8 +2138,8 @@ export const eventsManager = {
       const upcoming = supabaseEvents.filter((e) => e.status === "upcoming");
       const past = supabaseEvents.filter((e) => e.status === "past");
 
-      // Get existing local events
-      const localEvents = eventsManager.getAll();
+      // Get existing local events (use cached data for fast access)
+      const localEvents = eventsManager._getAllFromLocalStorage();
 
       // Start with Supabase events as the source of truth
       const uniqueUpcoming = [...upcoming];
@@ -1263,7 +2212,7 @@ export const eventsManager = {
   // Push local events to Supabase (for initial sync)
   syncToSupabase: async () => {
     try {
-      const localEvents = eventsManager.getAll();
+      const localEvents = eventsManager._getAllFromLocalStorage();
       const allLocalEvents = [...(localEvents.upcoming || []), ...(localEvents.past || [])];
       let syncedCount = 0;
       let errorCount = 0;
@@ -1320,46 +2269,70 @@ export const articlesManager = {
   _cache: null,
   _cacheTimestamp: null,
   _cacheTimeout: 5 * 60 * 1000, // 5 minutes
+  
+  // Real-time subscription channel
+  _subscription: null,
 
-  // Get all articles (from cache or Supabase, fallback to localStorage)
-  getAll: () => {
+  // Get all articles - Fetches from Supabase first (source of truth), falls back to localStorage
+  getAll: async (options = {}) => {
     if (typeof window === "undefined") return [];
     
-    // Check cache first
-    if (articlesManager._cache && articlesManager._cacheTimestamp) {
-      const cacheAge = Date.now() - articlesManager._cacheTimestamp;
-      if (cacheAge < articlesManager._cacheTimeout) {
-        return articlesManager._cache;
+    const useCache = options.useCache !== false; // Default to true for performance
+    const forceRefresh = options.forceRefresh === true;
+    
+    // If we have cached data and not forcing refresh, return it immediately
+    // Then refresh in background
+    if (useCache && !forceRefresh) {
+      const cached = localStorage.getItem("eacsl_articles");
+      if (cached) {
+        try {
+          const cachedArticles = JSON.parse(cached);
+          // Return cached data immediately, then refresh in background
+          articlesManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
+            console.warn('Background refresh failed:', err);
+          });
+          return cachedArticles;
+        } catch (e) {
+          console.error('Error parsing cached articles:', e);
+        }
       }
     }
-
-    // Check localStorage
-    const stored = localStorage.getItem("eacsl_articles");
-    if (stored) {
-      const articles = JSON.parse(stored);
-      // Update cache
-      articlesManager._cache = articles;
-      articlesManager._cacheTimestamp = Date.now();
-      return articles;
-    }
     
-    return [];
-  },
-
-  // Save articles to cache and localStorage
-  saveAll: (articles) => {
-    articlesManager._cache = articles;
-    articlesManager._cacheTimestamp = Date.now();
-    localStorage.setItem("eacsl_articles", JSON.stringify(articles));
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(
-        new CustomEvent("articlesUpdated", { detail: articles })
-      );
+    // Fetch from Supabase (source of truth)
+    try {
+      console.log("🔄 Fetching articles from Supabase...");
+      const { data, error } = await articlesService.getAll();
+      
+      if (error) {
+        // If table doesn't exist, fall back to localStorage
+        if (error.code === "TABLE_NOT_FOUND") {
+          console.warn("⚠️ Articles table not found in Supabase. Using localStorage fallback.");
+          return articlesManager._getAllFromLocalStorage();
+        }
+        
+        // Other errors - log and fall back to localStorage
+        console.error("❌ Error fetching from Supabase:", error);
+        return articlesManager._getAllFromLocalStorage();
+      }
+      
+      // Map Supabase articles to local format
+      const supabaseArticles = data
+        ? data.map((a) => articlesService.mapSupabaseToLocal(a))
+        : [];
+      
+      // Save to localStorage as cache
+      articlesManager.saveAll(supabaseArticles);
+      
+      console.log(`✅ Fetched ${supabaseArticles.length} articles from Supabase`);
+      return supabaseArticles;
+    } catch (err) {
+      console.error("❌ Exception fetching from Supabase:", err);
+      return articlesManager._getAllFromLocalStorage();
     }
   },
-
-  // Get all articles (from cache or Supabase, fallback to localStorage)
-  getAll: () => {
+  
+  // Internal helper to get from localStorage (fallback)
+  _getAllFromLocalStorage: () => {
     if (typeof window === "undefined") return [];
     
     // Check cache first
@@ -1399,110 +2372,304 @@ export const articlesManager = {
     }
   },
 
-  // Add new article (syncs with Supabase)
+  // Add new article - Saves to Supabase first (source of truth), then updates localStorage cache
   add: async (article) => {
-    const articles = articlesManager.getAll();
-    const tempId = articles.length > 0 ? Math.max(...articles.map((a) => a.id)) + 1 : 1;
+    // Prepare article data
     const newArticle = {
       ...article,
-      id: tempId,
       createdAt: new Date().toISOString(),
     };
 
-    // Save to local storage first for immediate UI update
-    const updated = [...articles, newArticle];
-    articlesManager.saveAll(updated);
-
-    // Sync with Supabase
+    // Save to Supabase FIRST (source of truth)
     try {
+      console.log("💾 Saving article to Supabase...");
       const { data, error } = await articlesService.add(newArticle);
-      if (data && !error) {
-        // Update local article with Supabase ID if different
-        const localArticles = articlesManager.getAll();
-        const index = localArticles.findIndex((a) => a.id === tempId);
-        if (index !== -1) {
-          localArticles[index] = { ...data, id: data.id || tempId };
-          articlesManager.saveAll(localArticles);
+      
+      if (error) {
+        // Handle table not found error - allow local storage fallback for development
+        if (error.code === 'TABLE_NOT_FOUND') {
+          console.warn("⚠️ Articles table doesn't exist in Supabase. Saving to localStorage only.");
+          // For development: save to localStorage as fallback
+          const localArticles = articlesManager._getAllFromLocalStorage();
+          const tempId = localArticles.length > 0 ? Math.max(...localArticles.map((a) => a.id)) + 1 : 1;
+          const localArticle = { ...newArticle, id: tempId };
+          articlesManager.saveAll([...localArticles, localArticle]);
+          return localArticle;
         }
-        return data;
-      } else if (error && error.code !== "TABLE_NOT_FOUND") {
-        console.warn("Failed to sync article to Supabase:", error);
+        
+        // Other errors - throw to show to user
+        console.error("❌ Failed to save article to Supabase:", error);
+        throw new Error(`Failed to save article: ${error.message || 'Unknown error'}`);
       }
+      
+      if (!data) {
+        throw new Error('No data returned from Supabase');
+      }
+      
+      console.log("✅ Article successfully saved to Supabase:", data);
+      
+      // Update localStorage cache with the new article
+      const localArticles = articlesManager._getAllFromLocalStorage();
+      const exists = localArticles.some(a => a.id === data.id);
+      
+      if (!exists) {
+        articlesManager.saveAll([...localArticles, data]);
+        console.log("✅ Article added to localStorage cache");
+      } else {
+        // Update existing article
+        const index = localArticles.findIndex(a => a.id === data.id);
+        if (index >= 0) {
+          localArticles[index] = data;
+          articlesManager.saveAll(localArticles);
+          console.log("✅ Article updated in localStorage cache");
+        }
+      }
+      
+      return data;
     } catch (err) {
-      console.error("Exception syncing article to Supabase:", err);
+      console.error("❌ Exception saving article to Supabase:", err);
+      // Re-throw to let caller handle the error
+      throw err;
     }
-
-    return newArticle;
   },
 
-  // Update article (syncs with Supabase)
+  // Update article - Updates Supabase first (source of truth), then updates localStorage cache
   update: async (id, updatedArticle) => {
-    const articles = articlesManager.getAll();
-    const index = articles.findIndex((a) => a.id === id);
-    if (index === -1) return null;
+    // Get current article from cache to merge with updates
+    const localArticles = articlesManager._getAllFromLocalStorage();
+    const existingArticle = localArticles.find((a) => a.id === id);
 
-    const updated = [...articles];
-    updated[index] = {
+    if (!existingArticle) {
+      console.error('Article not found with id:', id);
+      throw new Error(`Article with id ${id} not found`);
+    }
+
+    // Merge updated fields with existing article data
+    const completeArticle = {
+      ...existingArticle,
       ...updatedArticle,
-      id,
+      id, // Preserve ID
       updatedAt: new Date().toISOString(),
     };
 
-    // Save to local storage first for immediate UI update
-    articlesManager.saveAll(updated);
-
-    // Sync with Supabase
-    articlesService
-      .update(id, updated[index])
-      .then(({ error }) => {
-        if (error && error.code !== "TABLE_NOT_FOUND") {
-          console.warn("Failed to sync article update to Supabase:", error);
+    // Update in Supabase FIRST (source of truth)
+    try {
+      console.log("💾 Updating article in Supabase...");
+      const { data, error } = await articlesService.update(id, completeArticle);
+      
+      if (error) {
+        // If article doesn't exist in Supabase, try to add it
+        if (error.code === 'PGRST116' || error.message?.includes('No rows found') || error.message?.includes('not found')) {
+          console.log("Article not found in Supabase, attempting to add instead...");
+          const addResult = await articlesService.add(completeArticle);
+          if (addResult.data && !addResult.error) {
+            console.log("✅ Successfully added article to Supabase (was missing)");
+            // Update localStorage with the new data
+            const localArticles = articlesManager._getAllFromLocalStorage();
+            const index = localArticles.findIndex(a => a.id === id);
+            if (index >= 0) {
+              localArticles[index] = addResult.data;
+            } else {
+              localArticles.push(addResult.data);
+            }
+            articlesManager.saveAll(localArticles);
+            return addResult.data;
+          } else if (addResult.error) {
+            if (addResult.error.code === 'TABLE_NOT_FOUND') {
+              // Table doesn't exist - fallback to localStorage for development
+              console.warn("⚠️ Articles table doesn't exist. Saving to localStorage only.");
+              const localArticles = articlesManager._getAllFromLocalStorage();
+              const index = localArticles.findIndex((a) => a.id === id);
+              if (index >= 0) {
+                localArticles[index] = completeArticle;
+                articlesManager.saveAll(localArticles);
+              }
+              return completeArticle;
+            }
+            throw new Error(`Failed to add article: ${addResult.error.message || 'Unknown error'}`);
+          }
+        } else if (error.code === 'TABLE_NOT_FOUND') {
+          // Table doesn't exist - fallback to localStorage for development
+          console.warn("⚠️ Articles table doesn't exist. Saving to localStorage only.");
+          const localArticles = articlesManager._getAllFromLocalStorage();
+          const index = localArticles.findIndex((a) => a.id === id);
+          if (index >= 0) {
+            localArticles[index] = completeArticle;
+            articlesManager.saveAll(localArticles);
+          }
+          return completeArticle;
         }
-      })
-      .catch((err) => {
-        console.warn("Exception syncing article update to Supabase:", err);
-      });
-
-    return updated[index];
+        
+        // Other errors - throw to show to user
+        console.error("❌ Failed to update article in Supabase:", error);
+        throw new Error(`Failed to update article: ${error.message || 'Unknown error'}`);
+      }
+      
+      if (!data) {
+        throw new Error('No data returned from Supabase');
+      }
+      
+      console.log("✅ Article successfully updated in Supabase:", data);
+      
+      // Update localStorage cache
+      const localArticles = articlesManager._getAllFromLocalStorage();
+      const index = localArticles.findIndex((a) => a.id === id);
+      if (index >= 0) {
+        localArticles[index] = data;
+        articlesManager.saveAll(localArticles);
+        console.log("✅ Article updated in localStorage cache");
+      } else {
+        // Article was added (new ID from Supabase)
+        articlesManager.saveAll([...localArticles, data]);
+        console.log("✅ Article added to localStorage cache");
+      }
+      
+      return data;
+    } catch (err) {
+      console.error("❌ Exception updating article in Supabase:", err);
+      // Re-throw to let caller handle the error
+      throw err;
+    }
   },
 
-  // Delete article (syncs with Supabase)
+  // Delete article - Deletes from Supabase first (source of truth), then updates localStorage cache
   delete: async (id) => {
-    const articles = articlesManager.getAll();
+    // Get article from cache first (for image deletion if needed)
+    const localArticles = articlesManager._getAllFromLocalStorage();
+    const articleToDelete = localArticles.find((a) => a.id === id);
     
-    // Get article to delete image if needed
-    const article = articles.find((a) => a.id === id);
-    if (article && article.imagePath) {
-      // Delete image from storage
-      articlesService.deleteImage(article.imagePath).catch((err) => {
-        console.warn("Failed to delete article image from storage:", err);
-      });
+    if (!articleToDelete) {
+      console.warn(`Article with id ${id} not found in cache`);
+      // Still try to delete from Supabase in case it exists there
+    }
+    
+    // Delete article's image from storage if it exists in Supabase Storage
+    if (articleToDelete && articleToDelete.imagePath) {
+      try {
+        await articlesService.deleteImage(articleToDelete.imagePath);
+        console.log('✅ Deleted article image from storage');
+      } catch (deleteError) {
+        console.warn('Could not delete article image from storage:', deleteError);
+        // Continue with article deletion even if image deletion fails
+      }
     }
 
-    const filtered = articles.filter((a) => a.id !== id);
-
-    // Save to local storage first for immediate UI update
-    articlesManager.saveAll(filtered);
-
-    // Sync with Supabase
-    articlesService
-      .delete(id)
-      .then(({ error }) => {
-        if (error && error.code !== "TABLE_NOT_FOUND") {
-          console.warn("Failed to sync article deletion to Supabase:", error);
+    // Delete from Supabase FIRST (source of truth)
+    try {
+      console.log("🗑️ Deleting article from Supabase...");
+      const { error } = await articlesService.delete(id);
+      
+      if (error) {
+        if (error.code === 'TABLE_NOT_FOUND') {
+          // Table doesn't exist - fallback to localStorage for development
+          console.warn("⚠️ Articles table doesn't exist. Deleting from localStorage only.");
+          const filtered = localArticles.filter((a) => a.id !== id);
+          articlesManager.saveAll(filtered);
+          return true;
         }
-      })
-      .catch((err) => {
-        console.warn("Exception syncing article deletion to Supabase:", err);
-      });
-
-    return true;
+        
+        // Other errors - throw to show to user
+        console.error("❌ Failed to delete article from Supabase:", error);
+        throw new Error(`Failed to delete article: ${error.message || 'Unknown error'}`);
+      }
+      
+      console.log("✅ Article successfully deleted from Supabase");
+      
+      // Update localStorage cache
+      const filtered = localArticles.filter((a) => a.id !== id);
+      articlesManager.saveAll(filtered);
+      console.log("✅ Article removed from localStorage cache");
+      
+      return true;
+    } catch (err) {
+      console.error("❌ Exception deleting article from Supabase:", err);
+      // Re-throw to let caller handle the error
+      throw err;
+    }
   },
 
-  // Get article by ID
-  getById: (id) => {
-    const articles = articlesManager.getAll();
+  // Get article by ID (async - fetches from Supabase)
+  getById: async (id) => {
+    const articles = await articlesManager.getAll();
     return articles.find((a) => a.id === id) || null;
+  },
+  
+  // Get article by ID (synchronous - uses cache)
+  getByIdSync: (id) => {
+    const articles = articlesManager._getAllFromLocalStorage();
+    return articles.find((a) => a.id === id) || null;
+  },
+  
+  // Subscribe to real-time changes from Supabase
+  subscribe: (callback) => {
+    // Unsubscribe from previous subscription if exists
+    if (articlesManager._subscription) {
+      articlesManager._subscription.unsubscribe();
+    }
+
+    console.log("🔔 Setting up real-time subscription for articles...");
+    
+    articlesManager._subscription = supabase
+      .channel('articles-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'articles'
+        },
+        async (payload) => {
+          console.log('🔔 Real-time article change detected:', payload.eventType, payload);
+          
+          try {
+            // Refresh articles from Supabase
+            const { data, error } = await articlesService.getAll();
+            
+            if (!error && data) {
+              const supabaseArticles = data.map((a) => articlesService.mapSupabaseToLocal(a));
+              
+              // Update localStorage cache
+              articlesManager.saveAll(supabaseArticles);
+              
+              // Call the callback to notify UI
+              if (callback && typeof callback === 'function') {
+                callback(supabaseArticles, payload);
+              }
+              
+              console.log('✅ Real-time update applied:', payload.eventType);
+            } else {
+              console.warn('⚠️ Failed to refresh articles after real-time change:', error);
+            }
+          } catch (err) {
+            console.error('❌ Exception handling real-time change:', err);
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Real-time subscription active for articles');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.warn('⚠️ Real-time subscription error - table may not exist');
+        }
+      });
+
+    // Return unsubscribe function
+    return () => {
+      if (articlesManager._subscription) {
+        articlesManager._subscription.unsubscribe();
+        articlesManager._subscription = null;
+        console.log('🔕 Real-time subscription unsubscribed');
+      }
+    };
+  },
+
+  // Unsubscribe from real-time changes
+  unsubscribe: () => {
+    if (articlesManager._subscription) {
+      articlesManager._subscription.unsubscribe();
+      articlesManager._subscription = null;
+      console.log('🔕 Real-time subscription unsubscribed');
+    }
   },
 
   // Fetch articles from Supabase and sync with local storage
@@ -1536,8 +2703,8 @@ export const articlesManager = {
         ? data.map((a) => articlesService.mapSupabaseToLocal(a))
         : [];
 
-      // Get existing local articles
-      const localArticles = articlesManager.getAll();
+      // Get existing local articles (use cached data for fast access)
+      const localArticles = articlesManager._getAllFromLocalStorage();
 
       // Start with Supabase articles as the source of truth
       const uniqueArticles = [...supabaseArticles];
@@ -1597,7 +2764,7 @@ export const articlesManager = {
   // Push local articles to Supabase (for initial sync)
   syncToSupabase: async () => {
     try {
-      const localArticles = articlesManager.getAll();
+      const localArticles = articlesManager._getAllFromLocalStorage();
       let syncedCount = 0;
       let errorCount = 0;
       const errors = [];
@@ -1685,9 +2852,70 @@ export const therapyProgramsManager = {
   _cache: null,
   _cacheTimestamp: null,
   _cacheTimeout: 5 * 60 * 1000, // 5 minutes
+  
+  // Real-time subscription channel
+  _subscription: null,
 
-  // Get all therapy programs (from cache or Supabase, fallback to localStorage)
-  getAll: () => {
+  // Get all therapy programs - Fetches from Supabase first (source of truth), falls back to localStorage
+  getAll: async (options = {}) => {
+    if (typeof window === "undefined") return [];
+    
+    const useCache = options.useCache !== false; // Default to true for performance
+    const forceRefresh = options.forceRefresh === true;
+    
+    // If we have cached data and not forcing refresh, return it immediately
+    // Then refresh in background
+    if (useCache && !forceRefresh) {
+      const cached = localStorage.getItem("eacsl_therapy_programs");
+      if (cached) {
+        try {
+          const cachedPrograms = JSON.parse(cached);
+          // Return cached data immediately, then refresh in background
+          therapyProgramsManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
+            console.warn('Background refresh failed:', err);
+          });
+          return cachedPrograms;
+        } catch (e) {
+          console.error('Error parsing cached therapy programs:', e);
+        }
+      }
+    }
+    
+    // Fetch from Supabase (source of truth)
+    try {
+      console.log("🔄 Fetching therapy programs from Supabase...");
+      const { data, error } = await therapyProgramsService.getAll();
+      
+      if (error) {
+        // If table doesn't exist, fall back to localStorage
+        if (error.code === "TABLE_NOT_FOUND") {
+          console.warn("⚠️ Therapy programs table not found in Supabase. Using localStorage fallback.");
+          return therapyProgramsManager._getAllFromLocalStorage();
+        }
+        
+        // Other errors - log and fall back to localStorage
+        console.error("❌ Error fetching from Supabase:", error);
+        return therapyProgramsManager._getAllFromLocalStorage();
+      }
+      
+      // Map Supabase programs to local format
+      const supabasePrograms = data
+        ? data.map((p) => therapyProgramsService.mapSupabaseToLocal(p))
+        : [];
+      
+      // Save to localStorage as cache
+      therapyProgramsManager.saveAll(supabasePrograms);
+      
+      console.log(`✅ Fetched ${supabasePrograms.length} therapy programs from Supabase`);
+      return supabasePrograms;
+    } catch (err) {
+      console.error("❌ Exception fetching from Supabase:", err);
+      return therapyProgramsManager._getAllFromLocalStorage();
+    }
+  },
+  
+  // Internal helper to get from localStorage (fallback)
+  _getAllFromLocalStorage: () => {
     if (typeof window === "undefined") return [];
     
     // Check cache first
@@ -1727,110 +2955,304 @@ export const therapyProgramsManager = {
     }
   },
 
-  // Add new therapy program (syncs with Supabase)
+  // Add new therapy program - Saves to Supabase first (source of truth), then updates localStorage cache
   add: async (program) => {
-    const programs = therapyProgramsManager.getAll();
-    const tempId = programs.length > 0 ? Math.max(...programs.map((p) => p.id)) + 1 : 1;
+    // Prepare program data
     const newProgram = {
       ...program,
-      id: tempId,
       createdAt: new Date().toISOString(),
     };
 
-    // Save to local storage first for immediate UI update
-    const updated = [...programs, newProgram];
-    therapyProgramsManager.saveAll(updated);
-
-    // Sync with Supabase
+    // Save to Supabase FIRST (source of truth)
     try {
+      console.log("💾 Saving therapy program to Supabase...");
       const { data, error } = await therapyProgramsService.add(newProgram);
-      if (data && !error) {
-        // Update local program with Supabase ID if different
-        const localPrograms = therapyProgramsManager.getAll();
-        const index = localPrograms.findIndex((p) => p.id === tempId);
-        if (index !== -1) {
-          localPrograms[index] = { ...data, id: data.id || tempId };
-          therapyProgramsManager.saveAll(localPrograms);
+      
+      if (error) {
+        // Handle table not found error - allow local storage fallback for development
+        if (error.code === 'TABLE_NOT_FOUND') {
+          console.warn("⚠️ Therapy programs table doesn't exist in Supabase. Saving to localStorage only.");
+          // For development: save to localStorage as fallback
+          const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
+          const tempId = localPrograms.length > 0 ? Math.max(...localPrograms.map((p) => p.id)) + 1 : 1;
+          const localProgram = { ...newProgram, id: tempId };
+          therapyProgramsManager.saveAll([...localPrograms, localProgram]);
+          return localProgram;
         }
-        return data;
-      } else if (error && error.code !== "TABLE_NOT_FOUND") {
-        console.warn("Failed to sync therapy program to Supabase:", error);
+        
+        // Other errors - throw to show to user
+        console.error("❌ Failed to save therapy program to Supabase:", error);
+        throw new Error(`Failed to save therapy program: ${error.message || 'Unknown error'}`);
       }
+      
+      if (!data) {
+        throw new Error('No data returned from Supabase');
+      }
+      
+      console.log("✅ Therapy program successfully saved to Supabase:", data);
+      
+      // Update localStorage cache with the new program
+      const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
+      const exists = localPrograms.some(p => p.id === data.id);
+      
+      if (!exists) {
+        therapyProgramsManager.saveAll([...localPrograms, data]);
+        console.log("✅ Therapy program added to localStorage cache");
+      } else {
+        // Update existing program
+        const index = localPrograms.findIndex(p => p.id === data.id);
+        if (index >= 0) {
+          localPrograms[index] = data;
+          therapyProgramsManager.saveAll(localPrograms);
+          console.log("✅ Therapy program updated in localStorage cache");
+        }
+      }
+      
+      return data;
     } catch (err) {
-      console.error("Exception syncing therapy program to Supabase:", err);
+      console.error("❌ Exception saving therapy program to Supabase:", err);
+      // Re-throw to let caller handle the error
+      throw err;
     }
-
-    return newProgram;
   },
 
-  // Update therapy program (syncs with Supabase)
+  // Update therapy program - Updates Supabase first (source of truth), then updates localStorage cache
   update: async (id, updatedProgram) => {
-    const programs = therapyProgramsManager.getAll();
-    const index = programs.findIndex((p) => p.id === id);
-    if (index === -1) return null;
+    // Get current program from cache to merge with updates
+    const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
+    const existingProgram = localPrograms.find((p) => p.id === id);
 
-    const updated = [...programs];
-    updated[index] = {
+    if (!existingProgram) {
+      console.error('Therapy program not found with id:', id);
+      throw new Error(`Therapy program with id ${id} not found`);
+    }
+
+    // Merge updated fields with existing program data
+    const completeProgram = {
+      ...existingProgram,
       ...updatedProgram,
-      id,
+      id, // Preserve ID
       updatedAt: new Date().toISOString(),
     };
 
-    // Save to local storage first for immediate UI update
-    therapyProgramsManager.saveAll(updated);
-
-    // Sync with Supabase
-    therapyProgramsService
-      .update(id, updated[index])
-      .then(({ error }) => {
-        if (error && error.code !== "TABLE_NOT_FOUND") {
-          console.warn("Failed to sync therapy program update to Supabase:", error);
+    // Update in Supabase FIRST (source of truth)
+    try {
+      console.log("💾 Updating therapy program in Supabase...");
+      const { data, error } = await therapyProgramsService.update(id, completeProgram);
+      
+      if (error) {
+        // If program doesn't exist in Supabase, try to add it
+        if (error.code === 'PGRST116' || error.message?.includes('No rows found') || error.message?.includes('not found')) {
+          console.log("Therapy program not found in Supabase, attempting to add instead...");
+          const addResult = await therapyProgramsService.add(completeProgram);
+          if (addResult.data && !addResult.error) {
+            console.log("✅ Successfully added therapy program to Supabase (was missing)");
+            // Update localStorage with the new data
+            const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
+            const index = localPrograms.findIndex(p => p.id === id);
+            if (index >= 0) {
+              localPrograms[index] = addResult.data;
+            } else {
+              localPrograms.push(addResult.data);
+            }
+            therapyProgramsManager.saveAll(localPrograms);
+            return addResult.data;
+          } else if (addResult.error) {
+            if (addResult.error.code === 'TABLE_NOT_FOUND') {
+              // Table doesn't exist - fallback to localStorage for development
+              console.warn("⚠️ Therapy programs table doesn't exist. Saving to localStorage only.");
+              const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
+              const index = localPrograms.findIndex((p) => p.id === id);
+              if (index >= 0) {
+                localPrograms[index] = completeProgram;
+                therapyProgramsManager.saveAll(localPrograms);
+              }
+              return completeProgram;
+            }
+            throw new Error(`Failed to add therapy program: ${addResult.error.message || 'Unknown error'}`);
+          }
+        } else if (error.code === 'TABLE_NOT_FOUND') {
+          // Table doesn't exist - fallback to localStorage for development
+          console.warn("⚠️ Therapy programs table doesn't exist. Saving to localStorage only.");
+          const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
+          const index = localPrograms.findIndex((p) => p.id === id);
+          if (index >= 0) {
+            localPrograms[index] = completeProgram;
+            therapyProgramsManager.saveAll(localPrograms);
+          }
+          return completeProgram;
         }
-      })
-      .catch((err) => {
-        console.warn("Exception syncing therapy program update to Supabase:", err);
-      });
-
-    return updated[index];
+        
+        // Other errors - throw to show to user
+        console.error("❌ Failed to update therapy program in Supabase:", error);
+        throw new Error(`Failed to update therapy program: ${error.message || 'Unknown error'}`);
+      }
+      
+      if (!data) {
+        throw new Error('No data returned from Supabase');
+      }
+      
+      console.log("✅ Therapy program successfully updated in Supabase:", data);
+      
+      // Update localStorage cache
+      const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
+      const index = localPrograms.findIndex((p) => p.id === id);
+      if (index >= 0) {
+        localPrograms[index] = data;
+        therapyProgramsManager.saveAll(localPrograms);
+        console.log("✅ Therapy program updated in localStorage cache");
+      } else {
+        // Program was added (new ID from Supabase)
+        therapyProgramsManager.saveAll([...localPrograms, data]);
+        console.log("✅ Therapy program added to localStorage cache");
+      }
+      
+      return data;
+    } catch (err) {
+      console.error("❌ Exception updating therapy program in Supabase:", err);
+      // Re-throw to let caller handle the error
+      throw err;
+    }
   },
 
-  // Delete therapy program (syncs with Supabase)
+  // Delete therapy program - Deletes from Supabase first (source of truth), then updates localStorage cache
   delete: async (id) => {
-    const programs = therapyProgramsManager.getAll();
+    // Get program from cache first (for image deletion if needed)
+    const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
+    const programToDelete = localPrograms.find((p) => p.id === id);
     
-    // Get program to delete image if needed
-    const program = programs.find((p) => p.id === id);
-    if (program && program.imagePath) {
-      // Delete image from storage
-      therapyProgramsService.deleteImage(program.imagePath).catch((err) => {
-        console.warn("Failed to delete therapy program image from storage:", err);
-      });
+    if (!programToDelete) {
+      console.warn(`Therapy program with id ${id} not found in cache`);
+      // Still try to delete from Supabase in case it exists there
+    }
+    
+    // Delete program's image from storage if it exists in Supabase Storage
+    if (programToDelete && programToDelete.imagePath) {
+      try {
+        await therapyProgramsService.deleteImage(programToDelete.imagePath);
+        console.log('✅ Deleted therapy program image from storage');
+      } catch (deleteError) {
+        console.warn('Could not delete therapy program image from storage:', deleteError);
+        // Continue with program deletion even if image deletion fails
+      }
     }
 
-    const filtered = programs.filter((p) => p.id !== id);
-
-    // Save to local storage first for immediate UI update
-    therapyProgramsManager.saveAll(filtered);
-
-    // Sync with Supabase
-    therapyProgramsService
-      .delete(id)
-      .then(({ error }) => {
-        if (error && error.code !== "TABLE_NOT_FOUND") {
-          console.warn("Failed to sync therapy program deletion to Supabase:", error);
+    // Delete from Supabase FIRST (source of truth)
+    try {
+      console.log("🗑️ Deleting therapy program from Supabase...");
+      const { error } = await therapyProgramsService.delete(id);
+      
+      if (error) {
+        if (error.code === 'TABLE_NOT_FOUND') {
+          // Table doesn't exist - fallback to localStorage for development
+          console.warn("⚠️ Therapy programs table doesn't exist. Deleting from localStorage only.");
+          const filtered = localPrograms.filter((p) => p.id !== id);
+          therapyProgramsManager.saveAll(filtered);
+          return true;
         }
-      })
-      .catch((err) => {
-        console.warn("Exception syncing therapy program deletion to Supabase:", err);
-      });
-
-    return true;
+        
+        // Other errors - throw to show to user
+        console.error("❌ Failed to delete therapy program from Supabase:", error);
+        throw new Error(`Failed to delete therapy program: ${error.message || 'Unknown error'}`);
+      }
+      
+      console.log("✅ Therapy program successfully deleted from Supabase");
+      
+      // Update localStorage cache
+      const filtered = localPrograms.filter((p) => p.id !== id);
+      therapyProgramsManager.saveAll(filtered);
+      console.log("✅ Therapy program removed from localStorage cache");
+      
+      return true;
+    } catch (err) {
+      console.error("❌ Exception deleting therapy program from Supabase:", err);
+      // Re-throw to let caller handle the error
+      throw err;
+    }
   },
 
-  // Get therapy program by ID
-  getById: (id) => {
-    const programs = therapyProgramsManager.getAll();
+  // Get therapy program by ID (async - fetches from Supabase)
+  getById: async (id) => {
+    const programs = await therapyProgramsManager.getAll();
     return programs.find((p) => p.id === id) || null;
+  },
+  
+  // Get therapy program by ID (synchronous - uses cache)
+  getByIdSync: (id) => {
+    const programs = therapyProgramsManager._getAllFromLocalStorage();
+    return programs.find((p) => p.id === id) || null;
+  },
+  
+  // Subscribe to real-time changes from Supabase
+  subscribe: (callback) => {
+    // Unsubscribe from previous subscription if exists
+    if (therapyProgramsManager._subscription) {
+      therapyProgramsManager._subscription.unsubscribe();
+    }
+
+    console.log("🔔 Setting up real-time subscription for therapy programs...");
+    
+    therapyProgramsManager._subscription = supabase
+      .channel('therapy-programs-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'therapy_programs'
+        },
+        async (payload) => {
+          console.log('🔔 Real-time therapy program change detected:', payload.eventType, payload);
+          
+          try {
+            // Refresh therapy programs from Supabase
+            const { data, error } = await therapyProgramsService.getAll();
+            
+            if (!error && data) {
+              const supabasePrograms = data.map((p) => therapyProgramsService.mapSupabaseToLocal(p));
+              
+              // Update localStorage cache
+              therapyProgramsManager.saveAll(supabasePrograms);
+              
+              // Call the callback to notify UI
+              if (callback && typeof callback === 'function') {
+                callback(supabasePrograms, payload);
+              }
+              
+              console.log('✅ Real-time update applied:', payload.eventType);
+            } else {
+              console.warn('⚠️ Failed to refresh therapy programs after real-time change:', error);
+            }
+          } catch (err) {
+            console.error('❌ Exception handling real-time change:', err);
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Real-time subscription active for therapy programs');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.warn('⚠️ Real-time subscription error - table may not exist');
+        }
+      });
+
+    // Return unsubscribe function
+    return () => {
+      if (therapyProgramsManager._subscription) {
+        therapyProgramsManager._subscription.unsubscribe();
+        therapyProgramsManager._subscription = null;
+        console.log('🔕 Real-time subscription unsubscribed');
+      }
+    };
+  },
+
+  // Unsubscribe from real-time changes
+  unsubscribe: () => {
+    if (therapyProgramsManager._subscription) {
+      therapyProgramsManager._subscription.unsubscribe();
+      therapyProgramsManager._subscription = null;
+      console.log('🔕 Real-time subscription unsubscribed');
+    }
   },
 
   // Fetch therapy programs from Supabase and sync with local storage
@@ -1864,8 +3286,8 @@ export const therapyProgramsManager = {
         ? data.map((p) => therapyProgramsService.mapSupabaseToLocal(p))
         : [];
 
-      // Get existing local programs
-      const localPrograms = therapyProgramsManager.getAll();
+      // Get existing local programs (use cached data for fast access)
+      const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
 
       // Start with Supabase programs as the source of truth
       const uniquePrograms = [...supabasePrograms];
@@ -1925,7 +3347,7 @@ export const therapyProgramsManager = {
   // Push local therapy programs to Supabase (for initial sync)
   syncToSupabase: async () => {
     try {
-      const localPrograms = therapyProgramsManager.getAll();
+      const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
       let syncedCount = 0;
       let errorCount = 0;
       const errors = [];
@@ -1968,7 +3390,7 @@ export const therapyProgramsManager = {
               console.log(`✅ Added therapy program to Supabase: ${program.title}`);
               
               // Update local program with Supabase ID
-              const localPrograms = therapyProgramsManager.getAll();
+              const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
               const index = localPrograms.findIndex((p) => p.id === program.id);
               if (index !== -1) {
                 localPrograms[index] = { ...data, id: data.id };
@@ -2013,9 +3435,70 @@ export const forParentsManager = {
   _cache: null,
   _cacheTimestamp: null,
   _cacheTimeout: 5 * 60 * 1000, // 5 minutes
+  
+  // Real-time subscription channel
+  _subscription: null,
 
-  // Get all parent articles (from cache or Supabase, fallback to localStorage)
-  getAll: () => {
+  // Get all parent articles - Fetches from Supabase first (source of truth), falls back to localStorage
+  getAll: async (options = {}) => {
+    if (typeof window === "undefined") return [];
+    
+    const useCache = options.useCache !== false; // Default to true for performance
+    const forceRefresh = options.forceRefresh === true;
+    
+    // If we have cached data and not forcing refresh, return it immediately
+    // Then refresh in background
+    if (useCache && !forceRefresh) {
+      const cached = localStorage.getItem("eacsl_for_parents");
+      if (cached) {
+        try {
+          const cachedArticles = JSON.parse(cached);
+          // Return cached data immediately, then refresh in background
+          forParentsManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
+            console.warn('Background refresh failed:', err);
+          });
+          return cachedArticles;
+        } catch (e) {
+          console.error('Error parsing cached for parents articles:', e);
+        }
+      }
+    }
+    
+    // Fetch from Supabase (source of truth)
+    try {
+      console.log("🔄 Fetching for parents articles from Supabase...");
+      const { data, error } = await forParentsService.getAll();
+      
+      if (error) {
+        // If table doesn't exist, fall back to localStorage
+        if (error.code === "TABLE_NOT_FOUND") {
+          console.warn("⚠️ For parents table not found in Supabase. Using localStorage fallback.");
+          return forParentsManager._getAllFromLocalStorage();
+        }
+        
+        // Other errors - log and fall back to localStorage
+        console.error("❌ Error fetching from Supabase:", error);
+        return forParentsManager._getAllFromLocalStorage();
+      }
+      
+      // Map Supabase articles to local format
+      const supabaseArticles = data
+        ? data.map((a) => forParentsService.mapSupabaseToLocal(a))
+        : [];
+      
+      // Save to localStorage as cache
+      forParentsManager.saveAll(supabaseArticles);
+      
+      console.log(`✅ Fetched ${supabaseArticles.length} for parents articles from Supabase`);
+      return supabaseArticles;
+    } catch (err) {
+      console.error("❌ Exception fetching from Supabase:", err);
+      return forParentsManager._getAllFromLocalStorage();
+    }
+  },
+  
+  // Internal helper to get from localStorage (fallback)
+  _getAllFromLocalStorage: () => {
     if (typeof window === "undefined") return [];
     
     // Check cache first
@@ -2055,110 +3538,304 @@ export const forParentsManager = {
     }
   },
 
-  // Add new parent article (syncs with Supabase)
+  // Add new parent article - Saves to Supabase first (source of truth), then updates localStorage cache
   add: async (article) => {
-    const articles = forParentsManager.getAll();
-    const tempId = articles.length > 0 ? Math.max(...articles.map((a) => a.id)) + 1 : 1;
+    // Prepare article data
     const newArticle = {
       ...article,
-      id: tempId,
       createdAt: new Date().toISOString(),
     };
 
-    // Save to local storage first for immediate UI update
-    const updated = [...articles, newArticle];
-    forParentsManager.saveAll(updated);
-
-    // Sync with Supabase
+    // Save to Supabase FIRST (source of truth)
     try {
+      console.log("💾 Saving for parents article to Supabase...");
       const { data, error } = await forParentsService.add(newArticle);
-      if (data && !error) {
-        // Update local article with Supabase ID if different
-        const localArticles = forParentsManager.getAll();
-        const index = localArticles.findIndex((a) => a.id === tempId);
-        if (index !== -1) {
-          localArticles[index] = { ...data, id: data.id || tempId };
-          forParentsManager.saveAll(localArticles);
+      
+      if (error) {
+        // Handle table not found error - allow local storage fallback for development
+        if (error.code === 'TABLE_NOT_FOUND') {
+          console.warn("⚠️ For parents table doesn't exist in Supabase. Saving to localStorage only.");
+          // For development: save to localStorage as fallback
+          const localArticles = forParentsManager._getAllFromLocalStorage();
+          const tempId = localArticles.length > 0 ? Math.max(...localArticles.map((a) => a.id)) + 1 : 1;
+          const localArticle = { ...newArticle, id: tempId };
+          forParentsManager.saveAll([...localArticles, localArticle]);
+          return localArticle;
         }
-        return data;
-      } else if (error && error.code !== "TABLE_NOT_FOUND") {
-        console.warn("Failed to sync parent article to Supabase:", error);
+        
+        // Other errors - throw to show to user
+        console.error("❌ Failed to save for parents article to Supabase:", error);
+        throw new Error(`Failed to save article: ${error.message || 'Unknown error'}`);
       }
+      
+      if (!data) {
+        throw new Error('No data returned from Supabase');
+      }
+      
+      console.log("✅ For parents article successfully saved to Supabase:", data);
+      
+      // Update localStorage cache with the new article
+      const localArticles = forParentsManager._getAllFromLocalStorage();
+      const exists = localArticles.some(a => a.id === data.id);
+      
+      if (!exists) {
+        forParentsManager.saveAll([...localArticles, data]);
+        console.log("✅ For parents article added to localStorage cache");
+      } else {
+        // Update existing article
+        const index = localArticles.findIndex(a => a.id === data.id);
+        if (index >= 0) {
+          localArticles[index] = data;
+          forParentsManager.saveAll(localArticles);
+          console.log("✅ For parents article updated in localStorage cache");
+        }
+      }
+      
+      return data;
     } catch (err) {
-      console.error("Exception syncing parent article to Supabase:", err);
+      console.error("❌ Exception saving for parents article to Supabase:", err);
+      // Re-throw to let caller handle the error
+      throw err;
     }
-
-    return newArticle;
   },
 
-  // Update parent article (syncs with Supabase)
+  // Update parent article - Updates Supabase first (source of truth), then updates localStorage cache
   update: async (id, updatedArticle) => {
-    const articles = forParentsManager.getAll();
-    const index = articles.findIndex((a) => a.id === id);
-    if (index === -1) return null;
+    // Get current article from cache to merge with updates
+    const localArticles = forParentsManager._getAllFromLocalStorage();
+    const existingArticle = localArticles.find((a) => a.id === id);
 
-    const updated = [...articles];
-    updated[index] = {
+    if (!existingArticle) {
+      console.error('For parents article not found with id:', id);
+      throw new Error(`Article with id ${id} not found`);
+    }
+
+    // Merge updated fields with existing article data
+    const completeArticle = {
+      ...existingArticle,
       ...updatedArticle,
-      id,
+      id, // Preserve ID
       updatedAt: new Date().toISOString(),
     };
 
-    // Save to local storage first for immediate UI update
-    forParentsManager.saveAll(updated);
-
-    // Sync with Supabase
-    forParentsService
-      .update(id, updated[index])
-      .then(({ error }) => {
-        if (error && error.code !== "TABLE_NOT_FOUND") {
-          console.warn("Failed to sync parent article update to Supabase:", error);
+    // Update in Supabase FIRST (source of truth)
+    try {
+      console.log("💾 Updating for parents article in Supabase...");
+      const { data, error } = await forParentsService.update(id, completeArticle);
+      
+      if (error) {
+        // If article doesn't exist in Supabase, try to add it
+        if (error.code === 'PGRST116' || error.message?.includes('No rows found') || error.message?.includes('not found')) {
+          console.log("For parents article not found in Supabase, attempting to add instead...");
+          const addResult = await forParentsService.add(completeArticle);
+          if (addResult.data && !addResult.error) {
+            console.log("✅ Successfully added for parents article to Supabase (was missing)");
+            // Update localStorage with the new data
+            const localArticles = forParentsManager._getAllFromLocalStorage();
+            const index = localArticles.findIndex(a => a.id === id);
+            if (index >= 0) {
+              localArticles[index] = addResult.data;
+            } else {
+              localArticles.push(addResult.data);
+            }
+            forParentsManager.saveAll(localArticles);
+            return addResult.data;
+          } else if (addResult.error) {
+            if (addResult.error.code === 'TABLE_NOT_FOUND') {
+              // Table doesn't exist - fallback to localStorage for development
+              console.warn("⚠️ For parents table doesn't exist. Saving to localStorage only.");
+              const localArticles = forParentsManager._getAllFromLocalStorage();
+              const index = localArticles.findIndex((a) => a.id === id);
+              if (index >= 0) {
+                localArticles[index] = completeArticle;
+                forParentsManager.saveAll(localArticles);
+              }
+              return completeArticle;
+            }
+            throw new Error(`Failed to add article: ${addResult.error.message || 'Unknown error'}`);
+          }
+        } else if (error.code === 'TABLE_NOT_FOUND') {
+          // Table doesn't exist - fallback to localStorage for development
+          console.warn("⚠️ For parents table doesn't exist. Saving to localStorage only.");
+          const localArticles = forParentsManager._getAllFromLocalStorage();
+          const index = localArticles.findIndex((a) => a.id === id);
+          if (index >= 0) {
+            localArticles[index] = completeArticle;
+            forParentsManager.saveAll(localArticles);
+          }
+          return completeArticle;
         }
-      })
-      .catch((err) => {
-        console.warn("Exception syncing parent article update to Supabase:", err);
-      });
-
-    return updated[index];
+        
+        // Other errors - throw to show to user
+        console.error("❌ Failed to update for parents article in Supabase:", error);
+        throw new Error(`Failed to update article: ${error.message || 'Unknown error'}`);
+      }
+      
+      if (!data) {
+        throw new Error('No data returned from Supabase');
+      }
+      
+      console.log("✅ For parents article successfully updated in Supabase:", data);
+      
+      // Update localStorage cache
+      const localArticles = forParentsManager._getAllFromLocalStorage();
+      const index = localArticles.findIndex((a) => a.id === id);
+      if (index >= 0) {
+        localArticles[index] = data;
+        forParentsManager.saveAll(localArticles);
+        console.log("✅ For parents article updated in localStorage cache");
+      } else {
+        // Article was added (new ID from Supabase)
+        forParentsManager.saveAll([...localArticles, data]);
+        console.log("✅ For parents article added to localStorage cache");
+      }
+      
+      return data;
+    } catch (err) {
+      console.error("❌ Exception updating for parents article in Supabase:", err);
+      // Re-throw to let caller handle the error
+      throw err;
+    }
   },
 
-  // Delete parent article (syncs with Supabase)
+  // Delete parent article - Deletes from Supabase first (source of truth), then updates localStorage cache
   delete: async (id) => {
-    const articles = forParentsManager.getAll();
+    // Get article from cache first (for image deletion if needed)
+    const localArticles = forParentsManager._getAllFromLocalStorage();
+    const articleToDelete = localArticles.find((a) => a.id === id);
     
-    // Get article to delete image if needed
-    const article = articles.find((a) => a.id === id);
-    if (article && article.imagePath) {
-      // Delete image from storage
-      forParentsService.deleteImage(article.imagePath).catch((err) => {
-        console.warn("Failed to delete parent article image from storage:", err);
-      });
+    if (!articleToDelete) {
+      console.warn(`For parents article with id ${id} not found in cache`);
+      // Still try to delete from Supabase in case it exists there
+    }
+    
+    // Delete article's image from storage if it exists in Supabase Storage
+    if (articleToDelete && articleToDelete.imagePath) {
+      try {
+        await forParentsService.deleteImage(articleToDelete.imagePath);
+        console.log('✅ Deleted for parents article image from storage');
+      } catch (deleteError) {
+        console.warn('Could not delete for parents article image from storage:', deleteError);
+        // Continue with article deletion even if image deletion fails
+      }
     }
 
-    const filtered = articles.filter((a) => a.id !== id);
-
-    // Save to local storage first for immediate UI update
-    forParentsManager.saveAll(filtered);
-
-    // Sync with Supabase
-    forParentsService
-      .delete(id)
-      .then(({ error }) => {
-        if (error && error.code !== "TABLE_NOT_FOUND") {
-          console.warn("Failed to sync parent article deletion to Supabase:", error);
+    // Delete from Supabase FIRST (source of truth)
+    try {
+      console.log("🗑️ Deleting for parents article from Supabase...");
+      const { error } = await forParentsService.delete(id);
+      
+      if (error) {
+        if (error.code === 'TABLE_NOT_FOUND') {
+          // Table doesn't exist - fallback to localStorage for development
+          console.warn("⚠️ For parents table doesn't exist. Deleting from localStorage only.");
+          const filtered = localArticles.filter((a) => a.id !== id);
+          forParentsManager.saveAll(filtered);
+          return true;
         }
-      })
-      .catch((err) => {
-        console.warn("Exception syncing parent article deletion to Supabase:", err);
-      });
-
-    return true;
+        
+        // Other errors - throw to show to user
+        console.error("❌ Failed to delete for parents article from Supabase:", error);
+        throw new Error(`Failed to delete article: ${error.message || 'Unknown error'}`);
+      }
+      
+      console.log("✅ For parents article successfully deleted from Supabase");
+      
+      // Update localStorage cache
+      const filtered = localArticles.filter((a) => a.id !== id);
+      forParentsManager.saveAll(filtered);
+      console.log("✅ For parents article removed from localStorage cache");
+      
+      return true;
+    } catch (err) {
+      console.error("❌ Exception deleting for parents article from Supabase:", err);
+      // Re-throw to let caller handle the error
+      throw err;
+    }
   },
 
-  // Get parent article by ID
-  getById: (id) => {
-    const articles = forParentsManager.getAll();
+  // Get parent article by ID (async - fetches from Supabase)
+  getById: async (id) => {
+    const articles = await forParentsManager.getAll();
     return articles.find((a) => a.id === id) || null;
+  },
+  
+  // Get parent article by ID (synchronous - uses cache)
+  getByIdSync: (id) => {
+    const articles = forParentsManager._getAllFromLocalStorage();
+    return articles.find((a) => a.id === id) || null;
+  },
+  
+  // Subscribe to real-time changes from Supabase
+  subscribe: (callback) => {
+    // Unsubscribe from previous subscription if exists
+    if (forParentsManager._subscription) {
+      forParentsManager._subscription.unsubscribe();
+    }
+
+    console.log("🔔 Setting up real-time subscription for for parents articles...");
+    
+    forParentsManager._subscription = supabase
+      .channel('for-parents-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'for_parents'
+        },
+        async (payload) => {
+          console.log('🔔 Real-time for parents article change detected:', payload.eventType, payload);
+          
+          try {
+            // Refresh articles from Supabase
+            const { data, error } = await forParentsService.getAll();
+            
+            if (!error && data) {
+              const supabaseArticles = data.map((a) => forParentsService.mapSupabaseToLocal(a));
+              
+              // Update localStorage cache
+              forParentsManager.saveAll(supabaseArticles);
+              
+              // Call the callback to notify UI
+              if (callback && typeof callback === 'function') {
+                callback(supabaseArticles, payload);
+              }
+              
+              console.log('✅ Real-time update applied:', payload.eventType);
+            } else {
+              console.warn('⚠️ Failed to refresh for parents articles after real-time change:', error);
+            }
+          } catch (err) {
+            console.error('❌ Exception handling real-time change:', err);
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('✅ Real-time subscription active for for parents articles');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.warn('⚠️ Real-time subscription error - table may not exist');
+        }
+      });
+
+    // Return unsubscribe function
+    return () => {
+      if (forParentsManager._subscription) {
+        forParentsManager._subscription.unsubscribe();
+        forParentsManager._subscription = null;
+        console.log('🔕 Real-time subscription unsubscribed');
+      }
+    };
+  },
+
+  // Unsubscribe from real-time changes
+  unsubscribe: () => {
+    if (forParentsManager._subscription) {
+      forParentsManager._subscription.unsubscribe();
+      forParentsManager._subscription = null;
+      console.log('🔕 Real-time subscription unsubscribed');
+    }
   },
 
   // Fetch parent articles from Supabase and sync with local storage
@@ -2192,8 +3869,8 @@ export const forParentsManager = {
         ? data.map((a) => forParentsService.mapSupabaseToLocal(a))
         : [];
 
-      // Get existing local articles
-      const localArticles = forParentsManager.getAll();
+      // Get existing local articles (use cached data for fast access)
+      const localArticles = forParentsManager._getAllFromLocalStorage();
 
       // Start with Supabase articles as the source of truth
       const uniqueArticles = [...supabaseArticles];
@@ -2253,7 +3930,7 @@ export const forParentsManager = {
   // Push local parent articles to Supabase (for initial sync)
   syncToSupabase: async () => {
     try {
-      const localArticles = forParentsManager.getAll();
+      const localArticles = forParentsManager._getAllFromLocalStorage();
       let syncedCount = 0;
       let errorCount = 0;
       const errors = [];
@@ -2296,7 +3973,7 @@ export const forParentsManager = {
               console.log(`✅ Added parent article to Supabase: ${article.title}`);
               
               // Update local article with Supabase ID
-              const localArticles = forParentsManager.getAll();
+              const localArticles = forParentsManager._getAllFromLocalStorage();
               const index = localArticles.findIndex((a) => a.id === article.id);
               if (index !== -1) {
                 localArticles[index] = { ...data, id: data.id };

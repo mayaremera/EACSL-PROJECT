@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader, Upload, Check, Plus, Trash2, FileText } from 'lucide-react';
+import { coursesService } from '../../services/coursesService';
 
 const CourseEditForm = ({ course, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -272,21 +273,63 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // Convert File objects to data URLs
-      const imageDataUrl = formData.image instanceof File 
-        ? await fileToDataURL(formData.image)
-        : (formData.image || '');
-      
-      const instructorImageDataUrl = formData.instructorImage instanceof File
-        ? await fileToDataURL(formData.instructorImage)
-        : (formData.instructorImage || '');
+      // Upload images to Supabase Storage if they are File objects
+      let imageUrl = formData.image || '';
+      let imagePath = formData.image_path || '';
+      let instructorImageUrl = formData.instructorImage || '';
+      let instructorImagePath = formData.instructor_image_path || '';
 
+      // Upload course image if it's a new File
+      if (formData.image instanceof File) {
+        console.log('📤 Uploading course image to storage...');
+        const uploadResult = await coursesService.uploadCourseImage(formData.image, formData.image.name);
+        if (uploadResult.error) {
+          alert(`Failed to upload course image: ${uploadResult.error.message || 'Unknown error'}`);
+          setIsLoading(false);
+          return;
+        }
+        imageUrl = uploadResult.data.url;
+        imagePath = uploadResult.data.path;
+        console.log('✅ Course image uploaded:', { url: imageUrl, path: imagePath });
+      } else if (typeof formData.image === 'string' && formData.image.startsWith('data:')) {
+        // If it's a data URL (old format), we should still try to upload it
+        // But for now, we'll skip it and use the existing URL
+        console.warn('⚠️ Course image is a data URL. Consider uploading to storage.');
+      }
+
+      // Upload instructor image if it's a new File
+      if (formData.instructorImage instanceof File) {
+        console.log('📤 Uploading instructor image to storage...');
+        const uploadResult = await coursesService.uploadInstructorImage(formData.instructorImage, formData.instructorImage.name);
+        if (uploadResult.error) {
+          alert(`Failed to upload instructor image: ${uploadResult.error.message || 'Unknown error'}`);
+          setIsLoading(false);
+          return;
+        }
+        instructorImageUrl = uploadResult.data.url;
+        instructorImagePath = uploadResult.data.path;
+        console.log('✅ Instructor image uploaded:', { url: instructorImageUrl, path: instructorImagePath });
+      } else if (typeof formData.instructorImage === 'string' && formData.instructorImage.startsWith('data:')) {
+        // If it's a data URL (old format), we should still try to upload it
+        // But for now, we'll skip it and use the existing URL
+        console.warn('⚠️ Instructor image is a data URL. Consider uploading to storage.');
+      }
+
+      // Prepare data to save with storage URLs and paths
       const dataToSave = {
         ...formData,
-        image: imageDataUrl,
-        instructorImage: instructorImageDataUrl
+        image: imageUrl,
+        image_url: imageUrl,
+        image_path: imagePath,
+        instructorImage: instructorImageUrl,
+        instructor_image_url: instructorImageUrl,
+        instructor_image_path: instructorImagePath,
       };
+      
       await onSave(dataToSave);
+    } catch (error) {
+      console.error('Error submitting course form:', error);
+      alert(`Failed to save course: ${error.message || 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }

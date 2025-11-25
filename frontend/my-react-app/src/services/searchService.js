@@ -156,7 +156,8 @@ export const searchService = {
    */
   async searchCourses(query) {
     try {
-      const courses = coursesManager.getAll();
+      // Use cached data for fast search
+      const courses = coursesManager._getAllFromLocalStorage();
       if (!courses || courses.length === 0) return [];
 
       const normalizedQuery = this.normalizeQuery(query);

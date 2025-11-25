@@ -42,31 +42,38 @@ function ContinuingEducationMember() {
       
       // If user is logged in and no memberId provided, use logged-in user's member data
       if (user && !memberId) {
-        // First, try to sync from Supabase to ensure we have the latest data
+        // Fetch fresh data from Supabase first (source of truth)
         try {
-          await membersManager.syncFromSupabase();
+          const allMembers = await membersManager.getAll();
+          // Try to find by supabaseUserId first
+          let memberData = allMembers.find(m => m.supabaseUserId === user.id);
+          
+          // If not found, try by email
+          if (!memberData) {
+            memberData = allMembers.find(m => m.email === user.email);
+          }
+          
+          if (memberData) {
+            setMember(memberData);
+            setLoading(false);
+            return;
+          }
         } catch (error) {
-          console.warn('Could not sync from Supabase:', error);
+          console.warn('Could not fetch members from Supabase:', error);
+          // Fallback to cached data
+          const cachedMembers = membersManager._getAllFromLocalStorage();
+          let memberData = cachedMembers.find(m => m.supabaseUserId === user.id);
+          if (!memberData) {
+            memberData = cachedMembers.find(m => m.email === user.email);
+          }
+          if (memberData) {
+            setMember(memberData);
+            setLoading(false);
+            return;
+          }
         }
         
-        // Get member by Supabase user ID
-        let memberData = getMemberByUserId(user.id);
-        if (memberData) {
-          setMember(memberData);
-          setLoading(false);
-          return;
-        }
-        
-        // If member doesn't exist, try to find by email (use cached data for fast access)
-        const allMembers = membersManager._getAllFromLocalStorage();
-        memberData = allMembers.find(m => m.email === user.email);
-        if (memberData) {
-          setMember(memberData);
-          setLoading(false);
-          return;
-        }
-        
-        // If still not found, try to fetch directly from Supabase
+        // If still not found, try to fetch directly from Supabase by user ID
         try {
           const { membersService } = await import('../services/membersService');
           const { data: supabaseMember } = await membersService.getByUserId(user.id);
@@ -112,13 +119,24 @@ function ContinuingEducationMember() {
         setLoading(false);
         return;
       } else if (memberId) {
-        // Use memberId from URL (use cached data for fast access)
-        const allMembers = membersManager._getAllFromLocalStorage();
-        const memberData = allMembers.find(m => m.id === parseInt(memberId));
-        if (memberData) {
-          setMember(memberData);
+        // Use memberId from URL - fetch from Supabase first
+        try {
+          const allMembers = await membersManager.getAll();
+          const memberData = allMembers.find(m => m.id === parseInt(memberId));
+          if (memberData) {
+            setMember(memberData);
+          }
+        } catch (error) {
+          console.warn('Could not fetch members from Supabase:', error);
+          // Fallback to cached data
+          const cachedMembers = membersManager._getAllFromLocalStorage();
+          const memberData = cachedMembers.find(m => m.id === parseInt(memberId));
+          if (memberData) {
+            setMember(memberData);
+          }
+        } finally {
+          setLoading(false);
         }
-        setLoading(false);
       } else {
         // No user and no memberId - redirect or show error
         setLoading(false);

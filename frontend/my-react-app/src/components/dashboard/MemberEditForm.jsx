@@ -160,8 +160,21 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
 
   // Load available courses
   useEffect(() => {
-    const courses = coursesManager.getAll();
-    setAvailableCourses(courses);
+    const loadCourses = async () => {
+      // First, load from cache for immediate display
+      const cachedCourses = coursesManager._getAllFromLocalStorage();
+      setAvailableCourses(cachedCourses);
+      
+      // Then refresh from Supabase in the background
+      try {
+        const courses = await coursesManager.getAll();
+        setAvailableCourses(courses);
+      } catch (error) {
+        console.error('Error loading courses:', error);
+      }
+    };
+    
+    loadCourses();
   }, []);
 
   const roles = ['Board Member', 'Vice President', 'Secretary General', 'Treasurer', 'Research Director', 'Member'];

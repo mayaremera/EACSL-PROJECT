@@ -1149,7 +1149,10 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     // Initialize data and load
     useEffect(() => {
         initializeData();
-        loadCourses();
+        // loadCourses() is now async and fetches from Supabase first
+        loadCourses().catch(err => {
+            console.error('Failed to load courses:', err);
+        });
         // loadMembers() is now async and fetches from Supabase first
         loadMembers().catch(err => {
             console.error('Failed to load members:', err);
@@ -1157,39 +1160,56 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         loadForms();
         loadEventRegistrations();
         loadContactForms();
-        // Load events after initialization to ensure default event is created if needed
+        // Load events after initialization (now async, fetches from Supabase first)
         setTimeout(() => {
-            loadEvents();
+            loadEvents().catch(err => {
+                console.error('Failed to load events:', err);
+            });
         }, 100);
-        loadArticles();
-        loadTherapyPrograms();
-        loadForParentsArticles();
+        loadArticles().catch(err => {
+            console.error('Failed to load articles:', err);
+        });
+        loadTherapyPrograms().catch(err => {
+            console.error('Failed to load therapy programs:', err);
+        });
+        loadForParentsArticles().catch(err => {
+            console.error('Failed to load for parents articles:', err);
+        });
         
         // Set up real-time subscription for members
-        const unsubscribe = membersManager.subscribe((updatedMembers, payload) => {
+        const unsubscribeMembers = membersManager.subscribe((updatedMembers, payload) => {
             console.log('Real-time members update received:', payload.eventType);
             setMembers(updatedMembers);
         });
         
-        // Cleanup subscription on unmount
-        return () => {
-            if (unsubscribe) {
-                unsubscribe();
-            }
-            membersManager.unsubscribe();
-        };
-
-        // Sync events from Supabase on initial load (silently fail if table doesn't exist)
-        eventsManager.syncFromSupabase().then((result) => {
-            if (result.synced) {
-                loadEvents();
-            } else if (result.error?.code === 'TABLE_NOT_FOUND') {
-                // Table doesn't exist yet - this is okay, just log a warning
-                console.info('Supabase events table not found. Events will be stored locally only until the table is created.');
-            }
-        }).catch(err => {
-            // Silently handle errors on initial load
-            console.warn('Could not sync events on initial load:', err);
+        // Set up real-time subscription for events
+        const unsubscribeEvents = eventsManager.subscribe(async (updatedEvents, payload) => {
+            console.log('Real-time events update received:', payload.eventType);
+            setEvents(updatedEvents);
+        });
+        
+        // Set up real-time subscription for courses
+        const unsubscribeCourses = coursesManager.subscribe((updatedCourses, payload) => {
+            console.log('Real-time courses update received:', payload.eventType);
+            setCourses(updatedCourses);
+        });
+        
+        // Set up real-time subscription for articles
+        const unsubscribeArticles = articlesManager.subscribe(async (updatedArticles, payload) => {
+            console.log('Real-time articles update received:', payload.eventType);
+            setArticles(updatedArticles);
+        });
+        
+        // Set up real-time subscription for therapy programs
+        const unsubscribeTherapyPrograms = therapyProgramsManager.subscribe(async (updatedPrograms, payload) => {
+            console.log('Real-time therapy programs update received:', payload.eventType);
+            setTherapyPrograms(updatedPrograms);
+        });
+        
+        // Set up real-time subscription for for parents articles
+        const unsubscribeForParents = forParentsManager.subscribe(async (updatedArticles, payload) => {
+            console.log('Real-time for parents articles update received:', payload.eventType);
+            setForParentsArticles(updatedArticles);
         });
 
         // Sync event registrations from Supabase on initial load (silently fail if table doesn't exist)
@@ -1201,45 +1221,34 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 console.warn('Could not load event registrations on initial load:', err);
             }
         }, 600);
-
-        // Sync articles from Supabase on initial load (silently fail if table doesn't exist)
-        articlesManager.syncFromSupabase().then((result) => {
-            if (result.synced) {
-                loadArticles();
-            } else if (result.error?.code === 'TABLE_NOT_FOUND') {
-                // Table doesn't exist yet - this is okay, just log a warning
-                console.info('Supabase articles table not found. Articles will be stored locally only until the table is created.');
+        
+        // Cleanup subscriptions on unmount
+        return () => {
+            if (unsubscribeMembers) {
+                unsubscribeMembers();
             }
-        }).catch(err => {
-            // Silently handle errors on initial load
-            console.warn('Could not sync articles on initial load:', err);
-        });
-
-        // Sync therapy programs from Supabase on initial load (silently fail if table doesn't exist)
-        therapyProgramsManager.syncFromSupabase().then((result) => {
-            if (result.synced) {
-                loadTherapyPrograms();
-            } else if (result.error?.code === 'TABLE_NOT_FOUND') {
-                // Table doesn't exist yet - this is okay, just log a warning
-                console.info('Supabase therapy programs table not found. Therapy programs will be stored locally only until the table is created.');
+            membersManager.unsubscribe();
+            if (unsubscribeEvents) {
+                unsubscribeEvents();
             }
-        }).catch(err => {
-            // Silently handle errors on initial load
-            console.warn('Could not sync therapy programs on initial load:', err);
-        });
-
-        // Sync for parents articles from Supabase on initial load (silently fail if table doesn't exist)
-        forParentsManager.syncFromSupabase().then((result) => {
-            if (result.synced) {
-                loadForParentsArticles();
-            } else if (result.error?.code === 'TABLE_NOT_FOUND') {
-                // Table doesn't exist yet - this is okay, just log a warning
-                console.info('Supabase for parents table not found. For parents articles will be stored locally only until the table is created.');
+            eventsManager.unsubscribe();
+            if (unsubscribeCourses) {
+                unsubscribeCourses();
             }
-        }).catch(err => {
-            // Silently handle errors on initial load
-            console.warn('Could not sync for parents articles on initial load:', err);
-        });
+            coursesManager.unsubscribe();
+            if (unsubscribeArticles) {
+                unsubscribeArticles();
+            }
+            articlesManager.unsubscribe();
+            if (unsubscribeTherapyPrograms) {
+                unsubscribeTherapyPrograms();
+            }
+            therapyProgramsManager.unsubscribe();
+            if (unsubscribeForParents) {
+                unsubscribeForParents();
+            }
+            forParentsManager.unsubscribe();
+        };
         loadReservations();
 
         // Listen for updates
@@ -1271,16 +1280,24 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     // Reload events when switching to events tab
     useEffect(() => {
         if (activeTab === 'events') {
-            loadEvents();
+            loadEvents().catch(err => {
+                console.error('Failed to load events:', err);
+            });
         }
         if (activeTab === 'articles') {
-            loadArticles();
+            loadArticles().catch(err => {
+                console.error('Failed to load articles:', err);
+            });
         }
         if (activeTab === 'therapy-programs') {
-            loadTherapyPrograms();
+            loadTherapyPrograms().catch(err => {
+                console.error('Failed to load therapy programs:', err);
+            });
         }
         if (activeTab === 'for-parents') {
-            loadForParentsArticles();
+            loadForParentsArticles().catch(err => {
+                console.error('Failed to load for parents articles:', err);
+            });
         }
         if (activeTab === 'applications') {
             loadForms();
@@ -1348,24 +1365,56 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         setForParentsArticles(e.detail || []);
     };
 
-    const loadArticles = () => {
-        const allArticles = articlesManager.getAll();
-        setArticles(allArticles);
+    const loadArticles = async () => {
+        try {
+            // getAll() is now async and fetches from Supabase first
+            const allArticles = await articlesManager.getAll();
+            setArticles(allArticles);
+        } catch (error) {
+            console.error('Error loading articles:', error);
+            // Fallback to cached data
+            const cachedArticles = articlesManager._getAllFromLocalStorage();
+            setArticles(cachedArticles);
+        }
     };
 
-    const loadTherapyPrograms = () => {
-        const allPrograms = therapyProgramsManager.getAll();
-        setTherapyPrograms(allPrograms);
+    const loadTherapyPrograms = async () => {
+        try {
+            // getAll() is now async and fetches from Supabase first
+            const allPrograms = await therapyProgramsManager.getAll();
+            setTherapyPrograms(allPrograms);
+        } catch (error) {
+            console.error('Error loading therapy programs:', error);
+            // Fallback to cached data
+            const cachedPrograms = therapyProgramsManager._getAllFromLocalStorage();
+            setTherapyPrograms(cachedPrograms);
+        }
     };
 
-    const loadForParentsArticles = () => {
-        const allArticles = forParentsManager.getAll();
-        setForParentsArticles(allArticles);
+    const loadForParentsArticles = async () => {
+        try {
+            // getAll() is now async and fetches from Supabase first
+            const allArticles = await forParentsManager.getAll();
+            setForParentsArticles(allArticles);
+        } catch (error) {
+            console.error('Error loading for parents articles:', error);
+            // Fallback to cached data
+            const cachedArticles = forParentsManager._getAllFromLocalStorage();
+            setForParentsArticles(cachedArticles);
+        }
     };
 
-    const loadCourses = () => {
-        const allCourses = coursesManager.getAll();
-        setCourses(allCourses);
+    const loadCourses = async () => {
+        try {
+            // getAll() is now async and fetches from Supabase first
+            const allCourses = await coursesManager.getAll();
+            setCourses(allCourses);
+        } catch (error) {
+            console.error('Error loading courses:', error);
+            // Fallback to cached data
+            const cachedCourses = coursesManager._getAllFromLocalStorage();
+            setCourses(cachedCourses);
+        }
     };
 
     const loadMembers = async () => {
@@ -1838,44 +1887,32 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         }
     };
 
-    const loadEvents = () => {
-        const allEvents = eventsManager.getAll();
-        // Ensure we have the correct structure
-        const eventsData = {
-            upcoming: Array.isArray(allEvents.upcoming) ? allEvents.upcoming : [],
-            past: Array.isArray(allEvents.past) ? allEvents.past : []
-        };
-        
-        // Debug: Log what we found
-        console.log('=== Events Loading Debug ===');
-        console.log('Loaded events from localStorage:', eventsData);
-        console.log('Upcoming events count:', eventsData.upcoming.length);
-        console.log('Past events count:', eventsData.past.length);
-        console.log('Past events array:', eventsData.past);
-        console.log('Past events details:', JSON.stringify(eventsData.past, null, 2));
-        
-        // Check localStorage directly
-        const rawStorage = localStorage.getItem('eacsl_events');
-        console.log('Raw localStorage data:', rawStorage);
-        if (rawStorage) {
-            try {
-                const parsed = JSON.parse(rawStorage);
-                console.log('Parsed localStorage:', parsed);
-                console.log('Parsed past events:', parsed.past);
-                console.log('Parsed past events length:', parsed.past?.length);
-            } catch (e) {
-                console.error('Error parsing raw storage:', e);
-            }
+    const loadEvents = async () => {
+        try {
+            // getAll() is now async and fetches from Supabase first
+            const allEvents = await eventsManager.getAll();
+            // Ensure we have the correct structure
+            const eventsData = {
+                upcoming: Array.isArray(allEvents.upcoming) ? allEvents.upcoming : [],
+                past: Array.isArray(allEvents.past) ? allEvents.past : []
+            };
+            
+            console.log('✅ Loaded events from Supabase:', {
+                upcoming: eventsData.upcoming.length,
+                past: eventsData.past.length
+            });
+            
+            setEvents(eventsData);
+        } catch (error) {
+            console.error('Error loading events:', error);
+            // Fallback to cached data
+            const cachedEvents = eventsManager._getAllFromLocalStorage();
+            const eventsData = {
+                upcoming: Array.isArray(cachedEvents.upcoming) ? cachedEvents.upcoming : [],
+                past: Array.isArray(cachedEvents.past) ? cachedEvents.past : []
+            };
+            setEvents(eventsData);
         }
-        
-        // If no events exist, check if we need to initialize
-        if (eventsData.upcoming.length === 0 && eventsData.past.length === 0) {
-            console.log('No events found in parsed data');
-        }
-        
-        console.log('Setting events state with:', eventsData);
-        setEvents(eventsData);
-        console.log('=== End Events Loading Debug ===');
     };
 
     const handleApproveForm = async (id, notes) => {
@@ -2105,19 +2142,33 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     };
 
     const handleSaveCourse = async (courseData) => {
-        if (editingCourse) {
-            coursesManager.update(editingCourse.id, courseData);
-        } else {
-            coursesManager.add(courseData);
+        try {
+            if (editingCourse) {
+                await coursesManager.update(editingCourse.id, courseData);
+            } else {
+                await coursesManager.add(courseData);
+            }
+            await loadCourses();
+            setEditingCourse(null);
+            setIsAddingCourse(false);
+        } catch (error) {
+            console.error('Error saving course:', error);
+            alert(
+                `Failed to save course: ${error.message || 'Unknown error'}\n\n` +
+                'Please check the console for more details and try again.'
+            );
+            // Re-throw so the form can handle it (it will clear loading state in finally block)
+            throw error;
         }
-        loadCourses();
-        setEditingCourse(null);
-        setIsAddingCourse(false);
     };
 
-    const handleDeleteCourse = (id) => {
-        coursesManager.delete(id);
-        loadCourses();
+    const handleDeleteCourse = async (id) => {
+        try {
+            await coursesManager.delete(id);
+            await loadCourses();
+        } catch (error) {
+            console.error('Error deleting course:', error);
+        }
     };
 
     const handleSaveMember = async (memberData) => {
@@ -2278,12 +2329,50 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         }
     };
 
+    const handleSyncCourses = async () => {
+        // First, try to sync from Supabase (download)
+        const result = await coursesManager.syncFromSupabase();
+        if (result.synced) {
+            // Reload courses to reflect changes
+            await loadCourses();
+            
+            // Show detailed sync results
+            let message = `✅ Successfully synced from Supabase!\n\n`;
+            message += `📊 Supabase courses: ${result.count}\n`;
+            
+            if (result.count > 0) {
+                alert(message);
+            } else {
+                // If no courses in Supabase, offer to push local courses
+                const localCourses = coursesManager._getAllFromLocalStorage();
+                if (localCourses.length > 0) {
+                    const pushToSupabase = window.confirm(
+                        `${message}\n\nNo courses found in Supabase. Would you like to upload ${localCourses.length} local course(s) to Supabase?`
+                    );
+                    if (pushToSupabase) {
+                        const pushResult = await coursesManager.syncToSupabase();
+                        if (pushResult.synced) {
+                            alert(`✅ Successfully uploaded ${pushResult.syncedCount} course(s) to Supabase!`);
+                            await loadCourses();
+                        } else {
+                            alert(`❌ Failed to upload courses: ${pushResult.error?.message || 'Unknown error'}`);
+                        }
+                    }
+                } else {
+                    alert(message);
+                }
+            }
+        } else {
+            alert(`❌ Failed to sync courses: ${result.error?.message || 'Unknown error'}`);
+        }
+    };
+
     const handleSyncEvents = async () => {
         // First, try to sync from Supabase (download)
         const result = await eventsManager.syncFromSupabase();
         if (result.synced) {
             // Reload events to reflect changes
-            loadEvents();
+            await loadEvents();
             
             // Show detailed sync results
             let message = `✅ Successfully synced from Supabase!\n\n`;
@@ -2295,7 +2384,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 alert(message);
             } else {
                 // If no events in Supabase, offer to push local events
-                const localEvents = eventsManager.getAll();
+                const localEvents = eventsManager._getAllFromLocalStorage();
                 const allLocalEvents = [...(localEvents.upcoming || []), ...(localEvents.past || [])];
                 if (allLocalEvents.length > 0) {
                     const pushToSupabase = window.confirm(
@@ -2305,7 +2394,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                         const pushResult = await eventsManager.syncToSupabase();
                         if (pushResult.synced) {
                             alert(`✅ Successfully uploaded ${pushResult.syncedCount} event(s) to Supabase!`);
-                            loadEvents();
+                            await loadEvents();
                         } else {
                             alert(`❌ Failed to upload events: ${pushResult.error?.message || 'Unknown error'}`);
                         }
@@ -2390,7 +2479,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         } else {
             savedEvent = await eventsManager.add(eventData);
         }
-        loadEvents();
+        await loadEvents();
         
         // Update URL to show the saved event
         if (savedEvent && savedEvent.id) {
@@ -2405,21 +2494,21 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const handleDeleteEvent = async (id) => {
         if (window.confirm('Are you sure you want to delete this event?')) {
             await eventsManager.delete(id);
-            loadEvents();
+            await loadEvents();
         }
     };
 
     const handleMoveToPast = async (id) => {
         if (window.confirm('Move this event to past events? You can move it back later if needed.')) {
             await eventsManager.moveToPast(id);
-            loadEvents();
+            await loadEvents();
         }
     };
 
     const handleMoveToUpcoming = async (id) => {
         if (window.confirm('Move this event back to upcoming events?')) {
             await eventsManager.moveToUpcoming(id);
-            loadEvents();
+            await loadEvents();
         }
     };
 
@@ -2437,7 +2526,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const handleDeleteArticle = async (id) => {
         if (window.confirm('Are you sure you want to delete this article?')) {
             await articlesManager.delete(id);
-            loadArticles();
+            await loadArticles();
         }
     };
 
@@ -2446,7 +2535,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         const result = await articlesManager.syncFromSupabase();
         if (result.synced) {
             // Reload articles to reflect changes
-            loadArticles();
+            await loadArticles();
             
             // Show detailed sync results
             let message = `✅ Successfully synced from Supabase!\n\n`;
@@ -2456,7 +2545,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 alert(message);
             } else {
                 // If no articles in Supabase, offer to push local articles
-                const localArticles = articlesManager.getAll();
+                const localArticles = articlesManager._getAllFromLocalStorage();
                 if (localArticles.length > 0) {
                     const pushToSupabase = window.confirm(
                         `${message}\n\nNo articles found in Supabase. Would you like to upload ${localArticles.length} local article(s) to Supabase?`
@@ -2465,7 +2554,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                         const pushResult = await articlesManager.syncToSupabase();
                         if (pushResult.synced) {
                             alert(`✅ Successfully uploaded ${pushResult.syncedCount} article(s) to Supabase!`);
-                            loadArticles();
+                            await loadArticles();
                         } else {
                             alert(`❌ Failed to upload articles: ${pushResult.error?.message || 'Unknown error'}`);
                         }
@@ -2498,7 +2587,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const handleDeleteTherapyProgram = async (id) => {
         if (window.confirm('Are you sure you want to delete this therapy program?')) {
             await therapyProgramsManager.delete(id);
-            loadTherapyPrograms();
+            await loadTherapyPrograms();
         }
     };
 
@@ -2507,7 +2596,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         const result = await therapyProgramsManager.syncFromSupabase();
         if (result.synced) {
             // Reload programs to reflect changes
-            loadTherapyPrograms();
+            await loadTherapyPrograms();
             
             // Show detailed sync results
             let message = `✅ Successfully synced from Supabase!\n\n`;
@@ -2517,7 +2606,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 alert(message);
             } else {
                 // If no programs in Supabase, offer to push local programs
-                const localPrograms = therapyProgramsManager.getAll();
+                const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
                 if (localPrograms.length > 0) {
                     const pushToSupabase = window.confirm(
                         `${message}\n\nNo therapy programs found in Supabase. Would you like to upload ${localPrograms.length} local program(s) to Supabase?`
@@ -2526,7 +2615,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                         const pushResult = await therapyProgramsManager.syncToSupabase();
                         if (pushResult.synced) {
                             alert(`✅ Successfully uploaded ${pushResult.syncedCount} program(s) to Supabase!`);
-                            loadTherapyPrograms();
+                            await loadTherapyPrograms();
                         } else {
                             alert(`❌ Failed to upload programs: ${pushResult.error?.message || 'Unknown error'}`);
                         }
@@ -2559,7 +2648,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const handleDeleteForParent = async (id) => {
         if (window.confirm('Are you sure you want to delete this parent article?')) {
             await forParentsManager.delete(id);
-            loadForParentsArticles();
+            await loadForParentsArticles();
         }
     };
 
@@ -2568,7 +2657,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         const result = await forParentsManager.syncFromSupabase();
         if (result.synced) {
             // Reload articles to reflect changes
-            loadForParentsArticles();
+            await loadForParentsArticles();
             
             // Show detailed sync results
             let message = `✅ Successfully synced from Supabase!\n\n`;
@@ -2578,7 +2667,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 alert(message);
             } else {
                 // If no articles in Supabase, offer to push local articles
-                const localArticles = forParentsManager.getAll();
+                const localArticles = forParentsManager._getAllFromLocalStorage();
                 if (localArticles.length > 0) {
                     const pushToSupabase = window.confirm(
                         `${message}\n\nNo for parents articles found in Supabase. Would you like to upload ${localArticles.length} local article(s) to Supabase?`
@@ -2587,7 +2676,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                         const pushResult = await forParentsManager.syncToSupabase();
                         if (pushResult.synced) {
                             alert(`✅ Successfully uploaded ${pushResult.syncedCount} article(s) to Supabase!`);
-                            loadForParentsArticles();
+                            await loadForParentsArticles();
                         } else {
                             alert(`❌ Failed to upload articles: ${pushResult.error?.message || 'Unknown error'}`);
                         }
@@ -2704,6 +2793,52 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                     title="Refresh Courses"
                                 >
                                     <RefreshCw size={18} />
+                                </button>
+                                <button
+                                    onClick={handleSyncCourses}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                                    title="Sync from Supabase"
+                                >
+                                    <RefreshCw size={18} />
+                                    Sync
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        const localCourses = coursesManager._getAllFromLocalStorage();
+                                        if (localCourses.length === 0) {
+                                            alert('No courses in localStorage to sync.');
+                                            return;
+                                        }
+                                        const confirmed = window.confirm(
+                                            `Sync ${localCourses.length} course(s) from localStorage to Supabase?\n\n` +
+                                            `This will upload any courses that don't already exist in Supabase, or update existing ones.`
+                                        );
+                                        if (!confirmed) return;
+
+                                        try {
+                                            const result = await coursesManager.syncToSupabase();
+                                            if (result.synced) {
+                                                await loadCourses();
+                                                let message = `✅ Sync Complete!\n\n`;
+                                                message += `📤 Synced: ${result.syncedCount} course(s)\n`;
+                                                message += `📊 Total: ${result.total} course(s)\n`;
+                                                if (result.errorCount > 0) {
+                                                    message += `❌ Errors: ${result.errorCount} course(s)\n`;
+                                                }
+                                                alert(message);
+                                            } else {
+                                                alert(`❌ Failed to sync: ${result.error?.message || 'Unknown error'}`);
+                                            }
+                                        } catch (error) {
+                                            console.error('Error syncing courses to Supabase:', error);
+                                            alert(`❌ Error: ${error.message || 'Unknown error'}`);
+                                        }
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                    title="Sync to Supabase (Upload from localStorage)"
+                                >
+                                    <RefreshCw size={18} className="rotate-180" />
+                                    Sync to Supabase
                                 </button>
                                 <button
                                     onClick={() => setIsAddingCourse(true)}
@@ -4353,8 +4488,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             }, 100);
                         } else {
                             // For new events, wait for the event to be saved and get its ID
-                            setTimeout(() => {
-                                const allEvents = eventsManager.getAll();
+                            setTimeout(async () => {
+                                const allEvents = await eventsManager.getAll();
                                 const latestEvent = allEvents.upcoming[allEvents.upcoming.length - 1];
                                 if (latestEvent && latestEvent.id) {
                                     // Don't navigate away from dashboard - keep user in dashboard

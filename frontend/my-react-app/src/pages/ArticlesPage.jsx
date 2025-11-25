@@ -12,16 +12,32 @@ const ArticlesPage = () => {
   const [articles, setArticles] = useState([]);
 
   useEffect(() => {
-    const loadArticles = () => {
-      const allArticles = articlesManager.getAll();
-      setArticles(allArticles);
+    const loadArticles = async () => {
+      try {
+        // getAll() is now async and fetches from Supabase first
+        const allArticles = await articlesManager.getAll();
+        setArticles(allArticles);
+      } catch (error) {
+        console.error('Error loading articles:', error);
+        // Fallback to cached data
+        const cachedArticles = articlesManager._getAllFromLocalStorage();
+        setArticles(cachedArticles);
+      }
     };
 
     loadArticles();
 
     // Listen for article updates
-    const handleArticlesUpdate = () => {
-      loadArticles();
+    const handleArticlesUpdate = async () => {
+      try {
+        const allArticles = await articlesManager.getAll();
+        setArticles(allArticles);
+      } catch (error) {
+        console.error('Error loading articles:', error);
+        // Fallback to cached data
+        const cachedArticles = articlesManager._getAllFromLocalStorage();
+        setArticles(cachedArticles);
+      }
     };
 
     window.addEventListener('articlesUpdated', handleArticlesUpdate);

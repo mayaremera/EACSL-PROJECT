@@ -13,15 +13,34 @@ const TherapyPrograms = () => {
   const [currentEvent, setCurrentEvent] = useState(null);
 
   useEffect(() => {
-    const loadPrograms = () => {
-      const allPrograms = therapyProgramsManager.getAll();
-      setPrograms(allPrograms);
+    const loadPrograms = async () => {
+      try {
+        // getAll() is now async and fetches from Supabase first
+        const allPrograms = await therapyProgramsManager.getAll();
+        setPrograms(allPrograms);
+      } catch (error) {
+        console.error('Error loading therapy programs:', error);
+        // Fallback to cached data
+        const cachedPrograms = therapyProgramsManager._getAllFromLocalStorage();
+        setPrograms(cachedPrograms);
+      }
     };
 
-    const loadEvent = () => {
-      const upcomingEvents = eventsManager.getUpcoming();
-      if (upcomingEvents && upcomingEvents.length > 0) {
-        setCurrentEvent(upcomingEvents[0]);
+    const loadEvent = async () => {
+      try {
+        // First, load from cache for immediate display
+        const cachedEvents = eventsManager.getUpcomingSync();
+        if (cachedEvents && cachedEvents.length > 0) {
+          setCurrentEvent(cachedEvents[0]);
+        }
+        
+        // Then refresh from Supabase in the background
+        const upcomingEvents = await eventsManager.getUpcoming();
+        if (upcomingEvents && upcomingEvents.length > 0) {
+          setCurrentEvent(upcomingEvents[0]);
+        }
+      } catch (error) {
+        console.error('Error loading upcoming events:', error);
       }
     };
 
@@ -29,8 +48,16 @@ const TherapyPrograms = () => {
     loadEvent();
 
     // Listen for updates
-    const handleProgramsUpdate = () => {
-      loadPrograms();
+    const handleProgramsUpdate = async () => {
+      try {
+        const allPrograms = await therapyProgramsManager.getAll();
+        setPrograms(allPrograms);
+      } catch (error) {
+        console.error('Error loading therapy programs:', error);
+        // Fallback to cached data
+        const cachedPrograms = therapyProgramsManager._getAllFromLocalStorage();
+        setPrograms(cachedPrograms);
+      }
     };
 
     const handleEventsUpdate = () => {

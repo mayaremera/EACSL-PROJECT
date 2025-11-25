@@ -11,7 +11,6 @@ import OrganizingCommitteePage from "../pages/OrganizingCommitteePage";
 import SeminarsPage from "../pages/SeminarsPage";
 import RegistrationPage from "../pages/RegistrationPage";
 import GalleryPage from "../pages/GalleryPage";
-import EducationPage from "../pages/EducationPage";
 import OnlineCoursesPage from "../pages/OnlineCoursesPage";
 import ArticlesPage from "../pages/ArticlesPage";
 import MembersOverviewPage from "../pages/MembersOverviewPage";
@@ -53,7 +52,6 @@ function AppRouter() {
           <Route path="/seminars" element={<SeminarsPage />} />
           <Route path="/registration" element={<RegistrationPage />} />
           <Route path="/gallery" element={<GalleryPage />} />
-          <Route path="/education" element={<EducationPage />} />
           <Route path="/online-courses" element={<OnlineCoursesPage />} />
           <Route path="/articles" element={<ArticlesPage />} />
           <Route path="/members-overview" element={<MembersOverviewPage />} />

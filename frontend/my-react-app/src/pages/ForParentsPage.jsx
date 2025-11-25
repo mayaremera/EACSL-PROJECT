@@ -10,16 +10,32 @@ const ForParentsPage = () => {
   const [articles, setArticles] = useState([]);
 
   useEffect(() => {
-    const loadArticles = () => {
-      const allArticles = forParentsManager.getAll();
-      setArticles(allArticles);
+    const loadArticles = async () => {
+      try {
+        // getAll() is now async and fetches from Supabase first
+        const allArticles = await forParentsManager.getAll();
+        setArticles(allArticles);
+      } catch (error) {
+        console.error('Error loading for parents articles:', error);
+        // Fallback to cached data
+        const cachedArticles = forParentsManager._getAllFromLocalStorage();
+        setArticles(cachedArticles);
+      }
     };
 
     loadArticles();
 
     // Listen for updates
-    const handleArticlesUpdate = () => {
-      loadArticles();
+    const handleArticlesUpdate = async () => {
+      try {
+        const allArticles = await forParentsManager.getAll();
+        setArticles(allArticles);
+      } catch (error) {
+        console.error('Error loading for parents articles:', error);
+        // Fallback to cached data
+        const cachedArticles = forParentsManager._getAllFromLocalStorage();
+        setArticles(cachedArticles);
+      }
     };
 
     window.addEventListener('forParentsUpdated', handleArticlesUpdate);

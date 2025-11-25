@@ -14,18 +14,36 @@ const EventCard = () => {
   const [eventData, setEventData] = useState(null);
 
   useEffect(() => {
-    const loadEvent = () => {
-      const upcomingEvents = eventsManager.getUpcoming();
-      if (upcomingEvents && upcomingEvents.length > 0) {
-        setEventData(upcomingEvents[0]);
+    const loadEvent = async () => {
+      // First, load from cache for immediate display
+      const cachedEvents = eventsManager.getUpcomingSync();
+      if (cachedEvents && cachedEvents.length > 0) {
+        setEventData(cachedEvents[0]);
+      }
+      
+      // Then refresh from Supabase in the background
+      try {
+        const upcomingEvents = await eventsManager.getUpcoming();
+        if (upcomingEvents && upcomingEvents.length > 0) {
+          setEventData(upcomingEvents[0]);
+        }
+      } catch (error) {
+        console.error('Error loading upcoming events:', error);
       }
     };
 
     loadEvent();
 
     // Listen for event updates
-    const handleEventsUpdate = () => {
-      loadEvent();
+    const handleEventsUpdate = async () => {
+      try {
+        const upcomingEvents = await eventsManager.getUpcoming();
+        if (upcomingEvents && upcomingEvents.length > 0) {
+          setEventData(upcomingEvents[0]);
+        }
+      } catch (error) {
+        console.error('Error loading upcoming events:', error);
+      }
     };
 
     window.addEventListener('eventsUpdated', handleEventsUpdate);
@@ -183,18 +201,36 @@ const HeroSection = () => {
   const [currentEvent, setCurrentEvent] = React.useState(null);
 
   React.useEffect(() => {
-    const loadEvent = () => {
-      const upcomingEvents = eventsManager.getUpcoming();
-      if (upcomingEvents && upcomingEvents.length > 0) {
-        setCurrentEvent(upcomingEvents[0]);
+    const loadEvent = async () => {
+      // First, load from cache for immediate display
+      const cachedEvents = eventsManager.getUpcomingSync();
+      if (cachedEvents && cachedEvents.length > 0) {
+        setCurrentEvent(cachedEvents[0]);
+      }
+      
+      // Then refresh from Supabase in the background
+      try {
+        const upcomingEvents = await eventsManager.getUpcoming();
+        if (upcomingEvents && upcomingEvents.length > 0) {
+          setCurrentEvent(upcomingEvents[0]);
+        }
+      } catch (error) {
+        console.error('Error loading upcoming events:', error);
       }
     };
 
     loadEvent();
 
     // Listen for event updates
-    const handleEventsUpdate = () => {
-      loadEvent();
+    const handleEventsUpdate = async () => {
+      try {
+        const upcomingEvents = await eventsManager.getUpcoming();
+        if (upcomingEvents && upcomingEvents.length > 0) {
+          setCurrentEvent(upcomingEvents[0]);
+        }
+      } catch (error) {
+        console.error('Error loading upcoming events:', error);
+      }
     };
 
     window.addEventListener('eventsUpdated', handleEventsUpdate);

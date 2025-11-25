@@ -20,8 +20,18 @@ const OnlineCoursesPage = () => {
   const modalRef = useRef(null);
 
   useEffect(() => {
-    const loadCourses = () => {
-      setCourses(coursesManager.getAll());
+    const loadCourses = async () => {
+      // First, load from cache for immediate display
+      const cachedCourses = coursesManager._getAllFromLocalStorage();
+      setCourses(cachedCourses);
+      
+      // Then refresh from Supabase in the background
+      try {
+        const courses = await coursesManager.getAll();
+        setCourses(courses);
+      } catch (error) {
+        console.error('Error loading courses:', error);
+      }
     };
     
     loadCourses();

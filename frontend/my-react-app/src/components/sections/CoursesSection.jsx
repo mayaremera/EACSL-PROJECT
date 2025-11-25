@@ -10,9 +10,18 @@ const CoursesSection = () => {
     const location = useLocation();
 
     useEffect(() => {
-        const loadCourses = () => {
-            const allCourses = coursesManager.getAll();
-            setCourses(allCourses);
+        const loadCourses = async () => {
+            // First, load from cache for immediate display
+            const cachedCourses = coursesManager._getAllFromLocalStorage();
+            setCourses(cachedCourses);
+            
+            // Then refresh from Supabase in the background
+            try {
+                const allCourses = await coursesManager.getAll();
+                setCourses(allCourses);
+            } catch (error) {
+                console.error('Error loading courses:', error);
+            }
         };
         
         loadCourses();

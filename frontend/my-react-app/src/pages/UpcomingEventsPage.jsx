@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Calendar, MapPin, Clock, Users, DollarSign, CheckCircle, User, Mail, Phone, Building2 } from 'lucide-react';
 import { eventsManager } from '../utils/dataManager';
-import { supabase } from '../lib/supabase';
+import { eventRegistrationsService } from '../services/eventRegistrationsService';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 
@@ -20,16 +20,18 @@ const UpcomingEventsPage = () => {
   });
 
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [eventData, setEventData] = useState(null);
   const [hasNoEvents, setHasNoEvents] = useState(false);
 
   useEffect(() => {
-    const loadEvent = () => {
+    const loadEvent = async () => {
+      // First, load from cache for immediate display
       let event = null;
       
       // If eventId is provided, get that specific event
       if (eventId) {
-        event = eventsManager.getById(parseInt(eventId));
+        event = eventsManager.getByIdSync(parseInt(eventId));
         // If event is found but it's a past event, redirect to past events
         if (event && event.status === 'past') {
           navigate(`/past-events`, { replace: true });
@@ -39,7 +41,7 @@ const UpcomingEventsPage = () => {
       
       // If no eventId or event not found, get the first upcoming event
       if (!event) {
-        const upcomingEvents = eventsManager.getUpcoming();
+        const upcomingEvents = eventsManager.getUpcomingSync();
         if (upcomingEvents && upcomingEvents.length > 0) {
           event = upcomingEvents[0];
           // Update URL if we're showing a different event than requested
@@ -60,13 +62,61 @@ const UpcomingEventsPage = () => {
       }
       
       setEventData(event);
+      
+      // Refresh from Supabase in the background
+      try {
+        if (eventId) {
+          const freshEvent = await eventsManager.getById(parseInt(eventId));
+          if (freshEvent) {
+            setEventData(freshEvent);
+            if (freshEvent.status === 'past') {
+              navigate(`/past-events`, { replace: true });
+              return;
+            }
+          }
+        } else {
+          const upcomingEvents = await eventsManager.getUpcoming();
+          if (upcomingEvents && upcomingEvents.length > 0) {
+            const firstEvent = upcomingEvents[0];
+            setEventData(firstEvent);
+            navigate(`/upcoming-events/${firstEvent.id}`, { replace: true });
+          } else {
+            setHasNoEvents(true);
+            setEventData(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error refreshing event from Supabase:', error);
+      }
     };
 
     loadEvent();
 
     // Listen for event updates
-    const handleEventsUpdate = () => {
-      loadEvent();
+    const handleEventsUpdate = async () => {
+      try {
+        if (eventId) {
+          const freshEvent = await eventsManager.getById(parseInt(eventId));
+          if (freshEvent) {
+            setEventData(freshEvent);
+            if (freshEvent.status === 'past') {
+              navigate(`/past-events`, { replace: true });
+            }
+          }
+        } else {
+          const upcomingEvents = await eventsManager.getUpcoming();
+          if (upcomingEvents && upcomingEvents.length > 0) {
+            const firstEvent = upcomingEvents[0];
+            setEventData(firstEvent);
+            navigate(`/upcoming-events/${firstEvent.id}`, { replace: true });
+          } else {
+            setHasNoEvents(true);
+            setEventData(null);
+          }
+        }
+      } catch (error) {
+        console.error('Error refreshing event from Supabase:', error);
+      }
     };
 
     window.addEventListener('eventsUpdated', handleEventsUpdate);
@@ -108,99 +158,56 @@ const UpcomingEventsPage = () => {
     }
     
     try {
-      // Prepare data for Supabase
+      // Prevent duplicate submissions
+      if (isSubmitting) {
+        return;
+      }
+      setIsSubmitting(true);
+      
+      // Prepare data in local format (service will map to Supabase format)
       const registrationData = {
-        event_id: eventData.id && typeof eventData.id === 'number' ? eventData.id : null,
-        full_name: formData.fullName.trim(),
+        eventId: eventData.id && typeof eventData.id === 'number' ? eventData.id : null,
+        fullName: formData.fullName.trim(),
         email: formData.email.trim(),
         phone: formData.phone.trim(),
         organization: formData.organization?.trim() || null,
-        membership_type: formData.membershipType,
-        selected_tracks: formData.selectedTracks || [],
-        special_requirements: formData.specialRequirements?.trim() || null,
-        registration_fee: currentFee,
-        status: 'pending'
+        membershipType: formData.membershipType,
+        selectedTracks: formData.selectedTracks || [],
+        specialRequirements: formData.specialRequirements?.trim() || null,
+        registrationFee: currentFee,
+        status: 'pending',
+        submittedAt: new Date().toISOString()
       };
 
-      console.log('Submitting registration to Supabase:', registrationData);
+      console.log('💾 Saving event registration to Supabase...');
 
-      // Insert into Supabase
-      const { data, error } = await supabase
-        .from('event_registrations')
-        .insert([registrationData])
-        .select()
-        .single();
+      // Save to Supabase FIRST (source of truth) using service
+      const result = await eventRegistrationsService.add(registrationData);
 
-      if (error) {
-        console.error('Error saving registration to Supabase:', error);
-        console.error('Error details:', {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        });
-        
-        // Check if table doesn't exist
-        if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
+      if (result.error) {
+        // Handle specific errors
+        if (result.error.code === 'TABLE_NOT_FOUND') {
           alert(
-            'Registration table not found. Please create the event_registrations table in Supabase first.\n\n' +
-            'See CREATE_EVENT_REGISTRATIONS_TABLE.sql for instructions.'
+            '❌ Database Table Not Found\n\n' +
+            'The event_registrations table does not exist in Supabase.\n\n' +
+            'To fix this:\n' +
+            '1. Go to Supabase Dashboard → SQL Editor\n' +
+            '2. Run the SQL script from CREATE_EVENT_REGISTRATIONS_TABLE.sql\n' +
+            '3. Try submitting again\n\n' +
+            'See EVENT_REGISTRATIONS_SUPABASE_SETUP.md for detailed instructions.'
           );
           return;
         }
         
-        // Check for RLS policy errors
-        if (error.code === '42501' || error.message?.includes('permission denied') || error.message?.includes('new row violates row-level security')) {
+        if (result.error.code === 'RLS_POLICY_ERROR') {
           alert(
-            'Permission denied. The event_registrations table may have incorrect RLS policies.\n\n' +
-            'Please ensure the "Allow public insert" policy is enabled in Supabase.\n\n' +
+            '❌ Permission Denied\n\n' +
+            result.error.message + '\n\n' +
             'Falling back to localStorage for now.'
           );
-        }
-        
-        // Fallback to localStorage if Supabase fails
-        console.warn('Falling back to localStorage due to Supabase error');
-        const formSubmission = {
-          id: Date.now().toString(),
-          type: 'eventRegistration',
-          fullName: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
-          organization: formData.organization,
-          membershipType: formData.membershipType,
-          selectedTracks: formData.selectedTracks,
-          specialRequirements: formData.specialRequirements,
-          registrationFee: currentFee,
-          submittedAt: new Date().toISOString(),
-          status: 'pending'
-        };
-
-        let existingRegistrations = [];
-        try {
-          const stored = localStorage.getItem('eventRegistrations');
-          existingRegistrations = stored ? JSON.parse(stored) : [];
-        } catch (err) {
-          console.error('Error reading from localStorage:', err);
-        }
-        
-        existingRegistrations.push(formSubmission);
-        localStorage.setItem('eventRegistrations', JSON.stringify(existingRegistrations));
-        window.dispatchEvent(new CustomEvent('eventRegistrationsUpdated', { detail: existingRegistrations }));
-        
-        // Still show success message even if Supabase failed (since we saved to localStorage)
-        setIsSubmitted(true);
-        return;
-      } else {
-        // Successfully saved to Supabase
-        console.log('Registration submitted to Supabase:', data);
-        
-        // Also dispatch event to notify dashboard
-        window.dispatchEvent(new CustomEvent('eventRegistrationsUpdated'));
-        
-        // Optionally save to localStorage as backup
-        try {
+          // Fallback to localStorage if RLS policy error
           const formSubmission = {
-            id: data.id.toString(),
+            id: Date.now().toString(),
             type: 'eventRegistration',
             fullName: formData.fullName,
             email: formData.email,
@@ -210,24 +217,64 @@ const UpcomingEventsPage = () => {
             selectedTracks: formData.selectedTracks,
             specialRequirements: formData.specialRequirements,
             registrationFee: currentFee,
-            submittedAt: data.submitted_at,
+            submittedAt: new Date().toISOString(),
             status: 'pending'
           };
 
           let existingRegistrations = [];
-          const stored = localStorage.getItem('eventRegistrations');
-          existingRegistrations = stored ? JSON.parse(stored) : [];
+          try {
+            const stored = localStorage.getItem('eventRegistrations');
+            existingRegistrations = stored ? JSON.parse(stored) : [];
+          } catch (err) {
+            console.error('Error reading from localStorage:', err);
+          }
+          
           existingRegistrations.push(formSubmission);
           localStorage.setItem('eventRegistrations', JSON.stringify(existingRegistrations));
-        } catch (err) {
-          console.warn('Could not save to localStorage backup:', err);
+          window.dispatchEvent(new CustomEvent('eventRegistrationsUpdated', { detail: existingRegistrations }));
+          
+          setIsSubmitted(true);
+          return;
         }
+
+        throw new Error(
+          result.error.message || 'Failed to save your registration. Please try again.'
+        );
+      }
+
+      // Successfully saved to Supabase
+      console.log('✅ Registration successfully saved to Supabase:', result.data);
+      
+      // Dispatch event to notify dashboard
+      window.dispatchEvent(new CustomEvent('eventRegistrationsUpdated'));
+      
+      // Optionally save to localStorage as backup cache
+      try {
+        const formSubmission = eventRegistrationsService.mapSupabaseToLocal(result.data);
+        let existingRegistrations = [];
+        const stored = localStorage.getItem('eventRegistrations');
+        if (stored) {
+          existingRegistrations = JSON.parse(stored);
+        }
+        // Check if already exists to avoid duplicates
+        const exists = existingRegistrations.some(r => r.id === formSubmission.id);
+        if (!exists) {
+          existingRegistrations.push(formSubmission);
+          localStorage.setItem('eventRegistrations', JSON.stringify(existingRegistrations));
+        }
+      } catch (err) {
+        console.warn('Could not save to localStorage backup:', err);
       }
       
       setIsSubmitted(true);
     } catch (error) {
       console.error('Unexpected error submitting registration:', error);
-      alert('Failed to submit registration. Please try again.');
+      alert(
+        `Failed to submit registration: ${error.message || 'Unknown error'}\n\n` +
+        'Please try again or contact support if the issue persists.'
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

@@ -9,18 +9,31 @@ export default function PastEventsPage() {
   const [pastEvents, setPastEvents] = useState([]);
 
   useEffect(() => {
-    const loadPastEvents = () => {
-      const events = eventsManager.getPast();
-      console.log('PastEventsPage: Loaded past events:', events);
-      setPastEvents(events);
+    const loadPastEvents = async () => {
+      // First, load from cache for immediate display
+      const cachedEvents = eventsManager.getPastSync();
+      setPastEvents(cachedEvents);
+      
+      // Then refresh from Supabase in the background
+      try {
+        const events = await eventsManager.getPast();
+        setPastEvents(events);
+      } catch (error) {
+        console.error('Error loading past events:', error);
+      }
     };
 
     loadPastEvents();
 
     // Listen for event updates
-    const handleEventsUpdate = () => {
+    const handleEventsUpdate = async () => {
       console.log('PastEventsPage: Events updated event received');
-      loadPastEvents();
+      try {
+        const events = await eventsManager.getPast();
+        setPastEvents(events);
+      } catch (error) {
+        console.error('Error loading past events:', error);
+      }
     };
 
     window.addEventListener('eventsUpdated', handleEventsUpdate);

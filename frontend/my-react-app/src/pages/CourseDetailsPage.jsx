@@ -46,11 +46,13 @@ const CourseDetailPage = () => {
         // Initialize data and load course
         initializeData();
         
-        const loadCourse = () => {
-            const courses = coursesManager.getAll();
-            const course = courses.find(c => c.id === parseInt(courseId));
+        const loadCourse = async () => {
+            // First, load from cache for immediate display
+            const cachedCourses = coursesManager._getAllFromLocalStorage();
+            let course = cachedCourses.find(c => c.id === parseInt(courseId));
+            
             if (course) {
-                // Map course data to the expected structure with defaults for missing fields
+                // Set course data immediately from cache
                 setCourseData({
                     titleAr: course.titleAr || course.title,
                     titleEn: course.title,
@@ -85,6 +87,50 @@ const CourseDetailPage = () => {
                 });
             } else {
                 setCourseData(null);
+            }
+            
+            // Then refresh from Supabase in the background
+            try {
+                const courses = await coursesManager.getAll();
+                const freshCourse = courses.find(c => c.id === parseInt(courseId));
+                if (freshCourse) {
+                    setCourseData({
+                        titleAr: freshCourse.titleAr || freshCourse.title,
+                        titleEn: freshCourse.title,
+                        category: freshCourse.category,
+                        categoryAr: freshCourse.categoryAr || freshCourse.category,
+                        level: freshCourse.level,
+                        lessons: freshCourse.lessons,
+                        duration: freshCourse.duration,
+                        students: freshCourse.students,
+                        enrolled: freshCourse.enrolled || freshCourse.students,
+                        lectures: freshCourse.lectures || freshCourse.lessons,
+                        skillLevel: freshCourse.skillLevel || freshCourse.level,
+                        language: freshCourse.language || "English",
+                        classTime: freshCourse.classTime || "4:00 PM - 6:00 PM",
+                        startDate: freshCourse.startDate || "Monday-Friday",
+                        price: freshCourse.price,
+                        moneyBackGuarantee: freshCourse.moneyBackGuarantee || "30-Day Money-Back Guarantee",
+                        image: freshCourse.image,
+                        instructor: freshCourse.instructor,
+                        instructorImage: freshCourse.instructorImage,
+                        instructorTitle: freshCourse.instructorTitle || `Expert in ${freshCourse.category}`,
+                        instructorBio: freshCourse.instructorBio || `Experienced professional in ${freshCourse.category} with a passion for teaching and helping students succeed.`,
+                        descriptionShort: freshCourse.descriptionShort || freshCourse.description,
+                        description: freshCourse.description,
+                        curriculum: freshCourse.curriculum || generateDefaultCurriculum(freshCourse.lessons),
+                        learningOutcomes: freshCourse.learningOutcomes || generateDefaultLearningOutcomes(freshCourse),
+                        requirements: freshCourse.requirements || [
+                            "A computer with internet connection",
+                            "Basic understanding of the subject area",
+                            "Willingness to learn and practice regularly"
+                        ]
+                    });
+                } else {
+                    setCourseData(null);
+                }
+            } catch (error) {
+                console.error('Error refreshing course from Supabase:', error);
             }
         };
 
@@ -239,7 +285,6 @@ const CourseDetailPage = () => {
 
             {/* Breadcrumb */}
             <Breadcrumbs items={[
-                { label: 'Education', path: '/education' },
                 { label: 'Courses', path: '/online-courses' },
                 { label: courseData.titleEn || 'Course Details' }
             ]} />
