@@ -94,7 +94,7 @@ const ServicesSection = () => {
                   style={{ scrollSnapAlign: 'start' }}
                 >
                   <div className="relative w-full h-56 group cursor-pointer">
-                    <div className="relative w-full h-full overflow-hidden rounded-lg transition-all duration-300 hover:scale-105">
+                    <div className="relative w-full h-full overflow-hidden rounded-lg transition-all duration-300 hover:scale-1000">
                       <img
                         src={service.image}
                         alt={service.alt}

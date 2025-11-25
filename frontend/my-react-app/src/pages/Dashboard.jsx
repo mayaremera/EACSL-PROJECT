@@ -22,6 +22,7 @@ import {
     MessageCircle,
     Baby,
     ClipboardList,
+    Menu,
 } from "lucide-react";
 import { coursesManager, membersManager, eventsManager, articlesManager, therapyProgramsManager, forParentsManager, initializeData } from '../utils/dataManager';
 import { supabase } from '../lib/supabase';
@@ -1083,6 +1084,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     };
     
     const [activeTab, setActiveTab] = useState(getTabFromURL());
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     
     // Update URL when tab changes (but don't push to history to avoid back button issues)
     const handleTabChange = (newTab) => {
@@ -1092,6 +1094,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         newSearchParams.set('tab', newTab);
         // Use replace to avoid adding to history
         window.history.replaceState({}, '', `${location.pathname}?${newSearchParams.toString()}`);
+        // Close sidebar on mobile when tab changes
+        setIsSidebarOpen(false);
     };
     
     // Set initial URL if no tab param exists (only on mount)
@@ -2707,13 +2711,32 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     ];
 
     return (
-        <div className="flex h-screen bg-gray-50">
+        <div className="flex h-screen bg-gray-50 relative">
+            {/* Mobile Overlay */}
+            {isSidebarOpen && (
+                <div 
+                    className="fixed inset-0 bg-black/50 z-40 md:hidden"
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
             {/* Sidebar */}
-            <div className="w-64 bg-white shadow-lg flex flex-col">
+            <div className={`fixed md:static inset-y-0 left-0 z-50 w-64 bg-white shadow-lg flex flex-col transform transition-transform duration-300 ease-in-out ${
+                isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+            }`}>
                 {/* Logo/Header */}
-                <div className="p-6 border-b border-gray-200">
-                    <h1 className="text-2xl font-bold text-[#5A9B8E]">EACSL Admin</h1>
-                    <p className="text-sm text-gray-500 mt-1">Dashboard</p>
+                <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                    <div>
+                        <h1 className="text-2xl font-bold text-[#5A9B8E]">EACSL Admin</h1>
+                        <p className="text-sm text-gray-500 mt-1">Dashboard</p>
+                    </div>
+                    {/* Close button for mobile */}
+                    <button
+                        onClick={() => setIsSidebarOpen(false)}
+                        className="md:hidden p-2 text-gray-500 hover:text-gray-700"
+                    >
+                        <X size={24} />
+                    </button>
                 </div>
 
                 {/* Navigation */}
@@ -2759,44 +2782,194 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             </div>
 
             {/* Main Content Area */}
-            <div className="flex-1 p-8 overflow-y-auto">
+            <div className="flex-1 p-4 md:p-8 overflow-y-auto">
                 <div className="max-w-7xl mx-auto">
                     {/* Header */}
-                    <div className="flex items-center justify-between mb-8">
-                        <div>
-                            <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                                {activeTab === 'courses' ? 'Courses Management' :
-                                    activeTab === 'members' ? 'Members Management' :
-                                    activeTab === 'events' ? 'Events Management' :
-                                    activeTab === 'articles' ? 'Articles Management' :
-                                    activeTab === 'therapy-programs' ? 'Therapy Programs Management' :
-                                    activeTab === 'for-parents' ? 'For Parents Management' :
-                                    activeTab === 'applications' ? 'All Applications' :
-                                    'Settings'}
-                            </h1>
-                            <p className="text-gray-600">
-                                {activeTab === 'courses' ? 'Manage all courses on the website' :
-                                    activeTab === 'members' ? 'Manage all members on the website' :
-                                    activeTab === 'events' ? 'Manage upcoming and past events' :
-                                    activeTab === 'articles' ? 'Manage articles and resources' :
-                                    activeTab === 'therapy-programs' ? 'Manage therapy programs and services' :
-                                    activeTab === 'for-parents' ? 'Manage articles and resources for parents' :
-                                    activeTab === 'applications' ? 'Review and manage all form submissions' :
-                                        'Dashboard settings and configuration'}
-                            </p>
+                    <div className="mb-8">
+                        <div className="flex items-center justify-between gap-4 mb-4 md:mb-0">
+                            <div className="flex items-center gap-4 flex-1">
+                                {/* Mobile Menu Toggle */}
+                                <button
+                                    onClick={() => setIsSidebarOpen(true)}
+                                    className="md:hidden p-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md"
+                                >
+                                    <Menu size={28} />
+                                </button>
+                                <div className="flex-1">
+                                <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
+                                    {activeTab === 'courses' ? 'Courses Management' :
+                                        activeTab === 'members' ? 'Members Management' :
+                                        activeTab === 'events' ? 'Events Management' :
+                                        activeTab === 'articles' ? 'Articles Management' :
+                                        activeTab === 'therapy-programs' ? 'Therapy Programs Management' :
+                                        activeTab === 'for-parents' ? 'For Parents Management' :
+                                        activeTab === 'applications' ? 'All Applications' :
+                                        'Settings'}
+                                </h1>
+                                <p className="text-gray-600 text-sm md:text-base">
+                                    {activeTab === 'courses' ? 'Manage all courses on the website' :
+                                        activeTab === 'members' ? 'Manage all members on the website' :
+                                        activeTab === 'events' ? 'Manage upcoming and past events' :
+                                        activeTab === 'articles' ? 'Manage articles and resources' :
+                                        activeTab === 'therapy-programs' ? 'Manage therapy programs and services' :
+                                        activeTab === 'for-parents' ? 'Manage articles and resources for parents' :
+                                        activeTab === 'applications' ? 'Review and manage all form submissions' :
+                                            'Dashboard settings and configuration'}
+                                </p>
+                                </div>
+                            </div>
+                            {/* Desktop buttons on the right */}
+                            {activeTab === 'courses' && (
+                                <div className="hidden md:flex items-center gap-2 md:gap-3">
+                                    <button
+                                        onClick={loadCourses}
+                                        className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                        title="Refresh Courses"
+                                    >
+                                        <RefreshCw size={18} />
+                                    </button>
+                                    <button
+                                        onClick={handleSyncCourses}
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                                        title="Sync from Supabase"
+                                    >
+                                        <RefreshCw size={18} />
+                                        Sync
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            const localCourses = coursesManager._getAllFromLocalStorage();
+                                            if (localCourses.length === 0) {
+                                                alert('No courses in localStorage to sync.');
+                                                return;
+                                            }
+                                            const confirmed = window.confirm(
+                                                `Sync ${localCourses.length} course(s) from localStorage to Supabase?\n\n` +
+                                                `This will upload any courses that don't already exist in Supabase, or update existing ones.`
+                                            );
+                                            if (!confirmed) return;
+
+                                            try {
+                                                const result = await coursesManager.syncToSupabase();
+                                                if (result.synced) {
+                                                    await loadCourses();
+                                                    let message = `✅ Sync Complete!\n\n`;
+                                                    message += `📤 Synced: ${result.syncedCount} course(s)\n`;
+                                                    message += `📊 Total: ${result.total} course(s)\n`;
+                                                    if (result.errorCount > 0) {
+                                                        message += `❌ Errors: ${result.errorCount} course(s)\n`;
+                                                    }
+                                                    alert(message);
+                                                } else {
+                                                    alert(`❌ Failed to sync: ${result.error?.message || 'Unknown error'}`);
+                                                }
+                                            } catch (error) {
+                                                console.error('Error syncing courses to Supabase:', error);
+                                                alert(`❌ Error: ${error.message || 'Unknown error'}`);
+                                            }
+                                        }}
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                        title="Sync to Supabase (Upload from localStorage)"
+                                    >
+                                        <RefreshCw size={18} className="rotate-180" />
+                                        Sync to Supabase
+                                    </button>
+                                    <button
+                                        onClick={() => setIsAddingCourse(true)}
+                                        className="flex items-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md"
+                                    >
+                                        <Plus size={20} />
+                                        Add Course
+                                    </button>
+                                </div>
+                            )}
+                            {activeTab === 'members' && (
+                                <div className="hidden md:flex items-center gap-2 md:gap-3">
+                                    <button
+                                        onClick={loadMembers}
+                                        className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                        title="Refresh Members"
+                                    >
+                                        <RefreshCw size={18} />
+                                    </button>
+                                    <button
+                                        onClick={handleSyncMembers}
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                                        title="Sync from Supabase"
+                                    >
+                                        <RefreshCw size={18} />
+                                        Sync
+                                    </button>
+                                    <button
+                                        onClick={async () => {
+                                            const localMembers = membersManager._getAllFromLocalStorage();
+                                            if (localMembers.length === 0) {
+                                                alert('No members in localStorage to sync.');
+                                                return;
+                                            }
+                                            const confirmed = window.confirm(
+                                                `Sync ${localMembers.length} member(s) from localStorage to Supabase?\n\n` +
+                                                `This will upload any members that don't already exist in Supabase, or update existing ones.`
+                                            );
+                                            if (!confirmed) return;
+
+                                            try {
+                                                const result = await membersManager.syncToSupabase();
+                                                if (result.synced) {
+                                                    loadMembers();
+                                                    let message = `✅ Sync Complete!\n\n`;
+                                                    message += `📤 Synced: ${result.syncedCount} member(s)\n`;
+                                                    message += `📊 Total: ${result.total} member(s)\n`;
+                                                    if (result.errorCount > 0) {
+                                                        message += `❌ Errors: ${result.errorCount} member(s)\n`;
+                                                    }
+                                                    if (result.errors && result.errors.length > 0) {
+                                                        message += `\nFailed members:\n`;
+                                                        result.errors.slice(0, 5).forEach(err => {
+                                                            message += `• ${err.member}\n`;
+                                                        });
+                                                        if (result.errors.length > 5) {
+                                                            message += `... and ${result.errors.length - 5} more\n`;
+                                                        }
+                                                    }
+                                                    alert(message);
+                                                } else {
+                                                    alert(`Failed to sync members: ${result.error?.message || 'Unknown error'}`);
+                                                }
+                                            } catch (error) {
+                                                console.error('Error syncing members to Supabase:', error);
+                                                alert(`Error syncing members: ${error.message || 'Unknown error'}`);
+                                            }
+                                        }}
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                        title="Sync to Supabase (Upload from localStorage)"
+                                    >
+                                        <RefreshCw size={18} className="rotate-180" />
+                                        Sync to Supabase
+                                    </button>
+                                    <button
+                                        onClick={() => setIsAddingMember(true)}
+                                        className="flex items-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md"
+                                    >
+                                        <Plus size={20} />
+                                        Add Member
+                                    </button>
+                                </div>
+                            )}
                         </div>
                         {activeTab === 'courses' && (
-                            <div className="flex items-center gap-3">
+                            <>
+                            <div className="md:hidden flex items-center gap-2 mb-3 flex-wrap">
                                 <button
                                     onClick={loadCourses}
-                                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
                                     title="Refresh Courses"
                                 >
                                     <RefreshCw size={18} />
                                 </button>
                                 <button
                                     onClick={handleSyncCourses}
-                                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
                                     title="Sync from Supabase"
                                 >
                                     <RefreshCw size={18} />
@@ -2834,33 +3007,37 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             alert(`❌ Error: ${error.message || 'Unknown error'}`);
                                         }
                                     }}
-                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
                                     title="Sync to Supabase (Upload from localStorage)"
                                 >
                                     <RefreshCw size={18} className="rotate-180" />
                                     Sync to Supabase
                                 </button>
+                            </div>
+                            <div className="md:hidden w-full">
                                 <button
                                     onClick={() => setIsAddingCourse(true)}
-                                    className="flex items-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md"
+                                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md"
                                 >
                                     <Plus size={20} />
                                     Add Course
                                 </button>
                             </div>
+                            </>
                         )}
                         {activeTab === 'members' && (
-                            <div className="flex items-center gap-3">
+                            <>
+                            <div className="md:hidden flex items-center gap-2 mb-3 flex-wrap">
                                 <button
                                     onClick={loadMembers}
-                                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
                                     title="Refresh Members"
                                 >
                                     <RefreshCw size={18} />
                                 </button>
                                 <button
                                     onClick={handleSyncMembers}
-                                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
+                                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
                                     title="Sync from Supabase"
                                 >
                                     <RefreshCw size={18} />
@@ -2913,17 +3090,20 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                     <RefreshCw size={18} className="rotate-180" />
                                     Sync to Supabase
                                 </button>
+                            </div>
+                            <div className="md:hidden w-full">
                                 <button
                                     onClick={() => setIsAddingMember(true)}
-                                    className="flex items-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md"
+                                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md"
                                 >
                                     <Plus size={20} />
                                     Add Member
                                 </button>
                             </div>
+                            </>
                         )}
                         {activeTab === 'articles' && (
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                                 <button
                                     onClick={loadArticles}
                                     className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
@@ -2949,7 +3129,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             </div>
                         )}
                         {activeTab === 'therapy-programs' && (
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                                 <button
                                     onClick={loadTherapyPrograms}
                                     className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
@@ -2975,7 +3155,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             </div>
                         )}
                         {activeTab === 'for-parents' && (
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                                 <button
                                     onClick={loadForParentsArticles}
                                     className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
@@ -3001,7 +3181,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             </div>
                         )}
                         {activeTab === 'events' && (
-                            <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-2 md:gap-3 flex-wrap">
                                 <button
                                     onClick={loadEvents}
                                     className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
@@ -3560,19 +3740,19 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
 
                     {/* Applications Tab */}
                     {activeTab === 'applications' && (
-                        <div className="space-y-8">
+                        <div className="space-y-6 md:space-y-8">
                             {/* Main Sync All Button */}
-                            <div className="bg-gradient-to-r from-blue-50 to-teal-50 border border-blue-200 rounded-lg p-4 mb-6">
-                                <div className="flex items-center justify-between">
+                            <div className="bg-gradient-to-r from-blue-50 to-teal-50 border border-blue-200 rounded-lg p-4 md:p-6 mb-4 md:mb-6">
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                                     <div>
-                                        <h3 className="text-lg font-semibold text-gray-900 mb-1">Sync All Data to Supabase</h3>
-                                        <p className="text-sm text-gray-600">
+                                        <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-1">Sync All Data to Supabase</h3>
+                                        <p className="text-xs md:text-sm text-gray-600">
                                             Upload all localStorage data (Member Forms, Contact Forms, Reservations, Event Registrations) to Supabase
                                         </p>
                                     </div>
                                     <button
                                         onClick={syncToSupabase}
-                                        className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md"
+                                        className="w-full md:w-auto flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium shadow-md text-sm md:text-base"
                                         title="Sync all localStorage data to Supabase"
                                     >
                                         <RefreshCw size={18} className="rotate-180" />
@@ -3583,20 +3763,20 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
 
                             {/* Section 1: Member Applications */}
                             <div>
-                                <div className="flex items-center justify-between mb-4">
-                                    <h2 className="text-2xl font-bold text-gray-900">Member Applications</h2>
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex gap-2 text-sm">
-                                            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {forms.length}</span>
-                                            <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {forms.filter(f => f.status === 'pending').length}</span>
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">Member Applications</h2>
+                                    <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                                        <div className="flex gap-2 text-xs md:text-sm">
+                                            <span className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full font-medium">Total: {forms.length}</span>
+                                            <span className="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-full font-medium">Pending: {forms.filter(f => f.status === 'pending').length}</span>
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
                                             <button
                                                 onClick={syncFormsFromSupabase}
-                                                className="flex items-center gap-2 px-4 py-2 text-sm bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium"
+                                                className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium"
                                                 title="Sync from Supabase"
                                             >
-                                                <RefreshCw size={16} />
+                                                <RefreshCw size={18} />
                                                 Sync from Supabase
                                             </button>
                                             <button
@@ -3654,26 +3834,26 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                     );
                                                     await loadForms();
                                                 }}
-                                                className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                                className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                                                 title="Sync to Supabase (Upload from localStorage)"
                                             >
-                                                <RefreshCw size={16} className="rotate-180" />
+                                                <RefreshCw size={18} className="rotate-180" />
                                                 Sync to Supabase
                                             </button>
-                                        <button
-                                            onClick={loadForms}
-                                            className="flex items-center gap-2 text-sm text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors"
-                                            title="Refresh Member Applications"
-                                        >
-                                            <RefreshCw size={16} />
-                                            Refresh
-                                        </button>
+                                            <button
+                                                onClick={loadForms}
+                                                className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors font-medium"
+                                                title="Refresh Member Applications"
+                                            >
+                                                <RefreshCw size={18} />
+                                                Refresh
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Filters */}
-                                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                                <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 mb-4 md:mb-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="relative">
                                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -3682,15 +3862,15 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                 placeholder="Search by name, email, or specialty..."
                                                 value={formSearchTerm}
                                                 onChange={(e) => setFormSearchTerm(e.target.value)}
-                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                                                className="w-full pl-10 pr-4 py-3 md:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
                                             />
                                         </div>
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-2 flex-wrap">
                                             {['all', 'pending', 'approved', 'rejected'].map(status => (
                                                 <button
                                                     key={status}
                                                     onClick={() => setStatusFilter(status)}
-                                                    className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
+                                                    className={`px-4 py-2.5 rounded-lg font-medium transition-colors text-sm ${
                                                         statusFilter === status
                                                             ? 'bg-[#5A9B8E] text-white'
                                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -3703,9 +3883,10 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                     </div>
                                 </div>
 
-                                {/* Applications Table */}
+                                {/* Applications Table - Desktop / Cards - Mobile */}
                                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                                    <div className="overflow-x-auto">
+                                    {/* Desktop Table */}
+                                    <div className="hidden md:block overflow-x-auto">
                                         <table className="w-full">
                                             <thead className="bg-gray-50 border-b border-gray-200">
                                                 <tr>
@@ -3775,6 +3956,63 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             </tbody>
                                         </table>
                                     </div>
+
+                                    {/* Mobile Cards */}
+                                    <div className="md:hidden divide-y divide-gray-200">
+                                        {filteredForms.map((form) => (
+                                            <div key={form.id} className="p-4 hover:bg-gray-50 transition-colors">
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div className="flex-1">
+                                                        <h3 className="font-semibold text-gray-900 text-base mb-1">{form.username}</h3>
+                                                        <p className="text-sm text-gray-600 mb-2">{form.email}</p>
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <span className="text-xs text-gray-500">Submitted:</span>
+                                                            <span className="text-sm text-gray-700 font-medium">
+                                                                {new Date(form.submittedAt).toLocaleDateString()}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold ${
+                                                        form.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                                        form.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                        'bg-yellow-100 text-yellow-700'
+                                                    }`}>
+                                                        {form.status === 'approved' && <CheckCircle size={16} />}
+                                                        {form.status === 'rejected' && <XCircle size={16} />}
+                                                        {form.status === 'pending' && <Clock size={16} />}
+                                                        {form.status.charAt(0).toUpperCase() + form.status.slice(1)}
+                                                    </span>
+                                                </div>
+                                                <div className="mb-3">
+                                                    <p className="text-xs text-gray-500 mb-1.5">Specialty:</p>
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {form.specialty.map((spec, idx) => (
+                                                            <span key={idx} className="px-2.5 py-1 bg-[#5A9B8E]/10 text-[#5A9B8E] text-xs rounded-full font-medium">
+                                                                {spec}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                                                    <button
+                                                        onClick={() => setSelectedForm(form)}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium text-sm"
+                                                    >
+                                                        <Eye size={18} />
+                                                        View Details
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteForm(form.id)}
+                                                        className="px-4 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+                                                        title="Delete"
+                                                    >
+                                                        <XCircle size={18} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
                                     {filteredForms.length === 0 && (
                                         <div className="text-center py-12">
                                             <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -3786,37 +4024,30 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
 
                             {/* Section 2: Event Registrations */}
                             <div>
-                                <div className="flex items-center justify-between mb-4">
-                                    <h2 className="text-2xl font-bold text-gray-900">Event Registrations</h2>
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex gap-2 text-sm">
-                                            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {eventRegistrations.length}</span>
-                                            <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {eventRegistrations.filter(r => r.status === 'pending').length}</span>
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">Event Registrations</h2>
+                                    <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                                        <div className="flex gap-2 text-xs md:text-sm">
+                                            <span className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full font-medium">Total: {eventRegistrations.length}</span>
+                                            <span className="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-full font-medium">Pending: {eventRegistrations.filter(r => r.status === 'pending').length}</span>
                                         </div>
-                                        <button
-                                            onClick={loadEventRegistrations}
-                                            className="flex items-center gap-2 text-sm text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors"
-                                            title="Refresh Event Registrations"
-                                        >
-                                            <RefreshCw size={16} />
-                                            Refresh
-                                        </button>
-                                        <button
-                                            onClick={handleSyncEventRegistrations}
-                                            disabled={isSyncingEventRegistrations}
-                                            className={`flex items-center gap-2 text-sm text-white px-4 py-2 rounded-lg transition-colors ${
-                                                isSyncingEventRegistrations
-                                                    ? 'bg-gray-400 cursor-not-allowed'
-                                                    : 'bg-[#5A9B8E] hover:bg-[#4A8B7E]'
-                                            }`}
-                                            title="Sync from Supabase"
-                                        >
-                                            <RefreshCw 
-                                                size={16} 
-                                                className={isSyncingEventRegistrations ? 'animate-spin' : ''} 
-                                            />
-                                            {isSyncingEventRegistrations ? 'Syncing...' : 'Sync from Supabase'}
-                                        </button>
+                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
+                                            <button
+                                                onClick={handleSyncEventRegistrations}
+                                                disabled={isSyncingEventRegistrations}
+                                                className={`flex items-center justify-center gap-2 text-sm text-white px-4 py-2.5 rounded-lg transition-colors font-medium ${
+                                                    isSyncingEventRegistrations
+                                                        ? 'bg-gray-400 cursor-not-allowed'
+                                                        : 'bg-[#5A9B8E] hover:bg-[#4A8B7E]'
+                                                }`}
+                                                title="Sync from Supabase"
+                                            >
+                                                <RefreshCw 
+                                                    size={18} 
+                                                    className={isSyncingEventRegistrations ? 'animate-spin' : ''} 
+                                                />
+                                                {isSyncingEventRegistrations ? 'Syncing...' : 'Sync from Supabase'}
+                                            </button>
                                         <button
                                             onClick={async () => {
                                                 const localRegs = eventRegistrationsManager.getAllFromLocalStorage();
@@ -3899,17 +4130,26 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                 );
                                                 await loadEventRegistrations();
                                             }}
-                                            className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                            className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                                             title="Sync to Supabase (Upload from localStorage)"
                                         >
-                                            <RefreshCw size={16} className="rotate-180" />
+                                            <RefreshCw size={18} className="rotate-180" />
                                             Sync to Supabase
                                         </button>
+                                            <button
+                                                onClick={loadEventRegistrations}
+                                                className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors font-medium"
+                                                title="Refresh Event Registrations"
+                                            >
+                                                <RefreshCw size={18} />
+                                                Refresh
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
 
                                 {/* Filters */}
-                                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                                <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 mb-4 md:mb-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="relative">
                                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -3918,15 +4158,15 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                 placeholder="Search by name, email, phone, or organization..."
                                                 value={eventSearchTerm}
                                                 onChange={(e) => setEventSearchTerm(e.target.value)}
-                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                                                className="w-full pl-10 pr-4 py-3 md:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
                                             />
                                         </div>
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-2 flex-wrap">
                                             {['all', 'pending', 'approved', 'rejected'].map(status => (
                                                 <button
                                                     key={status}
                                                     onClick={() => setEventStatusFilter(status)}
-                                                    className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
+                                                    className={`px-4 py-2.5 rounded-lg font-medium transition-colors text-sm ${
                                                         eventStatusFilter === status
                                                             ? 'bg-[#5A9B8E] text-white'
                                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -3939,9 +4179,10 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                     </div>
                                 </div>
 
-                                {/* Event Registrations Table */}
+                                {/* Event Registrations Table - Desktop / Cards - Mobile */}
                                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                                    <div className="overflow-x-auto">
+                                    {/* Desktop Table */}
+                                    <div className="hidden md:block overflow-x-auto">
                                         <table className="w-full">
                                             <thead className="bg-gray-50 border-b border-gray-200">
                                                 <tr>
@@ -4009,6 +4250,57 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             </tbody>
                                         </table>
                                     </div>
+
+                                    {/* Mobile Cards */}
+                                    <div className="md:hidden divide-y divide-gray-200">
+                                        {filteredEventRegistrations.map((registration) => (
+                                            <div key={registration.id} className="p-4 hover:bg-gray-50 transition-colors">
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div className="flex-1">
+                                                        <h3 className="font-semibold text-gray-900 text-base mb-1">{registration.fullName}</h3>
+                                                        <p className="text-sm text-gray-600 mb-1">{registration.email}</p>
+                                                        <p className="text-sm text-gray-600 mb-2">{registration.phone}</p>
+                                                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                                                            <span className="text-xs text-gray-500">Type:</span>
+                                                            <span className="text-sm text-gray-700 font-medium">
+                                                                {registration.membershipType === 'member' ? 'Member' : 'Guest'}
+                                                            </span>
+                                                            <span className="text-xs text-gray-400">•</span>
+                                                            <span className="text-xs text-gray-500">Fee:</span>
+                                                            <span className="text-sm font-semibold text-gray-900">{registration.registrationFee} EGP</span>
+                                                        </div>
+                                                    </div>
+                                                    <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold ${
+                                                        registration.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                                        registration.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                        'bg-yellow-100 text-yellow-700'
+                                                    }`}>
+                                                        {registration.status === 'approved' && <CheckCircle size={16} />}
+                                                        {registration.status === 'rejected' && <XCircle size={16} />}
+                                                        {registration.status === 'pending' && <Clock size={16} />}
+                                                        {registration.status.charAt(0).toUpperCase() + registration.status.slice(1)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                                                    <button
+                                                        onClick={() => setSelectedEventRegistration(registration)}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium text-sm"
+                                                    >
+                                                        <Eye size={18} />
+                                                        View Details
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteEventRegistration(registration.id)}
+                                                        className="px-4 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+                                                        title="Delete"
+                                                    >
+                                                        <XCircle size={18} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
                                     {filteredEventRegistrations.length === 0 && (
                                         <div className="text-center py-12">
                                             <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -4020,20 +4312,20 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
 
                             {/* Section 3: Contact Forms */}
                             <div>
-                                <div className="flex items-center justify-between mb-4">
-                                    <h2 className="text-2xl font-bold text-gray-900">Contact Messages</h2>
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex gap-2 text-sm">
-                                            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {contactForms.length}</span>
-                                            <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {contactForms.filter(f => f.status === 'pending').length}</span>
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">Contact Messages</h2>
+                                    <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                                        <div className="flex gap-2 text-xs md:text-sm">
+                                            <span className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full font-medium">Total: {contactForms.length}</span>
+                                            <span className="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-full font-medium">Pending: {contactForms.filter(f => f.status === 'pending').length}</span>
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
                                             <button
                                                 onClick={syncContactFormsFromSupabase}
-                                                className="flex items-center gap-2 px-4 py-2 text-sm bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium"
+                                                className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium"
                                                 title="Sync from Supabase"
                                             >
-                                                <RefreshCw size={16} />
+                                                <RefreshCw size={18} />
                                                 Sync from Supabase
                                             </button>
                                             <button
@@ -4093,26 +4385,26 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                     );
                                                     await loadContactForms();
                                                 }}
-                                                className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                                className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                                                 title="Sync to Supabase (Upload from localStorage)"
                                             >
-                                                <RefreshCw size={16} className="rotate-180" />
+                                                <RefreshCw size={18} className="rotate-180" />
                                                 Sync to Supabase
                                             </button>
-                                        <button
-                                            onClick={loadContactForms}
-                                            className="flex items-center gap-2 text-sm text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors"
-                                            title="Refresh Contact Messages"
-                                        >
-                                            <RefreshCw size={16} />
-                                            Refresh
-                                        </button>
+                                            <button
+                                                onClick={loadContactForms}
+                                                className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors font-medium"
+                                                title="Refresh Contact Messages"
+                                            >
+                                                <RefreshCw size={18} />
+                                                Refresh
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Filters */}
-                                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                                <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 mb-4 md:mb-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="relative">
                                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -4121,15 +4413,15 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                 placeholder="Search by name, email, subject, or message..."
                                                 value={contactSearchTerm}
                                                 onChange={(e) => setContactSearchTerm(e.target.value)}
-                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                                                className="w-full pl-10 pr-4 py-3 md:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
                                             />
                                         </div>
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-2 flex-wrap">
                                             {['all', 'pending', 'approved', 'rejected'].map(status => (
                                                 <button
                                                     key={status}
                                                     onClick={() => setContactStatusFilter(status)}
-                                                    className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
+                                                    className={`px-4 py-2.5 rounded-lg font-medium transition-colors text-sm ${
                                                         contactStatusFilter === status
                                                             ? 'bg-[#5A9B8E] text-white'
                                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -4142,9 +4434,10 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                     </div>
                                 </div>
 
-                                {/* Contact Forms Table */}
+                                {/* Contact Forms Table - Desktop / Cards - Mobile */}
                                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                                    <div className="overflow-x-auto">
+                                    {/* Desktop Table */}
+                                    <div className="hidden md:block overflow-x-auto">
                                         <table className="w-full">
                                             <thead className="bg-gray-50 border-b border-gray-200">
                                                 <tr>
@@ -4208,6 +4501,54 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             </tbody>
                                         </table>
                                     </div>
+
+                                    {/* Mobile Cards */}
+                                    <div className="md:hidden divide-y divide-gray-200">
+                                        {filteredContactForms.map((form) => (
+                                            <div key={form.id} className="p-4 hover:bg-gray-50 transition-colors">
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div className="flex-1">
+                                                        <h3 className="font-semibold text-gray-900 text-base mb-1">{form.name}</h3>
+                                                        <p className="text-sm text-gray-600 mb-1">{form.email}</p>
+                                                        <p className="text-sm font-medium text-gray-900 mb-2">{form.subject}</p>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs text-gray-500">Submitted:</span>
+                                                            <span className="text-sm text-gray-700 font-medium">
+                                                                {new Date(form.submittedAt).toLocaleDateString()}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold ${
+                                                        form.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                                        form.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                        'bg-yellow-100 text-yellow-700'
+                                                    }`}>
+                                                        {form.status === 'approved' && <CheckCircle size={16} />}
+                                                        {form.status === 'rejected' && <XCircle size={16} />}
+                                                        {form.status === 'pending' && <Clock size={16} />}
+                                                        {form.status.charAt(0).toUpperCase() + form.status.slice(1)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                                                    <button
+                                                        onClick={() => setSelectedContactForm(form)}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium text-sm"
+                                                    >
+                                                        <Eye size={18} />
+                                                        View Details
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteContactForm(form.id)}
+                                                        className="px-4 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+                                                        title="Delete"
+                                                    >
+                                                        <XCircle size={18} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
                                     {filteredContactForms.length === 0 && (
                                         <div className="text-center py-12">
                                             <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -4219,20 +4560,20 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
 
                             {/* Section 4: Reservations */}
                             <div>
-                                <div className="flex items-center justify-between mb-4">
-                                    <h2 className="text-2xl font-bold text-gray-900">Assessment Reservations</h2>
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex gap-2 text-sm">
-                                            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full">Total: {reservations.length}</span>
-                                            <span className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full">Pending: {reservations.filter(r => r.status === 'pending').length}</span>
+                                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                                    <h2 className="text-xl md:text-2xl font-bold text-gray-900">Assessment Reservations</h2>
+                                    <div className="flex flex-col md:flex-row md:items-center gap-3 md:gap-4">
+                                        <div className="flex gap-2 text-xs md:text-sm">
+                                            <span className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full font-medium">Total: {reservations.length}</span>
+                                            <span className="px-3 py-1.5 bg-yellow-100 text-yellow-700 rounded-full font-medium">Pending: {reservations.filter(r => r.status === 'pending').length}</span>
                                         </div>
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-2">
                                             <button
                                                 onClick={syncReservationsFromSupabase}
-                                                className="flex items-center gap-2 px-4 py-2 text-sm bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium"
+                                                className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium"
                                                 title="Sync from Supabase"
                                             >
-                                                <RefreshCw size={16} />
+                                                <RefreshCw size={18} />
                                                 Sync from Supabase
                                             </button>
                                             <button
@@ -4288,18 +4629,18 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                     );
                                                     await loadReservations();
                                                 }}
-                                                className="flex items-center gap-2 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                                                className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
                                                 title="Sync to Supabase (Upload from localStorage)"
                                             >
-                                                <RefreshCw size={16} className="rotate-180" />
+                                                <RefreshCw size={18} className="rotate-180" />
                                                 Sync to Supabase
                                             </button>
                                             <button
                                                 onClick={loadReservations}
-                                                className="flex items-center gap-2 text-sm text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors"
+                                                className="flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg transition-colors font-medium"
                                                 title="Refresh Reservations"
                                             >
-                                                <RefreshCw size={16} />
+                                                <RefreshCw size={18} />
                                                 Refresh
                                             </button>
                                         </div>
@@ -4307,7 +4648,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 </div>
 
                                 {/* Filters */}
-                                <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+                                <div className="bg-white rounded-lg shadow-sm p-4 md:p-6 mb-4 md:mb-6">
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="relative">
                                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
@@ -4316,15 +4657,15 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                 placeholder="Search by child's name, parent name, phone, or concern..."
                                                 value={reservationSearchTerm}
                                                 onChange={(e) => setReservationSearchTerm(e.target.value)}
-                                                className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                                                className="w-full pl-10 pr-4 py-3 md:py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
                                             />
                                         </div>
-                                        <div className="flex gap-2">
+                                        <div className="flex gap-2 flex-wrap">
                                             {['all', 'pending', 'approved', 'rejected'].map(status => (
                                                 <button
                                                     key={status}
                                                     onClick={() => setReservationStatusFilter(status)}
-                                                    className={`px-4 py-2.5 rounded-lg font-medium transition-colors ${
+                                                    className={`px-4 py-2.5 rounded-lg font-medium transition-colors text-sm ${
                                                         reservationStatusFilter === status
                                                             ? 'bg-[#5A9B8E] text-white'
                                                             : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -4337,9 +4678,10 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                     </div>
                                 </div>
 
-                                {/* Reservations Table */}
+                                {/* Reservations Table - Desktop / Cards - Mobile */}
                                 <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-                                    <div className="overflow-x-auto">
+                                    {/* Desktop Table */}
+                                    <div className="hidden md:block overflow-x-auto">
                                         <table className="w-full">
                                             <thead className="bg-gray-50 border-b border-gray-200">
                                                 <tr>
@@ -4420,6 +4762,66 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                             </tbody>
                                         </table>
                                     </div>
+
+                                    {/* Mobile Cards */}
+                                    <div className="md:hidden divide-y divide-gray-200">
+                                        {filteredReservations.map((reservation) => (
+                                            <div key={reservation.id} className="p-4 hover:bg-gray-50 transition-colors">
+                                                <div className="flex items-start justify-between mb-3">
+                                                    <div className="flex-1">
+                                                        <h3 className="font-semibold text-gray-900 text-base mb-1">{reservation.kidsName}</h3>
+                                                        <p className="text-sm text-gray-600 mb-1">Parent: {reservation.yourName}</p>
+                                                        <p className="text-sm text-gray-600 mb-2">{reservation.phoneNumber}</p>
+                                                        <div className="flex items-center gap-2 mb-2">
+                                                            <span className="text-xs text-gray-500">Submitted:</span>
+                                                            <span className="text-sm text-gray-700 font-medium">
+                                                                {new Date(reservation.submittedAt).toLocaleDateString()}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold ${
+                                                        reservation.status === 'approved' ? 'bg-green-100 text-green-700' :
+                                                        reservation.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                        'bg-yellow-100 text-yellow-700'
+                                                    }`}>
+                                                        {reservation.status === 'approved' && <CheckCircle size={16} />}
+                                                        {reservation.status === 'rejected' && <XCircle size={16} />}
+                                                        {reservation.status === 'pending' && <Clock size={16} />}
+                                                        {reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)}
+                                                    </span>
+                                                </div>
+                                                {reservation.selectedAssessments && reservation.selectedAssessments.length > 0 && (
+                                                    <div className="mb-3">
+                                                        <p className="text-xs text-gray-500 mb-1.5">Assessments:</p>
+                                                        <div className="flex flex-wrap gap-1.5">
+                                                            {reservation.selectedAssessments.map((assessment, idx) => (
+                                                                <span key={idx} className="px-2.5 py-1 bg-[#5A9B8E]/10 text-[#5A9B8E] text-xs rounded-full font-medium">
+                                                                    {assessment}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
+                                                    <button
+                                                        onClick={() => setSelectedReservation(reservation)}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium text-sm"
+                                                    >
+                                                        <Eye size={18} />
+                                                        View Details
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteReservation(reservation.id)}
+                                                        className="px-4 py-2.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+                                                        title="Delete"
+                                                    >
+                                                        <XCircle size={18} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
                                     {filteredReservations.length === 0 && (
                                         <div className="text-center py-12">
                                             <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />

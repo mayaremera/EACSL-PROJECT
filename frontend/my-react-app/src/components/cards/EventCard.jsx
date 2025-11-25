@@ -3,7 +3,7 @@ import speechTherapy from "../../src/assets/speech-therapy.png"
 
 const EventCard = () => {
     return (
-        <div className="w-full max-w-[460px] bg-white rounded-3xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-300 p-6">
+        <div className="w-full max-w-[460px] bg-white rounded-3xl overflow-hidden shadow-2xl hover:shadow-3xl transition-all duration-300 p-3 sm:p-4">
             {/* Image Section */}
             <div className="relative">
                 <img
@@ -20,68 +20,68 @@ const EventCard = () => {
             </div>
 
             {/* Content Section */}
-            <div className="pt-6">
+            <div className="pt-4 sm:pt-6">
                 {/* Title */}
                 <h1 className="text-4xl font-extrabold text-black mb-2 leading-tight">
                     SLPIP
                 </h1>
 
                 {/* Subtitle */}
-                <p className="text-base font-medium text-gray-700 mb-6 leading-snug">
+                <p className="text-base font-medium text-gray-700 mb-4 sm:mb-6 leading-snug">
                     Speech Language Pathology International Program
                 </p>
 
                 {/* Team Grid */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-6 sm:gap-8">
                     {/* Person 1 */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3 sm:gap-4">
                         <img
                             src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop"
                             alt="Dr Jacob Jones"
-                            className="w-10 h-10 rounded-full object-cover"
+                            className="w-12 h-12 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
                         />
-                        <div>
-                            <div className="text-sm font-bold text-black">Dr/ Jacob Jones</div>
-                            <div className="text-xs text-gray-600">Photography Expert</div>
+                        <div className="min-w-0">
+                            <div className="text-sm font-bold text-black truncate">Dr/ Jacob Jones</div>
+                            <div className="text-xs text-gray-600 truncate">Photography Expert</div>
                         </div>
                     </div>
 
                     {/* Person 2 */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3 sm:gap-4">
                         <img
                             src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150&h=150&fit=crop"
                             alt="Dr Jacob Jones"
-                            className="w-10 h-10 rounded-full object-cover"
+                            className="w-12 h-12 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
                         />
-                        <div>
-                            <div className="text-sm font-bold text-black">Dr/ Jacob Jones</div>
-                            <div className="text-xs text-gray-600">Photography Expert</div>
+                        <div className="min-w-0">
+                            <div className="text-sm font-bold text-black truncate">Dr/ Jacob Jones</div>
+                            <div className="text-xs text-gray-600 truncate">Photography Expert</div>
                         </div>
                     </div>
 
                     {/* Person 3 */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3 sm:gap-4">
                         <img
                             src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop"
                             alt="Dr Jacob Jones"
-                            className="w-10 h-10 rounded-full object-cover"
+                            className="w-12 h-12 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
                         />
-                        <div>
-                            <div className="text-sm font-bold text-black">Dr/ Jacob Jones</div>
-                            <div className="text-xs text-gray-600">Photography Expert</div>
+                        <div className="min-w-0">
+                            <div className="text-sm font-bold text-black truncate">Dr/ Jacob Jones</div>
+                            <div className="text-xs text-gray-600 truncate">Photography Expert</div>
                         </div>
                     </div>
 
                     {/* Person 4 */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3 sm:gap-4">
                         <img
                             src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop"
                             alt="Dr Jacob Jones"
-                            className="w-10 h-10 rounded-full object-cover"
+                            className="w-12 h-12 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
                         />
-                        <div>
-                            <div className="text-sm font-bold text-black">Dr/ Jacob Jones</div>
-                            <div className="text-xs text-gray-600">Photography Expert</div>
+                        <div className="min-w-0">
+                            <div className="text-sm font-bold text-black truncate">Dr/ Jacob Jones</div>
+                            <div className="text-xs text-gray-600 truncate">Photography Expert</div>
                         </div>
                     </div>
                 </div>
