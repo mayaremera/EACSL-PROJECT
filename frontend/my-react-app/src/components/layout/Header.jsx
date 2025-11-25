@@ -30,7 +30,7 @@ const Header = () => {
   
   // Get member data for logged-in user
   useEffect(() => {
-    if (user) {
+      if (user) {
       const member = getMemberByUserId(user.id);
       if (member) {
         setMemberData(member);
@@ -48,12 +48,21 @@ const Header = () => {
   }, [user, getMemberByUserId]);
 
   // Handle scroll behavior for sticky header
+  // Completely disable sticky behavior on mobile/tablet
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
       const scrollThreshold = 80; // Start sticky behavior after 80px
-      const scrollDelta = currentScrollY - lastScrollYRef.current;
+      const isMobile = window.innerWidth < 1024; // lg breakpoint
       
+      // On mobile/tablet, completely disable sticky behavior - always use relative positioning
+      if (isMobile) {
+        setIsScrolled(false);
+        setIsVisible(true);
+        return;
+      }
+      
+      // Desktop behavior
       if (currentScrollY < scrollThreshold) {
         // At the top - show header in normal position
         setIsScrolled(false);
@@ -62,6 +71,8 @@ const Header = () => {
         // Past threshold - use sticky behavior
         setIsScrolled(true);
         
+        const scrollDelta = currentScrollY - lastScrollYRef.current;
+        
         if (scrollDelta > 0) {
           // Scrolling down - show header (it follows you)
           setIsVisible(true);
@@ -69,7 +80,6 @@ const Header = () => {
           // Scrolling up - hide header smoothly
           setIsVisible(false);
         }
-        // If scrollDelta is 0, keep current state
       }
       
       lastScrollYRef.current = currentScrollY;
@@ -89,11 +99,27 @@ const Header = () => {
 
     window.addEventListener('scroll', throttledHandleScroll, { passive: true });
     
+    // Handle window resize to update mobile detection
+    const handleResize = () => {
+      const isMobile = window.innerWidth < 1024;
+      if (isMobile) {
+        // Reset to relative positioning on mobile
+        setIsScrolled(false);
+        setIsVisible(true);
+      } else {
+        // Re-check scroll position on desktop
+        handleScroll();
+      }
+    };
+    
+    window.addEventListener('resize', handleResize, { passive: true });
+    
     // Initial check
     handleScroll();
     
     return () => {
       window.removeEventListener('scroll', throttledHandleScroll);
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
 

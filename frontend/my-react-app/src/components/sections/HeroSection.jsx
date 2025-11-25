@@ -119,71 +119,71 @@ const EventCard = () => {
           {eventSubtitle}
         </p>
 
-        {/* Team Grid */}
-        <div className="grid grid-cols-2 gap-3 md:gap-4">
+        {/* Team Grid - Single row, no text overflow */}
+        <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
           {/* Person 1 */}
-          <div className="flex items-center gap-1 md:gap-2">
+          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
             <img
               src={WaelAlDakroury}
               alt="Wael AlDakroury"
-              className="w-9 h-9 rounded-full object-cover object-top flex-shrink-0"
+              className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover object-top flex-shrink-0"
             />
-            <div className="min-w-0">
-              <div className="text-[0.8rem] md:text-sm font-bold text-black whitespace-nowrap">
+            <div className="min-w-0 max-w-[120px] md:max-w-[140px]">
+              <div className="text-[0.7rem] md:text-sm font-bold text-black truncate" title="Wael AlDakroury">
                 Wael AlDakroury
               </div>
-              <div className="text-[0.6rem] md:text-[0.8rem] text-gray-600">
+              <div className="text-[0.55rem] md:text-[0.7rem] text-gray-600 truncate" title="Program Director">
                 Program Director
               </div>
             </div>
           </div>
 
           {/* Person 2 */}
-          <div className="flex items-center gap-1 md:gap-2">
+          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
             <img
               src={OsamaElsayed}
               alt="Osama Elsayed"
-              className="w-9 h-9 rounded-full object-cover object-top"
+              className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover object-top flex-shrink-0"
             />
-            <div>
-              <div className="text-[0.8rem] md:text-sm font-bold text-black">
+            <div className="min-w-0 max-w-[120px] md:max-w-[140px]">
+              <div className="text-[0.7rem] md:text-sm font-bold text-black truncate" title="Osama Elsayed">
                 Osama Elsayed
               </div>
-              <div className="text-[0.7rem] md:text-[0.8rem] text-gray-600">
+              <div className="text-[0.55rem] md:text-[0.7rem] text-gray-600 truncate" title="General Coordination">
                 General Coordination
               </div>
             </div>
           </div>
 
           {/* Person 3 */}
-          <div className="flex items-center gap-1 md:gap-2">
+          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
             <img
               src={SaharAAlsamahi}
               alt="Sahar A.Alsamahi"
-              className="w-9 h-9 rounded-full object-cover object-top"
+              className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover object-top flex-shrink-0"
             />
-            <div>
-              <div className="text-[0.8rem] md:text-sm font-bold text-black">
+            <div className="min-w-0 max-w-[120px] md:max-w-[140px]">
+              <div className="text-[0.7rem] md:text-sm font-bold text-black truncate" title="Sahar A.Alsamahi">
                 Sahar A.Alsamahi
               </div>
-              <div className="text-[0.6rem] md:text-[0.8rem] text-gray-600">
+              <div className="text-[0.55rem] md:text-[0.7rem] text-gray-600 truncate" title="General Coordination">
                 General Coordination
               </div>
             </div>
           </div>
 
           {/* Person 4 */}
-          <div className="flex items-center gap-1 md:gap-2">
+          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
             <img
               src={MohamedGweda}
               alt="Mohamed Gwida"
-              className="w-9 h-9 rounded-full object-cover object-top"
+              className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover object-top flex-shrink-0"
             />
-            <div>
-              <div className="text-[0.8rem] md:text-sm font-bold text-black">
+            <div className="min-w-0 max-w-[120px] md:max-w-[140px]">
+              <div className="text-[0.7rem] md:text-sm font-bold text-black truncate" title="Mohamed Gwida">
                 Mohamed Gwida
               </div>
-              <div className="text-[0.6rem] md:text-[0.8rem] text-gray-600">
+              <div className="text-[0.55rem] md:text-[0.7rem] text-gray-600 truncate" title="Kuwait Committee">
                 Kuwait Committee
               </div>
             </div>
@@ -255,30 +255,30 @@ const HeroSection = () => {
       {/* Container */}
       <div className="relative z-10 max-w-[1400px] w-full mx-auto grid lg:grid-cols-[62%_38%] items-center gap-8 lg:gap-5 px-6 md:px-12 lg:px-[7rem]">
 
-        {/* Left Side */}
-        <div className="space-y-6 flex flex-col items-center md:items-start">
+        {/* Left Side - Order first on mobile, second on desktop */}
+        <div className="space-y-6 flex flex-col items-center lg:items-start order-1 lg:order-1">
 
           {/* Dynamic Title from Current Event */}
-          <h1 className="text-4xl md:text-5xl lg:text-5xl font-extrabold text-gray-900 leading-smug text-center md:text-left">
+          <h1 className="text-4xl md:text-5xl lg:text-5xl font-extrabold text-gray-900 leading-smug text-center lg:text-left">
             {heroTitle}
           </h1>
 
           {/* Dynamic Description from Current Event */}
-          <p className="text-base md:text-lg lg:text-[1rem] font-normal text-[#5a6270] max-w-[40rem] text-center md:text-left">
+          <p className="text-base md:text-lg lg:text-[1rem] font-normal text-[#5a6270] max-w-[40rem] text-center lg:text-left">
             {heroDescription}
           </p>
 
           {/* Enroll Button - Links to Current Event */}
           <Link 
             to={getEnrollUrl()}
-            className="text-sm md:text-base px-8 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] font-semibold rounded-md hover:bg-[#5A9B8E] hover:text-white transition-all duration-300 w-fit"
+            className="text-sm md:text-base px-8 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] font-semibold rounded-md hover:bg-[#5A9B8E] hover:text-white transition-all duration-300 w-fit text-center lg:text-left"
           >
             Enroll Now
           </Link>
         </div>
 
-        {/* Right Side — Card */}
-        <div className="relative flex items-center justify-end">
+        {/* Right Side — Card - Order second on mobile, first on desktop */}
+        <div className="relative flex items-center justify-center lg:justify-end order-2 lg:order-2">
           <EventCard />
         </div>
 

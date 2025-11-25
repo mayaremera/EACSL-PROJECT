@@ -5,14 +5,14 @@ import aboutPageImage from "../../assets/aboutpagesectionimage.png";
 
 const AboutUsSection = () => {
   return (
-    <section className="bg-white py-16 px-8">
+    <section className="bg-white py-12 sm:py-16 px-4 sm:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-[10rem] items-center">
           
           {/* Left Content */}
           <div>
             {/* About Us Label */}
-            <div className="mb-3 inline-block">
+            <div className="mb-6 sm:mb-3 inline-block pt-2 sm:pt-0">
               <span className="text-sm font-bold tracking-wider text-black block mb-[-0.1rem]">
                 ABOUT US
               </span>
@@ -20,19 +20,20 @@ const AboutUsSection = () => {
             </div>
 
             {/* Title With Logo */}
-            <div className="flex items-start mb-5 lg:mb-7 mt-[0.5rem] lg:mt-0">
+            <div className="flex items-left justify-left lg:justify-start mb-5 lg:mb-7 mt-[0.5rem] lg:mt-0">
               <img
                 src={halfCircle}
                 alt="Logo"
-                className="w-[3.5rem] h-[4.5rem] -mt-[0.3rem] lg:mt-[0.65rem]"
+                className="w-[3.5rem] h-[4.5rem] flex-shrink-0"
               />
-              <h2 className="text-[1.8rem] md:text-5xl lg:text-[3.2rem] font-bold text-black lg:leading-[2.9rem]">
-                Get to know us better
+              <h2 className="text-[1.8rem] md:text-5xl lg:text-[2.5rem] font-semibold text-black leading-tight lg:leading-[2.3rem] ml-1 lg:ml-0">
+                <span className="block">Get to know</span>
+                <span className="block">us better</span>
               </h2>
             </div>
 
             {/* Description */}
-            <div className="space-y-6 text-gray-600 text-base text-center md:text-left leading-relaxed mb-5">
+            <div className="space-y-6 text-gray-600 text-base text-center lg:text-left leading-relaxed mb-5">
               <p>
                 The Egyptian Association for Communication Sciences and
                 Linguistics (EACSL) was founded by graduates from the Phonetics
@@ -45,27 +46,23 @@ const AboutUsSection = () => {
             </div>
 
             {/* Learn More Button */}
-            <Link
-              to="/about"
-              className="text-[0.8rem] px-8 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] font-semibold rounded-md hover:bg-[#5A9B8E] hover:text-white transition-all duration-300 mx-auto block lg:mx-0 lg:inline-block"
-            >
-              Learn More
-            </Link>
+            <div className="text-center lg:text-left">
+              <Link
+                to="/about"
+                className="text-[0.8rem] px-8 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] font-semibold rounded-md hover:bg-[#5A9B8E] hover:text-white transition-all duration-300 inline-block"
+              >
+                Learn More
+              </Link>
+            </div>
           </div>
 
           {/* Right Image — Updated Styling */}
-
           <div className="relative">
             <div className="relative bg-transparent">
               <img
                 src="https://plus.unsplash.com/premium_photo-1661724579910-96f4dba073ac?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                 alt="Team working together"
-                className="
-                  w-full h-auto object-cover
-                  rounded-2xl        /* smooth rounded corners */
-                  shadow-xl          /* elegant soft shadow */
-                  border border-gray-100 /* thin subtle border */
-                "
+                className="w-full h-auto object-cover rounded-xl sm:rounded-2xl shadow-lg sm:shadow-xl border border-gray-100"
               />
             </div>
           </div>
