@@ -132,15 +132,38 @@ const Header = () => {
     if (searchQuery.trim().length < 2) {
       setSearchResults(null);
       setIsSearching(false);
+      setShowSearchDropdown(false);
       return;
     }
 
     setIsSearching(true);
     const timeoutId = setTimeout(async () => {
-      const results = await searchService.searchAll(searchQuery);
-      setSearchResults(results);
-      setIsSearching(false);
-      setShowSearchDropdown(true);
+      try {
+        // Add timeout to prevent hanging
+        const searchPromise = searchService.searchAll(searchQuery);
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Search timeout')), 10000)
+        );
+        
+        const results = await Promise.race([searchPromise, timeoutPromise]);
+        setSearchResults(results);
+        setIsSearching(false);
+        setShowSearchDropdown(true);
+      } catch (error) {
+        console.error('Search error:', error);
+        setSearchResults({
+          members: [],
+          events: [],
+          articles: [],
+          courses: [],
+          therapyPrograms: [],
+          forParents: [],
+          total: 0,
+          error: error.message || 'Search failed. Please try again.'
+        });
+        setIsSearching(false);
+        setShowSearchDropdown(true);
+      }
     }, 300);
 
     return () => clearTimeout(timeoutId);
@@ -169,14 +192,21 @@ const Header = () => {
       }
     };
 
+    // Handle both mouse and touch events for mobile
     document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
     };
   }, []);
 
   // Handle search result click
-  const handleSearchResultClick = (url) => {
+  const handleSearchResultClick = (url, event) => {
+    if (event) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
     setShowSearchDropdown(false);
     setSearchQuery('');
     navigate(url, { replace: true });
@@ -271,7 +301,7 @@ const Header = () => {
         transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
       }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center">
@@ -362,6 +392,12 @@ const Header = () => {
                       <Loader2 size={24} className="animate-spin text-[#5A9B8E] mx-auto mb-2" />
                       <p className="text-sm text-gray-500">Searching...</p>
                     </div>
+                  ) : searchResults && searchResults.error ? (
+                    <div className="p-8 text-center">
+                      <Search size={32} className="text-red-300 mx-auto mb-2" />
+                      <p className="text-sm font-medium text-red-600 mb-1">Search Error</p>
+                      <p className="text-xs text-gray-500">{searchResults.error}</p>
+                    </div>
                   ) : searchResults && searchResults.total > 0 ? (
                     <div className="py-2">
                       {/* Members */}
@@ -376,7 +412,8 @@ const Header = () => {
                           {searchResults.members.map((item) => (
                             <button
                               key={`member-${item.id}`}
-                              onClick={() => handleSearchResultClick(item.url)}
+                              onMouseDown={(e) => handleSearchResultClick(item.url, e)}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                               className="w-full px-4 py-3 hover:bg-teal-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
                             >
                               <div className="flex items-start gap-3">
@@ -409,7 +446,8 @@ const Header = () => {
                           {searchResults.events.map((item) => (
                             <button
                               key={`event-${item.id}`}
-                              onClick={() => handleSearchResultClick(item.url)}
+                              onMouseDown={(e) => handleSearchResultClick(item.url, e)}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                               className="w-full px-4 py-3 hover:bg-blue-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
                             >
                               <div className="flex items-start gap-3">
@@ -442,7 +480,8 @@ const Header = () => {
                           {searchResults.articles.map((item) => (
                             <button
                               key={`article-${item.id}`}
-                              onClick={() => handleSearchResultClick(item.url)}
+                              onMouseDown={(e) => handleSearchResultClick(item.url, e)}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                               className="w-full px-4 py-3 hover:bg-purple-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
                             >
                               <div className="flex items-start gap-3">
@@ -475,7 +514,8 @@ const Header = () => {
                           {searchResults.courses.map((item) => (
                             <button
                               key={`course-${item.id}`}
-                              onClick={() => handleSearchResultClick(item.url)}
+                              onMouseDown={(e) => handleSearchResultClick(item.url, e)}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                               className="w-full px-4 py-3 hover:bg-orange-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
                             >
                               <div className="flex items-start gap-3">
@@ -508,7 +548,8 @@ const Header = () => {
                           {searchResults.therapyPrograms.map((item) => (
                             <button
                               key={`therapy-${item.id}`}
-                              onClick={() => handleSearchResultClick(item.url)}
+                              onMouseDown={(e) => handleSearchResultClick(item.url, e)}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                               className="w-full px-4 py-3 hover:bg-pink-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
                             >
                               <div className="flex items-start gap-3">
@@ -541,7 +582,8 @@ const Header = () => {
                           {searchResults.forParents.map((item) => (
                             <button
                               key={`parent-${item.id}`}
-                              onClick={() => handleSearchResultClick(item.url)}
+                              onMouseDown={(e) => handleSearchResultClick(item.url, e)}
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
                               className="w-full px-4 py-3 hover:bg-green-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
                             >
                               <div className="flex items-start gap-3">
@@ -656,7 +698,7 @@ const Header = () => {
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="lg:hidden py-4 border-t border-gray-200">
+          <div className="lg:hidden py-4 border-t border-gray-200 relative overflow-visible">
             <div className="flex flex-col space-y-4">
               {navLinks.map((link) => (
                 <div key={link.name}>
@@ -692,47 +734,253 @@ const Header = () => {
               ))}
               {/* Mobile Search and CTA */}
               <div className="pt-4 space-y-4">
-                <div className="relative">
+                <div className="relative" ref={searchRef}>
                   <input
                     type="text"
                     placeholder="Search Anything"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      if (e.target.value.trim().length >= 2) {
+                        setShowSearchDropdown(true);
+                      }
+                    }}
+                    onFocus={() => {
+                      if (searchQuery.trim().length >= 2 && searchResults) {
+                        setShowSearchDropdown(true);
+                      }
+                    }}
                     className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent text-sm"
                   />
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
                     {isSearching ? (
                       <Loader2 size={20} className="text-[#5A9B8E] animate-spin" />
                     ) : (
                       <Search size={20} className="text-gray-400" />
                     )}
                   </div>
-                  {/* Mobile Search Results - Simplified */}
-                  {showSearchDropdown && searchQuery.trim().length >= 2 && searchResults && searchResults.total > 0 && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl max-h-[400px] overflow-y-auto z-50">
-                      <div className="py-2">
-                        {[...searchResults.members, ...searchResults.events, ...searchResults.articles, ...searchResults.courses, ...searchResults.therapyPrograms, ...searchResults.forParents].slice(0, 8).map((item, idx) => (
-                          <button
-                            key={`mobile-result-${item.type}-${item.id}-${idx}`}
-                            onClick={() => handleSearchResultClick(item.url)}
-                            className="w-full px-4 py-3 hover:bg-teal-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="mt-0.5">{getCategoryIcon(item.type)}</div>
-                              <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-gray-900 truncate">
-                                  {item.title}
-                                </p>
-                                {item.subtitle && (
-                                  <p className="text-xs text-gray-500 mt-0.5 truncate">
-                                    {item.subtitle}
-                                  </p>
-                                )}
+                  {/* Mobile Search Results */}
+                  {showSearchDropdown && searchQuery.trim().length >= 2 && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-xl max-h-[400px] overflow-y-auto z-[100]">
+                      {isSearching ? (
+                        <div className="p-8 text-center">
+                          <Loader2 size={24} className="animate-spin text-[#5A9B8E] mx-auto mb-2" />
+                          <p className="text-sm text-gray-500">Searching...</p>
+                        </div>
+                      ) : searchResults && searchResults.error ? (
+                        <div className="p-8 text-center">
+                          <Search size={32} className="text-red-300 mx-auto mb-2" />
+                          <p className="text-sm font-medium text-red-600 mb-1">Search Error</p>
+                          <p className="text-xs text-gray-500">{searchResults.error}</p>
+                        </div>
+                      ) : searchResults && searchResults.total > 0 ? (
+                        <div className="py-2">
+                          {/* Members */}
+                          {searchResults.members.length > 0 && (
+                            <div className="mb-2">
+                              <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                                <Users size={14} className="text-[#5A9B8E]" />
+                                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                                  Members ({searchResults.members.length})
+                                </span>
                               </div>
+                              {searchResults.members.map((item) => (
+                                <button
+                                  key={`mobile-member-${item.id}`}
+                                  onMouseDown={(e) => handleSearchResultClick(item.url, e)}
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                  className="w-full px-4 py-3 hover:bg-teal-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <div className="mt-0.5">{getCategoryIcon(item.type)}</div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-gray-900 truncate">
+                                        {item.title}
+                                      </p>
+                                      {item.subtitle && (
+                                        <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                          {item.subtitle}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
                             </div>
-                          </button>
-                        ))}
-                      </div>
+                          )}
+                          {/* Events */}
+                          {searchResults.events.length > 0 && (
+                            <div className="mb-2">
+                              <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                                <Calendar size={14} className="text-blue-600" />
+                                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                                  Events ({searchResults.events.length})
+                                </span>
+                              </div>
+                              {searchResults.events.map((item) => (
+                                <button
+                                  key={`mobile-event-${item.id}`}
+                                  onMouseDown={(e) => handleSearchResultClick(item.url, e)}
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                  className="w-full px-4 py-3 hover:bg-blue-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <div className="mt-0.5">{getCategoryIcon(item.type)}</div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-gray-900 truncate">
+                                        {item.title}
+                                      </p>
+                                      {item.subtitle && (
+                                        <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                          {item.subtitle}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {/* Articles */}
+                          {searchResults.articles.length > 0 && (
+                            <div className="mb-2">
+                              <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                                <FileText size={14} className="text-purple-600" />
+                                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                                  Articles ({searchResults.articles.length})
+                                </span>
+                              </div>
+                              {searchResults.articles.map((item) => (
+                                <button
+                                  key={`mobile-article-${item.id}`}
+                                  onMouseDown={(e) => handleSearchResultClick(item.url, e)}
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                  className="w-full px-4 py-3 hover:bg-purple-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <div className="mt-0.5">{getCategoryIcon(item.type)}</div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-gray-900 truncate">
+                                        {item.title}
+                                      </p>
+                                      {item.subtitle && (
+                                        <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                          {item.subtitle}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {/* Courses */}
+                          {searchResults.courses.length > 0 && (
+                            <div className="mb-2">
+                              <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                                <GraduationCap size={14} className="text-orange-600" />
+                                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                                  Courses ({searchResults.courses.length})
+                                </span>
+                              </div>
+                              {searchResults.courses.map((item) => (
+                                <button
+                                  key={`mobile-course-${item.id}`}
+                                  onMouseDown={(e) => handleSearchResultClick(item.url, e)}
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                  className="w-full px-4 py-3 hover:bg-orange-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <div className="mt-0.5">{getCategoryIcon(item.type)}</div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-gray-900 truncate">
+                                        {item.title}
+                                      </p>
+                                      {item.subtitle && (
+                                        <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                          {item.subtitle}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {/* Therapy Programs */}
+                          {searchResults.therapyPrograms.length > 0 && (
+                            <div className="mb-2">
+                              <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                                <Brain size={14} className="text-pink-600" />
+                                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                                  Therapy Programs ({searchResults.therapyPrograms.length})
+                                </span>
+                              </div>
+                              {searchResults.therapyPrograms.map((item) => (
+                                <button
+                                  key={`mobile-therapy-${item.id}`}
+                                  onMouseDown={(e) => handleSearchResultClick(item.url, e)}
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                  className="w-full px-4 py-3 hover:bg-pink-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <div className="mt-0.5">{getCategoryIcon(item.type)}</div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-gray-900 truncate">
+                                        {item.title}
+                                      </p>
+                                      {item.subtitle && (
+                                        <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                          {item.subtitle}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {/* For Parents */}
+                          {searchResults.forParents.length > 0 && (
+                            <div className="mb-2">
+                              <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
+                                <Baby size={14} className="text-green-600" />
+                                <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                                  For Parents ({searchResults.forParents.length})
+                                </span>
+                              </div>
+                              {searchResults.forParents.map((item) => (
+                                <button
+                                  key={`mobile-parent-${item.id}`}
+                                  onMouseDown={(e) => handleSearchResultClick(item.url, e)}
+                                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                                  className="w-full px-4 py-3 hover:bg-green-50 transition-colors text-left border-b border-gray-100 last:border-b-0"
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <div className="mt-0.5">{getCategoryIcon(item.type)}</div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-medium text-gray-900 truncate">
+                                        {item.title}
+                                      </p>
+                                      {item.subtitle && (
+                                        <p className="text-xs text-gray-500 mt-0.5 truncate">
+                                          {item.subtitle}
+                                        </p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="p-8 text-center">
+                          <Search size={32} className="text-gray-300 mx-auto mb-2" />
+                          <p className="text-sm font-medium text-gray-600 mb-1">No results found</p>
+                          <p className="text-xs text-gray-500">Try different keywords</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

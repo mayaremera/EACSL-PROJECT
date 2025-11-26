@@ -51,7 +51,7 @@ const MemberCard = ({
         <>
             {/* Vertical Member Card */}
             <div 
-                className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 w-full max-w-xs border-2 border-gray-200 relative"
+                className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all duration-300 w-full md:max-w-xs border-2 border-gray-200 relative"
                 onClick={handleCardClick}
                 style={{ cursor: onClick ? 'pointer' : 'default' }}
             >

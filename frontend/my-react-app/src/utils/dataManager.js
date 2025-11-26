@@ -1732,7 +1732,7 @@ export const eventsManager = {
       
       if (error) {
         // If event doesn't exist in Supabase, try to add it
-        if (error.code === 'PGRST116' || error.message?.includes('No rows found') || error.message?.includes('not found')) {
+        if (error.code === 'PGRST116' && error.details?.includes('0 rows')) {
           console.log("Event not found in Supabase, attempting to add instead...");
           const addResult = await eventsService.add(completeEvent);
           if (addResult.data && !addResult.error) {
@@ -1755,11 +1755,11 @@ export const eventsManager = {
               const localEvents = eventsManager._getAllFromLocalStorage();
               const upcoming = localEvents.upcoming || [];
               const past = localEvents.past || [];
-    let index = upcoming.findIndex((e) => e.id === id);
-    let isUpcoming = true;
-    if (index === -1) {
-      index = past.findIndex((e) => e.id === id);
-      isUpcoming = false;
+              let index = upcoming.findIndex((e) => e.id === id);
+              let isUpcoming = true;
+              if (index === -1) {
+                index = past.findIndex((e) => e.id === id);
+                isUpcoming = false;
               }
               if (index >= 0) {
                 if (isUpcoming) {
@@ -1796,7 +1796,7 @@ export const eventsManager = {
           return completeEvent;
         }
         
-        // Other errors - throw to show to user
+        // Other errors (400, 406, etc.) - throw to show to user
         console.error("❌ Failed to update event in Supabase:", error);
         throw new Error(`Failed to update event: ${error.message || 'Unknown error'}`);
       }
@@ -2300,34 +2300,52 @@ export const articlesManager = {
     
     // Fetch from Supabase (source of truth)
     try {
-      console.log("🔄 Fetching articles from Supabase...");
+      console.log("🔄 articlesManager.getAll() - Fetching from Supabase...");
       const { data, error } = await articlesService.getAll();
       
       if (error) {
         // If table doesn't exist, fall back to localStorage
         if (error.code === "TABLE_NOT_FOUND") {
           console.warn("⚠️ Articles table not found in Supabase. Using localStorage fallback.");
-          return articlesManager._getAllFromLocalStorage();
+          const localArticles = articlesManager._getAllFromLocalStorage();
+          console.log(`📦 Using ${localArticles.length} articles from localStorage`);
+          return localArticles;
         }
         
         // Other errors - log and fall back to localStorage
         console.error("❌ Error fetching from Supabase:", error);
-        return articlesManager._getAllFromLocalStorage();
+        console.error("Error details:", { code: error.code, message: error.message, details: error.details });
+        const localArticles = articlesManager._getAllFromLocalStorage();
+        console.log(`📦 Falling back to ${localArticles.length} articles from localStorage`);
+        return localArticles;
       }
       
       // Map Supabase articles to local format
-      const supabaseArticles = data
-        ? data.map((a) => articlesService.mapSupabaseToLocal(a))
+      const supabaseArticles = data && Array.isArray(data)
+        ? data.map((a) => {
+            try {
+              return articlesService.mapSupabaseToLocal(a);
+            } catch (mapErr) {
+              console.error('Error mapping article:', a, mapErr);
+              return null;
+            }
+          }).filter(a => a !== null)
         : [];
       
       // Save to localStorage as cache
       articlesManager.saveAll(supabaseArticles);
       
-      console.log(`✅ Fetched ${supabaseArticles.length} articles from Supabase`);
+      console.log(`✅ Successfully fetched and mapped ${supabaseArticles.length} articles from Supabase`);
+      if (supabaseArticles.length > 0) {
+        console.log('Sample mapped article:', supabaseArticles[0]);
+      }
       return supabaseArticles;
     } catch (err) {
       console.error("❌ Exception fetching from Supabase:", err);
-      return articlesManager._getAllFromLocalStorage();
+      console.error("Exception stack:", err.stack);
+      const localArticles = articlesManager._getAllFromLocalStorage();
+      console.log(`📦 Exception fallback to ${localArticles.length} articles from localStorage`);
+      return localArticles;
     }
   },
   
@@ -2437,10 +2455,15 @@ export const articlesManager = {
   update: async (id, updatedArticle) => {
     // Get current article from cache to merge with updates
     const localArticles = articlesManager._getAllFromLocalStorage();
-    const existingArticle = localArticles.find((a) => a.id === id);
+    // Handle both string and number ID comparison
+    const existingArticle = localArticles.find((a) => {
+      const localId = typeof a.id === 'string' ? parseInt(a.id, 10) : a.id;
+      const targetId = typeof id === 'string' ? parseInt(id, 10) : id;
+      return localId === targetId;
+    });
 
     if (!existingArticle) {
-      console.error('Article not found with id:', id);
+      console.error('Article not found with id:', id, 'Available IDs:', localArticles.map(a => a.id));
       throw new Error(`Article with id ${id} not found`);
     }
 
@@ -2511,9 +2534,18 @@ export const articlesManager = {
       
       console.log("✅ Article successfully updated in Supabase:", data);
       
+      // Clear cache to force fresh fetch on next getAll()
+      articlesManager._cache = null;
+      articlesManager._cacheTimestamp = null;
+      
       // Update localStorage cache
       const localArticles = articlesManager._getAllFromLocalStorage();
-      const index = localArticles.findIndex((a) => a.id === id);
+      const index = localArticles.findIndex((a) => {
+        // Handle both string and number ID comparison
+        const localId = typeof a.id === 'string' ? parseInt(a.id, 10) : a.id;
+        const targetId = typeof id === 'string' ? parseInt(id, 10) : id;
+        return localId === targetId;
+      });
       if (index >= 0) {
         localArticles[index] = data;
         articlesManager.saveAll(localArticles);
@@ -2672,7 +2704,7 @@ export const articlesManager = {
     }
   },
 
-  // Fetch articles from Supabase and sync with local storage
+  // Fetch articles from Supabase and sync with local storage - same pattern as events
   syncFromSupabase: async () => {
     try {
       const { data, error } = await articlesService.getAll();
@@ -2703,50 +2735,13 @@ export const articlesManager = {
         ? data.map((a) => articlesService.mapSupabaseToLocal(a))
         : [];
 
-      // Get existing local articles (use cached data for fast access)
-      const localArticles = articlesManager._getAllFromLocalStorage();
-
-      // Start with Supabase articles as the source of truth
-      const uniqueArticles = [...supabaseArticles];
-
-      // Helper function to check if an article exists
-      const articleExists = (article, articlesArray) => {
-        return articlesArray.some(
-          (existing) =>
-            article.id && existing.id && article.id === existing.id
-        );
-      };
-
-      // Get all Supabase article IDs
-      const supabaseIds = new Set(
-        supabaseArticles
-          .map((a) => a.id)
-          .filter((id) => id != null)
-          .map((id) => Number(id))
-      );
-
-      // Add local-only articles (those that don't exist in Supabase)
-      localArticles.forEach((localArticle) => {
-        const existsInSupabase = articleExists(localArticle, supabaseArticles);
-
-        if (!existsInSupabase) {
-          const localId = localArticle.id ? Number(localArticle.id) : null;
-          const wasSyncedBefore =
-            localId !== null && !isNaN(localId) && !supabaseIds.has(localId);
-
-          if (!wasSyncedBefore) {
-            // This is a truly local-only article
-            uniqueArticles.push(localArticle);
-          }
-        }
-      });
-
-      articlesManager.saveAll(uniqueArticles);
+      // Save to localStorage (Supabase is source of truth)
+      articlesManager.saveAll(supabaseArticles);
 
       // Dispatch event to notify UI
       if (typeof window !== "undefined") {
         window.dispatchEvent(
-          new CustomEvent("articlesUpdated", { detail: uniqueArticles })
+          new CustomEvent("articlesUpdated", { detail: supabaseArticles })
         );
       }
 
@@ -2761,70 +2756,39 @@ export const articlesManager = {
     }
   },
 
-  // Push local articles to Supabase (for initial sync)
+  // Push local articles to Supabase (for initial sync) - same pattern as events
   syncToSupabase: async () => {
     try {
       const localArticles = articlesManager._getAllFromLocalStorage();
       let syncedCount = 0;
       let errorCount = 0;
-      const errors = [];
 
       for (const article of localArticles) {
-        try {
-          // Prepare article data - ensure imageUrl is set from image if needed
-          const articleData = {
-            ...article,
-            imageUrl: article.imageUrl || (article.image && !article.imagePath ? article.image : article.imageUrl),
-          };
+        // Check if article already exists in Supabase
+        let existingArticle = null;
+        if (article.id) {
+          const { data } = await articlesService.getById(article.id);
+          existingArticle = data;
+        }
 
-          // Check if article already exists in Supabase
-          let existingArticle = null;
-          if (article.id) {
-            const { data } = await articlesService.getById(article.id);
-            existingArticle = data;
+        if (existingArticle) {
+          // Update existing article
+          const { error } = await articlesService.update(article.id, article);
+          if (!error) {
+            syncedCount++;
+          } else if (error.code !== "TABLE_NOT_FOUND") {
+            errorCount++;
+            console.warn(`Failed to update article ${article.titleEn}:`, error);
           }
-
-          if (existingArticle) {
-            // Update existing article
-            const { error } = await articlesService.update(article.id, articleData);
-            if (!error) {
-              syncedCount++;
-              console.log(`✅ Synced article: ${article.titleEn}`);
-            } else if (error.code !== "TABLE_NOT_FOUND") {
-              errorCount++;
-              const errorMsg = `Failed to update article ${article.titleEn}: ${error.message}`;
-              console.warn(errorMsg);
-              errors.push(errorMsg);
-            }
-          } else {
-            // Add new article (don't pass the local ID, let Supabase generate one)
-            const articleToAdd = { ...articleData };
-            delete articleToAdd.id; // Remove local ID so Supabase generates a new one
-            
-            const { data, error } = await articlesService.add(articleToAdd);
-            if (!error && data) {
-              syncedCount++;
-              console.log(`✅ Added article to Supabase: ${article.titleEn}`);
-              
-              // Update local article with Supabase ID
-              const localArticles = articlesManager.getAll();
-              const index = localArticles.findIndex((a) => a.id === article.id);
-              if (index !== -1) {
-                localArticles[index] = { ...data, id: data.id };
-                articlesManager.saveAll(localArticles);
-              }
-            } else if (error && error.code !== "TABLE_NOT_FOUND") {
-              errorCount++;
-              const errorMsg = `Failed to add article ${article.titleEn}: ${error.message}`;
-              console.warn(errorMsg);
-              errors.push(errorMsg);
-            }
+        } else {
+          // Add new article
+          const { error } = await articlesService.add(article);
+          if (!error) {
+            syncedCount++;
+          } else if (error.code !== "TABLE_NOT_FOUND") {
+            errorCount++;
+            console.warn(`Failed to add article ${article.titleEn}:`, error);
           }
-        } catch (err) {
-          errorCount++;
-          const errorMsg = `Exception processing article ${article.titleEn}: ${err.message}`;
-          console.error(errorMsg);
-          errors.push(errorMsg);
         }
       }
 
@@ -2833,10 +2797,9 @@ export const articlesManager = {
         syncedCount,
         errorCount,
         total: localArticles.length,
-        errors: errors.length > 0 ? errors : undefined,
         error:
           errorCount > 0
-            ? { message: `${errorCount} articles failed to sync`, details: errors }
+            ? { message: `${errorCount} articles failed to sync` }
             : null,
       };
     } catch (err) {
@@ -3042,7 +3005,7 @@ export const therapyProgramsManager = {
       
       if (error) {
         // If program doesn't exist in Supabase, try to add it
-        if (error.code === 'PGRST116' || error.message?.includes('No rows found') || error.message?.includes('not found')) {
+        if (error.code === 'PGRST116' && error.details?.includes('0 rows')) {
           console.log("Therapy program not found in Supabase, attempting to add instead...");
           const addResult = await therapyProgramsService.add(completeProgram);
           if (addResult.data && !addResult.error) {
@@ -3083,7 +3046,7 @@ export const therapyProgramsManager = {
           return completeProgram;
         }
         
-        // Other errors - throw to show to user
+        // Other errors (400, 406, etc.) - throw to show to user
         console.error("❌ Failed to update therapy program in Supabase:", error);
         throw new Error(`Failed to update therapy program: ${error.message || 'Unknown error'}`);
       }
@@ -3345,69 +3308,39 @@ export const therapyProgramsManager = {
   },
 
   // Push local therapy programs to Supabase (for initial sync)
+  // Push local therapy programs to Supabase (for initial sync) - same pattern as events
   syncToSupabase: async () => {
     try {
       const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
       let syncedCount = 0;
       let errorCount = 0;
-      const errors = [];
 
       for (const program of localPrograms) {
-        try {
-          // Prepare program data - ensure imageUrl is set from image if needed
-          const programData = {
-            ...program,
-            imageUrl: program.imageUrl || (program.image && !program.imagePath ? program.image : program.imageUrl),
-          };
+        // Check if program already exists in Supabase
+        let existingProgram = null;
+        if (program.id) {
+          const { data } = await therapyProgramsService.getById(program.id);
+          existingProgram = data;
+        }
 
-          // Check if program already exists in Supabase
-          let existingProgram = null;
-          if (program.id) {
-            const { data } = await therapyProgramsService.getById(program.id);
-            existingProgram = data;
+        if (existingProgram) {
+          // Update existing program
+          const { error } = await therapyProgramsService.update(program.id, program);
+          if (!error) {
+            syncedCount++;
+          } else if (error.code !== "TABLE_NOT_FOUND") {
+            errorCount++;
+            console.warn(`Failed to update therapy program ${program.title}:`, error);
           }
-
-          if (existingProgram) {
-            // Update existing program
-            const { error } = await therapyProgramsService.update(program.id, programData);
-            if (!error) {
-              syncedCount++;
-              console.log(`✅ Synced therapy program: ${program.title}`);
-            } else if (error.code !== "TABLE_NOT_FOUND") {
-              errorCount++;
-              const errorMsg = `Failed to update therapy program ${program.title}: ${error.message}`;
-              console.warn(errorMsg);
-              errors.push(errorMsg);
-            }
-          } else {
-            // Add new program (don't pass the local ID, let Supabase generate one)
-            const programToAdd = { ...programData };
-            delete programToAdd.id; // Remove local ID so Supabase generates a new one
-            
-            const { data, error } = await therapyProgramsService.add(programToAdd);
-            if (!error && data) {
-              syncedCount++;
-              console.log(`✅ Added therapy program to Supabase: ${program.title}`);
-              
-              // Update local program with Supabase ID
-              const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
-              const index = localPrograms.findIndex((p) => p.id === program.id);
-              if (index !== -1) {
-                localPrograms[index] = { ...data, id: data.id };
-                therapyProgramsManager.saveAll(localPrograms);
-              }
-            } else if (error && error.code !== "TABLE_NOT_FOUND") {
-              errorCount++;
-              const errorMsg = `Failed to add therapy program ${program.title}: ${error.message}`;
-              console.warn(errorMsg);
-              errors.push(errorMsg);
-            }
+        } else {
+          // Add new program
+          const { error } = await therapyProgramsService.add(program);
+          if (!error) {
+            syncedCount++;
+          } else if (error.code !== "TABLE_NOT_FOUND") {
+            errorCount++;
+            console.warn(`Failed to add therapy program ${program.title}:`, error);
           }
-        } catch (err) {
-          errorCount++;
-          const errorMsg = `Exception processing therapy program ${program.title}: ${err.message}`;
-          console.error(errorMsg);
-          errors.push(errorMsg);
         }
       }
 
@@ -3416,10 +3349,9 @@ export const therapyProgramsManager = {
         syncedCount,
         errorCount,
         total: localPrograms.length,
-        errors: errors.length > 0 ? errors : undefined,
         error:
           errorCount > 0
-            ? { message: `${errorCount} therapy programs failed to sync`, details: errors }
+            ? { message: `${errorCount} therapy programs failed to sync` }
             : null,
       };
     } catch (err) {
@@ -3625,7 +3557,7 @@ export const forParentsManager = {
       
       if (error) {
         // If article doesn't exist in Supabase, try to add it
-        if (error.code === 'PGRST116' || error.message?.includes('No rows found') || error.message?.includes('not found')) {
+        if (error.code === 'PGRST116' && error.details?.includes('0 rows')) {
           console.log("For parents article not found in Supabase, attempting to add instead...");
           const addResult = await forParentsService.add(completeArticle);
           if (addResult.data && !addResult.error) {

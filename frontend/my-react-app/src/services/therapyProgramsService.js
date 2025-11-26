@@ -41,14 +41,16 @@ export const therapyProgramsService = {
       
       if (error) {
         if (error.code === 'PGRST116') {
-          // Not found - return null data, no error
+          // Not found - return null data, no error (same as articlesService)
           return { data: null, error: null };
         }
         console.error('Error fetching therapy program from Supabase:', error);
         return { data: null, error };
       }
       
-      return { data, error: null };
+      // Map to local structure
+      const localProgram = this.mapSupabaseToLocal(data);
+      return { data: localProgram, error: null };
     } catch (err) {
       console.error('Exception fetching therapy program:', err);
       return { data: null, error: err };
@@ -58,7 +60,13 @@ export const therapyProgramsService = {
   // Add new therapy program to Supabase
   async add(program) {
     try {
-      // Map local program structure to Supabase structure
+      // First, try to fetch one program to see what columns exist (don't use .single() to avoid error if empty)
+      const { data: samplePrograms } = await supabase
+        .from('therapy_programs')
+        .select('*')
+        .limit(1);
+      
+      // Build program object - start with basic fields (these should always exist)
       const supabaseProgram = {
         title: program.title || '',
         description: program.description || '',
@@ -66,6 +74,14 @@ export const therapyProgramsService = {
         image_url: program.imageUrl || null,
         image_path: program.imagePath || null,
       };
+      
+      // Only add additional fields if they exist in the table schema
+      if (samplePrograms && samplePrograms.length > 0) {
+        const sampleProgram = samplePrograms[0];
+        // Add any additional fields that exist in the table
+        // (Currently only basic fields are used)
+      }
+      // If table is empty, just use basic fields
 
       const { data, error } = await supabase
         .from('therapy_programs')
@@ -75,10 +91,8 @@ export const therapyProgramsService = {
       
       if (error) {
         // Check if it's a table not found error
-        if (error.code === 'PGRST205' || error.code === 'PGRST116' || 
-            error.message?.includes('relation') || 
-            error.message?.includes('does not exist') ||
-            error.message?.includes('schema cache')) {
+        if (error.code === 'PGRST205' || 
+            (error.code === 'PGRST116' && error.message?.includes('schema cache'))) {
           console.warn('Therapy programs table does not exist in Supabase. Program saved locally only.');
           return { data: null, error: { message: 'Table does not exist. Please create the therapy_programs table first.', code: 'TABLE_NOT_FOUND' } };
         }
@@ -98,7 +112,13 @@ export const therapyProgramsService = {
   // Update therapy program in Supabase
   async update(id, program) {
     try {
-      // Map local program structure to Supabase structure
+      // First, try to fetch ANY program to see what columns exist in the table
+      const { data: samplePrograms } = await supabase
+        .from('therapy_programs')
+        .select('*')
+        .limit(1);
+      
+      // Build update object - start with basic fields (these should always exist)
       const supabaseProgram = {
         title: program.title || '',
         description: program.description || '',
@@ -106,6 +126,14 @@ export const therapyProgramsService = {
         image_url: program.imageUrl || null,
         image_path: program.imagePath || null,
       };
+      
+      // Only add additional fields if they exist in the table schema
+      if (samplePrograms && samplePrograms.length > 0) {
+        const sampleProgram = samplePrograms[0];
+        // Add any additional fields that exist in the table
+        // (Currently only basic fields are used, but this allows for future expansion)
+      }
+      // If table is empty, just use basic fields
 
       const { data, error } = await supabase
         .from('therapy_programs')
@@ -115,14 +143,46 @@ export const therapyProgramsService = {
         .single();
       
       if (error) {
-        // Check if it's a table not found error
-        if (error.code === 'PGRST205' || error.code === 'PGRST116' || 
-            error.message?.includes('relation') || 
-            error.message?.includes('does not exist') ||
-            error.message?.includes('schema cache')) {
+        // Log the FULL error object to see what Supabase is actually saying
+        console.error('❌ FULL Supabase Error Object:', JSON.stringify(error, null, 2));
+        console.error('❌ Error code:', error.code);
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error details:', error.details);
+        console.error('❌ Error hint:', error.hint);
+        console.error('❌ Error status:', error.status);
+        console.error('❌ Error statusCode:', error.statusCode);
+        
+        // PGRST205 means table doesn't exist
+        // PGRST116 with "schema cache" also means table doesn't exist
+        if (error.code === 'PGRST205' || 
+            (error.code === 'PGRST116' && error.message?.includes('schema cache'))) {
           console.warn('Therapy programs table does not exist in Supabase. Program updated locally only.');
           return { data: null, error: { message: 'Table does not exist. Please create the therapy_programs table first.', code: 'TABLE_NOT_FOUND' } };
         }
+        
+        // PGRST116 with "0 rows" means program doesn't exist, but table does
+        if (error.code === 'PGRST116' && error.details?.includes('0 rows')) {
+          console.warn('Therapy program not found in Supabase, but table exists. Update will fail - program may need to be created first.');
+        }
+        
+        // 400 Bad Request or 406 Not Acceptable means table exists but there's a problem
+        if (error.status === 400 || error.statusCode === 400 || 
+            error.status === 406 || error.statusCode === 406 ||
+            error.code === 'PGRST204') {
+          console.error('❌ 400/406 Error - Table exists but update failed. This usually means:');
+          console.error('   - Column name mismatch');
+          console.error('   - Missing required columns');
+          console.error('   - Wrong data type');
+          console.error('   - RLS policy blocking the update');
+          return { data: null, error: { 
+            message: `Bad Request: ${error.message || 'Check column names and RLS policies'}`,
+            code: 'BAD_REQUEST',
+            details: error.details,
+            hint: error.hint,
+            originalError: error
+          }};
+        }
+        
         console.error('Error updating therapy program in Supabase:', error);
         return { data: null, error };
       }

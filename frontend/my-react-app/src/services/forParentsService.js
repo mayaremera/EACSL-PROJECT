@@ -41,14 +41,16 @@ export const forParentsService = {
       
       if (error) {
         if (error.code === 'PGRST116') {
-          // Not found - return null data, no error
+          // Not found - return null data, no error (same as articlesService)
           return { data: null, error: null };
         }
         console.error('Error fetching parent article from Supabase:', error);
         return { data: null, error };
       }
       
-      return { data, error: null };
+      // Map to local structure
+      const localArticle = this.mapSupabaseToLocal(data);
+      return { data: localArticle, error: null };
     } catch (err) {
       console.error('Exception fetching parent article:', err);
       return { data: null, error: err };
@@ -58,7 +60,13 @@ export const forParentsService = {
   // Add new parent article to Supabase
   async add(article) {
     try {
-      // Map local article structure to Supabase structure
+      // First, try to fetch one article to see what columns exist (don't use .single() to avoid error if empty)
+      const { data: sampleArticles } = await supabase
+        .from('for_parents')
+        .select('*')
+        .limit(1);
+      
+      // Build article object - start with basic fields (these should always exist)
       const supabaseArticle = {
         title: article.title || '',
         excerpt: article.excerpt || '',
@@ -68,6 +76,14 @@ export const forParentsService = {
         image_url: article.imageUrl || null,
         image_path: article.imagePath || null,
       };
+      
+      // Only add additional fields if they exist in the table schema
+      if (sampleArticles && sampleArticles.length > 0) {
+        const sampleArticle = sampleArticles[0];
+        // Add any additional fields that exist in the table
+        // (Currently only basic fields are used)
+      }
+      // If table is empty, just use basic fields
 
       const { data, error } = await supabase
         .from('for_parents')
@@ -77,10 +93,8 @@ export const forParentsService = {
       
       if (error) {
         // Check if it's a table not found error
-        if (error.code === 'PGRST205' || error.code === 'PGRST116' || 
-            error.message?.includes('relation') || 
-            error.message?.includes('does not exist') ||
-            error.message?.includes('schema cache')) {
+        if (error.code === 'PGRST205' || 
+            (error.code === 'PGRST116' && error.message?.includes('schema cache'))) {
           console.warn('For parents table does not exist in Supabase. Article saved locally only.');
           return { data: null, error: { message: 'Table does not exist. Please create the for_parents table first.', code: 'TABLE_NOT_FOUND' } };
         }
@@ -100,7 +114,13 @@ export const forParentsService = {
   // Update parent article in Supabase
   async update(id, article) {
     try {
-      // Map local article structure to Supabase structure
+      // First, try to fetch ANY article to see what columns exist in the table
+      const { data: sampleArticles } = await supabase
+        .from('for_parents')
+        .select('*')
+        .limit(1);
+      
+      // Build update object - start with basic fields (these should always exist)
       const supabaseArticle = {
         title: article.title || '',
         excerpt: article.excerpt || '',
@@ -110,6 +130,14 @@ export const forParentsService = {
         image_url: article.imageUrl || null,
         image_path: article.imagePath || null,
       };
+      
+      // Only add additional fields if they exist in the table schema
+      if (sampleArticles && sampleArticles.length > 0) {
+        const sampleArticle = sampleArticles[0];
+        // Add any additional fields that exist in the table
+        // (Currently only basic fields are used, but this allows for future expansion)
+      }
+      // If table is empty, just use basic fields
 
       const { data, error } = await supabase
         .from('for_parents')
@@ -119,14 +147,46 @@ export const forParentsService = {
         .single();
       
       if (error) {
-        // Check if it's a table not found error
-        if (error.code === 'PGRST205' || error.code === 'PGRST116' || 
-            error.message?.includes('relation') || 
-            error.message?.includes('does not exist') ||
-            error.message?.includes('schema cache')) {
+        // Log the FULL error object to see what Supabase is actually saying
+        console.error('❌ FULL Supabase Error Object:', JSON.stringify(error, null, 2));
+        console.error('❌ Error code:', error.code);
+        console.error('❌ Error message:', error.message);
+        console.error('❌ Error details:', error.details);
+        console.error('❌ Error hint:', error.hint);
+        console.error('❌ Error status:', error.status);
+        console.error('❌ Error statusCode:', error.statusCode);
+        
+        // PGRST205 means table doesn't exist
+        // PGRST116 with "schema cache" also means table doesn't exist
+        if (error.code === 'PGRST205' || 
+            (error.code === 'PGRST116' && error.message?.includes('schema cache'))) {
           console.warn('For parents table does not exist in Supabase. Article updated locally only.');
           return { data: null, error: { message: 'Table does not exist. Please create the for_parents table first.', code: 'TABLE_NOT_FOUND' } };
         }
+        
+        // PGRST116 with "0 rows" means article doesn't exist, but table does
+        if (error.code === 'PGRST116' && error.details?.includes('0 rows')) {
+          console.warn('For parents article not found in Supabase, but table exists. Update will fail - article may need to be created first.');
+        }
+        
+        // 400 Bad Request or 406 Not Acceptable means table exists but there's a problem
+        if (error.status === 400 || error.statusCode === 400 || 
+            error.status === 406 || error.statusCode === 406 ||
+            error.code === 'PGRST204') {
+          console.error('❌ 400/406 Error - Table exists but update failed. This usually means:');
+          console.error('   - Column name mismatch');
+          console.error('   - Missing required columns');
+          console.error('   - Wrong data type');
+          console.error('   - RLS policy blocking the update');
+          return { data: null, error: { 
+            message: `Bad Request: ${error.message || 'Check column names and RLS policies'}`,
+            code: 'BAD_REQUEST',
+            details: error.details,
+            hint: error.hint,
+            originalError: error
+          }};
+        }
+        
         console.error('Error updating parent article in Supabase:', error);
         return { data: null, error };
       }

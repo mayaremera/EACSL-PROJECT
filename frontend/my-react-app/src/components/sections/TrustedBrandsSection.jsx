@@ -43,7 +43,7 @@ const TrustedBrandsSection = () => {
                     {/* Brand Logos - 3 per row on mobile, flex on desktop */}
                     <div className="lg:w-[50%] w-full">
                         {/* Mobile: Grid with 3 columns */}
-                        <div className="grid grid-cols-3 gap-8 sm:gap-6 lg:hidden items-center justify-items-center">
+                        <div className="grid grid-cols-3 gap-2 sm:gap-3 lg:hidden items-center justify-items-center">
                             {brands.map((brand, index) => (
                                 <div
                                     key={index}

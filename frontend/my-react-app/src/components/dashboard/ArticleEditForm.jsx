@@ -20,7 +20,8 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
 
   useEffect(() => {
     if (article) {
-      setFormData({
+      console.log('📝 ArticleEditForm - Loading article data:', article);
+      const formDataToSet = {
         titleEn: article.titleEn || '',
         category: article.category || 'Autism',
         date: article.date || new Date().toISOString().split('T')[0],
@@ -29,11 +30,34 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
         imagePath: article.imagePath || '',
         excerptEn: article.excerptEn || '',
         url: article.url || ''
-      });
-      // Set preview if image exists
-      if (article.image) {
-        setImagePreview(article.image);
+      };
+      console.log('📝 ArticleEditForm - Setting form data:', formDataToSet);
+      setFormData(formDataToSet);
+      
+      // Set preview if image exists (check all possible image sources)
+      const previewImage = article.imageUrl || article.image || (article.imagePath ? 
+        `https://jwhvfugznhwtpfurdkxm.supabase.co/storage/v1/object/public/ArticlesBucket/${article.imagePath}` : null);
+      if (previewImage) {
+        console.log('📝 ArticleEditForm - Setting image preview:', previewImage);
+        setImagePreview(previewImage);
+      } else {
+        console.log('📝 ArticleEditForm - No image found for preview');
+        setImagePreview(null);
       }
+    } else {
+      console.log('📝 ArticleEditForm - No article provided (adding new)');
+      // Reset form when no article (adding new)
+      setFormData({
+        titleEn: '',
+        category: 'Autism',
+        date: new Date().toISOString().split('T')[0],
+        image: '',
+        imageUrl: '',
+        imagePath: '',
+        excerptEn: '',
+        url: ''
+      });
+      setImagePreview(null);
     }
   }, [article]);
 
@@ -161,7 +185,10 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
         imagePath: finalImagePath
       };
 
+      console.log('💾 ArticleEditForm - Saving article data:', dataToSave);
+      console.log('💾 ArticleEditForm - Article ID:', article?.id);
       await onSave(dataToSave);
+      console.log('✅ ArticleEditForm - Save completed');
     } catch (error) {
       console.error('Error uploading image:', error);
       alert('Failed to upload image. Please try again.');

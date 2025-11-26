@@ -507,10 +507,10 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
-        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
-          <h2 className="text-2xl font-bold text-gray-900">
+    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-0 md:p-4">
+      <div className="bg-white rounded-none md:rounded-xl max-w-4xl w-full h-full md:h-auto md:max-h-[90vh] overflow-y-auto overflow-x-hidden shadow-2xl">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-4 md:p-6 flex items-center justify-between z-10">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900">
             {member ? 'Edit Member' : 'Add New Member'}
           </h2>
           <button
@@ -521,8 +521,8 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <form onSubmit={handleSubmit} className="p-4 md:p-6 space-y-4 md:space-y-6 min-w-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 min-w-0">
             {/* Name */}
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -534,7 +534,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 value={formData.name ?? ''}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
               />
             </div>
 
@@ -548,7 +548,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 value={formData.role ?? 'Member'}
                 onChange={handleChange}
                 required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
               >
                 {roles.map(role => (
                   <option key={role} value={role}>{role}</option>
@@ -567,28 +567,28 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 value={formData.email ?? ''}
                 onChange={handleChange}
                 required
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none ${
+                className={`w-full px-3 md:px-4 py-2 border rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base ${
                   emailExistsError ? 'border-red-500' : 'border-gray-300'
                 }`}
               />
               {emailExistsError && (
-                <div className={`mt-3 p-4 rounded-lg border flex gap-3 ${
+                <div className={`mt-3 p-3 md:p-4 rounded-lg border flex gap-2 md:gap-3 ${
                   emailExistsError === 'member' 
                     ? 'bg-amber-50 border-amber-500' 
                     : 'bg-blue-50 border-blue-500'
                 }`}>
-                  <AlertCircle className={`w-5 h-5 mt-0.5 flex-shrink-0 ${
+                  <AlertCircle className={`w-4 h-4 md:w-5 md:h-5 mt-0.5 flex-shrink-0 ${
                     emailExistsError === 'member' ? 'text-amber-600' : 'text-blue-600'
                   }`} />
-                  <div className="flex-1">
-                    <p className={`font-medium text-sm ${
+                  <div className="flex-1 min-w-0">
+                    <p className={`font-medium text-xs md:text-sm ${
                       emailExistsError === 'member' ? 'text-amber-800' : 'text-blue-800'
                     }`}>
                       {emailExistsError === 'member' 
                         ? 'Email Already Exists' 
                         : 'Pending Application Exists'}
                     </p>
-                    <p className={`text-sm mt-1 ${
+                    <p className={`text-xs md:text-sm mt-1 break-words ${
                       emailExistsError === 'member' ? 'text-amber-700' : 'text-blue-700'
                     }`}>
                       {emailExistsError === 'member' 
@@ -610,7 +610,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 name="phone"
                 value={formData.phone ?? ''}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
               />
             </div>
 
@@ -624,7 +624,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 name="location"
                 value={formData.location ?? ''}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
               />
             </div>
 
@@ -639,7 +639,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 value={formData.activeTill ?? ''}
                 onChange={handleChange}
                 placeholder="e.g., 2025"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
               />
             </div>
 
@@ -648,13 +648,13 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Active Status *
               </label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 md:gap-3">
                 <button
                   type="button"
                   onClick={() => {
                     setFormData(prev => ({ ...prev, isActive: true }));
                   }}
-                  className={`flex-1 px-4 py-2.5 rounded-lg font-semibold transition-all duration-200 ${
+                  className={`flex-1 px-3 md:px-4 py-2 md:py-2.5 rounded-lg font-semibold transition-all duration-200 text-sm md:text-base ${
                     Boolean(formData.isActive) === true
                       ? 'bg-green-500 text-white shadow-md ring-2 ring-green-300'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -667,7 +667,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                   onClick={() => {
                     setFormData(prev => ({ ...prev, isActive: false }));
                   }}
-                  className={`flex-1 px-4 py-2.5 rounded-lg font-semibold transition-all duration-200 ${
+                  className={`flex-1 px-3 md:px-4 py-2 md:py-2.5 rounded-lg font-semibold transition-all duration-200 text-sm md:text-base ${
                     Boolean(formData.isActive) === false
                       ? 'bg-red-500 text-white shadow-md ring-2 ring-red-300'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -693,7 +693,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 onDragLeave={(e) => handleDrag(e, 'image')}
                 onDragOver={(e) => handleDrag(e, 'image')}
                 onDrop={(e) => handleDrop(e, 'image')}
-                className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-300 cursor-pointer ${
+                className={`border-2 border-dashed rounded-lg p-4 md:p-6 text-center transition-all duration-300 cursor-pointer ${
                   dragActive['image'] 
                     ? 'border-[#5A9B8E] bg-[#5A9B8E]/10 scale-[1.02]' 
                     : 'border-gray-300 hover:border-[#5A9B8E] bg-gray-50 hover:bg-gray-100'
@@ -703,20 +703,20 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 }}
               >
                 {(formData.image instanceof File || (typeof formData.image === 'string' && formData.image.trim() !== '')) ? (
-                  <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm">
-                    <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between bg-white p-3 md:p-4 rounded-lg shadow-sm min-w-0">
+                    <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
                       {formData.image instanceof File ? (
                         <>
                           <img 
                             src={imagePreview || URL.createObjectURL(formData.image)} 
                             alt="Preview" 
-                            className="w-16 h-16 object-cover rounded-lg"
+                            className="w-12 h-12 md:w-16 md:h-16 object-cover rounded-lg flex-shrink-0"
                             onError={(e) => {
                               e.target.style.display = 'none';
                             }}
                           />
-                          <div className="text-left">
-                            <p className="text-sm text-gray-700 font-medium">{formData.image.name}</p>
+                          <div className="text-left min-w-0 flex-1">
+                            <p className="text-xs md:text-sm text-gray-700 font-medium truncate">{formData.image.name}</p>
                             <p className="text-xs text-gray-500">{(formData.image.size / 1024).toFixed(2)} KB</p>
                           </div>
                         </>
@@ -726,10 +726,10 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                             src={formData.image}
                             alt="Preview"
                             name={formData.name || 'Member'}
-                            className="w-16 h-16 rounded-lg"
+                            className="w-12 h-12 md:w-16 md:h-16 rounded-lg flex-shrink-0"
                           />
-                          <div className="text-left">
-                            <p className="text-sm text-gray-700 font-medium">Current Image</p>
+                          <div className="text-left min-w-0 flex-1">
+                            <p className="text-xs md:text-sm text-gray-700 font-medium">Current Image</p>
                             <p className="text-xs text-gray-500">Click to replace</p>
                           </div>
                         </>
@@ -763,10 +763,10 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                       className="hidden"
                       id="member-image"
                     />
-                    <div className="inline-block px-6 py-2 bg-[#5A9B8E] text-white text-sm rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium">
+                    <div className="inline-block px-4 md:px-6 py-2 bg-[#5A9B8E] text-white text-xs md:text-sm rounded-lg hover:bg-[#4A8B7E] transition-colors font-medium">
                       Browse Files
                     </div>
-                    <p className="text-gray-400 text-xs mt-4">Accepts: Images only (JPG, PNG, GIF, etc.)</p>
+                    <p className="text-gray-400 text-xs mt-3 md:mt-4">Accepts: Images only (JPG, PNG, GIF, etc.)</p>
                     <p className="text-gray-400 text-xs">(Maximum file size: 2MB)</p>
                   </>
                 )}
@@ -784,7 +784,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 value={formData.website ?? ''}
                 onChange={handleChange}
                 placeholder="www.example.com"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
               />
             </div>
 
@@ -799,7 +799,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 value={formData.linkedin ?? ''}
                 onChange={handleChange}
                 placeholder="linkedin.com/in/username"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
               />
             </div>
 
@@ -814,7 +814,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 onChange={handleChange}
                 required
                 rows="2"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
               />
             </div>
 
@@ -829,7 +829,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 onChange={handleChange}
                 required
                 rows="4"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
               />
             </div>
 
@@ -845,12 +845,12 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                   onChange={(e) => setCertificateInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddCertificate())}
                   placeholder="Add a certificate..."
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                  className="flex-1 px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
                 />
                 <button
                   type="button"
                   onClick={handleAddCertificate}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                  className="px-3 md:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm md:text-base"
                 >
                   Add
                 </button>
@@ -879,7 +879,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               <h3 className="text-xl font-bold text-gray-900">Continuing Education</h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
               {/* Money Spent */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -891,7 +891,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                   value={formData.totalMoneySpent ?? '0 EGP'}
                   onChange={handleChange}
                   placeholder="0 EGP"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                  className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
                 />
               </div>
 
@@ -906,7 +906,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                   value={formData.coursesEnrolled ?? 0}
                   onChange={handleChange}
                   min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                  className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
                 />
               </div>
 
@@ -921,7 +921,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                   value={formData.totalHoursLearned ?? 0}
                   onChange={handleChange}
                   min="0"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                  className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
                 />
               </div>
             </div>
@@ -935,7 +935,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 <select
                   value={selectedActiveCourse}
                   onChange={(e) => setSelectedActiveCourse(e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                  className="flex-1 min-w-0 px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
                 >
                   <option value="">Select a course to add...</option>
                   {availableCourses
@@ -950,7 +950,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                   type="button"
                   onClick={handleAddActiveCourse}
                   disabled={!selectedActiveCourse}
-                  className="px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="flex-shrink-0 px-3 md:px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm md:text-base whitespace-nowrap"
                 >
                   <Plus className="w-4 h-4" />
                   Add
@@ -958,18 +958,18 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               </div>
               <div className="space-y-2">
                 {(formData.activeCourses || []).map((course) => (
-                  <div key={course.id} className="flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-200">
-                    <div className="flex items-center gap-3 flex-1">
+                  <div key={course.id} className="flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-200 min-w-0">
+                    <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
                       {course.image && (
                         <img 
                           src={course.image} 
                           alt={course.title}
-                          className="w-12 h-12 object-cover rounded"
+                          className="w-10 h-10 md:w-12 md:h-12 object-cover rounded flex-shrink-0"
                         />
                       )}
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">{course.title}</p>
-                        <p className="text-xs text-gray-600">{course.category} • {course.level}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{course.title}</p>
+                        <p className="text-xs text-gray-600 truncate">{course.category} • {course.level}</p>
                       </div>
                     </div>
                     <button
@@ -999,7 +999,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 <select
                   value={selectedCompletedCourse}
                   onChange={(e) => setSelectedCompletedCourse(e.target.value)}
-                  className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                  className="flex-1 min-w-0 px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
                 >
                   <option value="">Select a course to add...</option>
                   {availableCourses
@@ -1014,7 +1014,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                   type="button"
                   onClick={handleAddCompletedCourse}
                   disabled={!selectedCompletedCourse}
-                  className="px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  className="flex-shrink-0 px-3 md:px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm md:text-base whitespace-nowrap"
                 >
                   <Plus className="w-4 h-4" />
                   Add
@@ -1022,18 +1022,18 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               </div>
               <div className="space-y-2">
                 {(formData.completedCourses || []).map((course) => (
-                  <div key={course.id} className="flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200">
-                    <div className="flex items-center gap-3 flex-1">
+                  <div key={course.id} className="flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200 min-w-0">
+                    <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
                       {course.image && (
                         <img 
                           src={course.image} 
                           alt={course.title}
-                          className="w-12 h-12 object-cover rounded"
+                          className="w-10 h-10 md:w-12 md:h-12 object-cover rounded flex-shrink-0"
                         />
                       )}
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">{course.title}</p>
-                        <p className="text-xs text-gray-600">{course.category} • {course.level}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">{course.title}</p>
+                        <p className="text-xs text-gray-600 truncate">{course.category} • {course.level}</p>
                       </div>
                     </div>
                     <button
@@ -1057,19 +1057,19 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
 
           {/* Create Authentication Account Checkbox (only for new members) */}
           {!member && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <label className="flex items-start gap-3 cursor-pointer">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4">
+              <label className="flex items-start gap-2 md:gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={createAuthAccount}
                   onChange={(e) => setCreateAuthAccount(e.target.checked)}
-                  className="mt-1 w-4 h-4 text-[#5A9B8E] border-gray-300 rounded focus:ring-[#5A9B8E]"
+                  className="mt-1 w-4 h-4 text-[#5A9B8E] border-gray-300 rounded focus:ring-[#5A9B8E] flex-shrink-0"
                 />
-                <div className="flex-1">
-                  <div className="font-semibold text-blue-900 text-sm">
+                <div className="flex-1 min-w-0">
+                  <div className="font-semibold text-blue-900 text-xs md:text-sm">
                     Create Authentication Account
                   </div>
-                  <div className="text-blue-700 text-xs mt-1">
+                  <div className="text-blue-700 text-xs mt-1 break-words">
                     Check this to create a login account for this member. They will receive an email to set their password and can then log in to the website.
                   </div>
                 </div>
@@ -1077,18 +1077,18 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
             </div>
           )}
 
-          <div className="flex justify-end gap-4 pt-4 border-t">
+          <div className="flex flex-col sm:flex-row justify-end gap-3 md:gap-4 pt-4 border-t">
             <button
               type="button"
               onClick={onCancel}
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              className="w-full sm:w-auto px-4 md:px-6 py-2.5 md:py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm md:text-base font-medium"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="px-6 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors flex items-center gap-2 disabled:opacity-50"
+              className="w-full sm:w-auto px-4 md:px-6 py-2.5 md:py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 text-sm md:text-base font-medium"
             >
               {isLoading ? (
                 <>
