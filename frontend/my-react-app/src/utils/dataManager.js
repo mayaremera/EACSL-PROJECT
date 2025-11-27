@@ -772,7 +772,8 @@ export const membersManager = {
       console.error('❌ Failed to save members to localStorage:', error);
       // If localStorage is full, try to clear some space or show error
       if (error.name === 'QuotaExceededError') {
-        alert('Storage quota exceeded. Please clear some browser data or contact support.');
+        // Storage quota exceeded - log error (toast will be shown by caller if needed)
+        console.error('Storage quota exceeded. Please clear some browser data or contact support.');
       }
     }
   },
@@ -984,15 +985,18 @@ export const membersManager = {
       
       console.log("✅ Member successfully updated in Supabase:", data);
       
+      // Map Supabase data back to local format
+      const mappedMember = membersService.mapSupabaseToLocal(data);
+      
       // Update localStorage cache
       const index = localMembers.findIndex(m => m.id === id);
       if (index >= 0) {
-        localMembers[index] = data;
+        localMembers[index] = mappedMember;
         membersManager.saveAll(localMembers);
         console.log("✅ Member updated in localStorage cache");
       }
       
-      return data;
+      return mappedMember;
     } catch (err) {
       console.error("❌ Exception updating member in Supabase:", err);
       // Re-throw to let caller handle the error
@@ -1450,6 +1454,13 @@ export const eventsManager = {
   _cache: null,
   _cacheTimestamp: null,
   _cacheTimeout: 5 * 60 * 1000, // 5 minutes
+  
+  // Track last sync time to prevent excessive syncs
+  _lastSyncTime: 0,
+  _syncCooldown: 10000, // 10 seconds cooldown between syncs
+  
+  // Track last fetch time to prevent excessive getAll() calls
+  _lastFetchTime: 0,
 
   // Real-time subscription channel
   _subscription: null,
@@ -1461,17 +1472,26 @@ export const eventsManager = {
     const useCache = options.useCache !== false; // Default to true for performance
     const forceRefresh = options.forceRefresh === true;
     
+    // Track last fetch time to prevent excessive requests
+    const now = Date.now();
+    const timeSinceLastFetch = now - (eventsManager._lastFetchTime || 0);
+    const minFetchInterval = 10000; // 10 seconds minimum between fetches
+    
     // If we have cached data and not forcing refresh, return it immediately
-    // Then refresh in background
+    // Only refresh in background if enough time has passed
     if (useCache && !forceRefresh) {
       const cached = localStorage.getItem("eacsl_events");
       if (cached) {
         try {
           const cachedEvents = JSON.parse(cached);
-          // Return cached data immediately, then refresh in background
-          eventsManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
-            console.warn('Background refresh failed:', err);
-          });
+          // Only do background refresh if enough time has passed (10 seconds)
+          if (timeSinceLastFetch >= minFetchInterval) {
+            eventsManager._lastFetchTime = now;
+            // Return cached data immediately, then refresh in background
+            eventsManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
+              console.warn('Background refresh failed:', err);
+            });
+          }
           return {
             upcoming: Array.isArray(cachedEvents.upcoming) ? cachedEvents.upcoming : [],
             past: Array.isArray(cachedEvents.past) ? cachedEvents.past : [],
@@ -1481,6 +1501,15 @@ export const eventsManager = {
         }
       }
     }
+    
+    // If forcing refresh, check if we're within cooldown period
+    if (forceRefresh && timeSinceLastFetch < minFetchInterval) {
+      console.log(`⏱️ Events fetch cooldown active (${Math.ceil((minFetchInterval - timeSinceLastFetch) / 1000)}s remaining). Using cached data.`);
+      return eventsManager._getAllFromLocalStorage();
+    }
+    
+    // Update last fetch time
+    eventsManager._lastFetchTime = now;
     
     // Fetch from Supabase (source of truth)
     try {
@@ -2035,6 +2064,7 @@ export const eventsManager = {
 
     console.log("🔔 Setting up real-time subscription for events...");
     
+    // Real-time subscription - just update state, don't fetch (periodic sync handles fetching)
     eventsManager._subscription = supabase
       .channel('events-changes')
       .on(
@@ -2047,39 +2077,21 @@ export const eventsManager = {
         async (payload) => {
           console.log('🔔 Real-time event change detected:', payload.eventType, payload);
           
-          try {
-            // Refresh events from Supabase
-            const { data, error } = await eventsService.getAll();
-            
-            if (!error && data) {
-              const supabaseEvents = data.map((e) => eventsService.mapSupabaseToLocal(e));
-              
-              // Organize by status
-              const upcoming = supabaseEvents.filter((e) => e.status === "upcoming");
-              const past = supabaseEvents.filter((e) => e.status === "past");
-              
-              const events = { upcoming, past };
-              
-              // Update localStorage cache
-              eventsManager.saveAll(events);
-              
-              // Call the callback to notify UI
-              if (callback && typeof callback === 'function') {
-                callback(events, payload);
-              }
-              
-              console.log('✅ Real-time update applied:', payload.eventType);
-            } else {
-              console.warn('⚠️ Failed to refresh events after real-time change:', error);
-            }
-          } catch (err) {
-            console.error('❌ Exception handling real-time change:', err);
+          // Just notify the UI - don't fetch immediately
+          // The periodic sync (every 10 seconds) will fetch the latest data
+          // This prevents excessive requests while still being responsive
+          if (callback && typeof callback === 'function') {
+            // Get cached data to update UI immediately
+            const cachedEvents = eventsManager._getAllFromLocalStorage();
+            callback(cachedEvents, payload);
           }
+          
+          console.log('✅ Real-time notification sent (periodic sync will fetch latest data)');
         }
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time subscription active for events');
+          console.log('✅ Real-time subscription active for events (notifications only - periodic sync handles fetching)');
         } else if (status === 'CHANNEL_ERROR') {
           console.warn('⚠️ Real-time subscription error - table may not exist');
         }
@@ -2106,7 +2118,23 @@ export const eventsManager = {
 
   // Fetch events from Supabase and sync with local storage
   syncFromSupabase: async () => {
+    const now = Date.now();
+    const timeSinceLastSync = now - eventsManager._lastSyncTime;
+    
+    // If sync was called recently, skip it to prevent excessive requests
+    if (timeSinceLastSync < eventsManager._syncCooldown) {
+      const secondsLeft = Math.ceil((eventsManager._syncCooldown - timeSinceLastSync) / 1000);
+      console.log(`⏱️ Events sync cooldown active (${secondsLeft}s remaining). Skipping sync.`);
+      return {
+        synced: false,
+        skipped: true,
+        nextAllowedIn: eventsManager._syncCooldown - timeSinceLastSync,
+        error: null
+      };
+    }
+    
     try {
+      eventsManager._lastSyncTime = now;
       const { data, error } = await eventsService.getAll();
 
       if (error) {
@@ -2270,6 +2298,9 @@ export const articlesManager = {
   _cacheTimestamp: null,
   _cacheTimeout: 5 * 60 * 1000, // 5 minutes
   
+  // Track last fetch time to prevent excessive getAll() calls
+  _lastFetchTime: 0,
+  
   // Real-time subscription channel
   _subscription: null,
 
@@ -2280,23 +2311,41 @@ export const articlesManager = {
     const useCache = options.useCache !== false; // Default to true for performance
     const forceRefresh = options.forceRefresh === true;
     
+    // Track last fetch time to prevent excessive requests
+    const now = Date.now();
+    const timeSinceLastFetch = now - (articlesManager._lastFetchTime || 0);
+    const minFetchInterval = 10000; // 10 seconds minimum between fetches
+    
     // If we have cached data and not forcing refresh, return it immediately
-    // Then refresh in background
+    // Only refresh in background if enough time has passed
     if (useCache && !forceRefresh) {
       const cached = localStorage.getItem("eacsl_articles");
       if (cached) {
         try {
           const cachedArticles = JSON.parse(cached);
-          // Return cached data immediately, then refresh in background
-          articlesManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
-            console.warn('Background refresh failed:', err);
-          });
+          // Only do background refresh if enough time has passed (10 seconds)
+          if (timeSinceLastFetch >= minFetchInterval) {
+            articlesManager._lastFetchTime = now;
+            // Return cached data immediately, then refresh in background
+            articlesManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
+              console.warn('Background refresh failed:', err);
+            });
+          }
           return cachedArticles;
         } catch (e) {
           console.error('Error parsing cached articles:', e);
         }
       }
     }
+    
+    // If forcing refresh, check if we're within cooldown period
+    if (forceRefresh && timeSinceLastFetch < minFetchInterval) {
+      console.log(`⏱️ Articles fetch cooldown active (${Math.ceil((minFetchInterval - timeSinceLastFetch) / 1000)}s remaining). Using cached data.`);
+      return articlesManager._getAllFromLocalStorage();
+    }
+    
+    // Update last fetch time
+    articlesManager._lastFetchTime = now;
     
     // Fetch from Supabase (source of truth)
     try {
@@ -2816,6 +2865,13 @@ export const therapyProgramsManager = {
   _cacheTimestamp: null,
   _cacheTimeout: 5 * 60 * 1000, // 5 minutes
   
+  // Track last sync time to prevent excessive syncs
+  _lastSyncTime: 0,
+  _syncCooldown: 10000, // 10 seconds cooldown between syncs
+  
+  // Track last fetch time to prevent excessive getAll() calls
+  _lastFetchTime: 0,
+  
   // Real-time subscription channel
   _subscription: null,
 
@@ -2826,23 +2882,41 @@ export const therapyProgramsManager = {
     const useCache = options.useCache !== false; // Default to true for performance
     const forceRefresh = options.forceRefresh === true;
     
+    // Track last fetch time to prevent excessive requests
+    const now = Date.now();
+    const timeSinceLastFetch = now - (therapyProgramsManager._lastFetchTime || 0);
+    const minFetchInterval = 10000; // 10 seconds minimum between fetches
+    
     // If we have cached data and not forcing refresh, return it immediately
-    // Then refresh in background
+    // Only refresh in background if enough time has passed
     if (useCache && !forceRefresh) {
       const cached = localStorage.getItem("eacsl_therapy_programs");
       if (cached) {
         try {
           const cachedPrograms = JSON.parse(cached);
-          // Return cached data immediately, then refresh in background
-          therapyProgramsManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
-            console.warn('Background refresh failed:', err);
-          });
+          // Only do background refresh if enough time has passed (10 seconds)
+          if (timeSinceLastFetch >= minFetchInterval) {
+            therapyProgramsManager._lastFetchTime = now;
+            // Return cached data immediately, then refresh in background
+            therapyProgramsManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
+              console.warn('Background refresh failed:', err);
+            });
+          }
           return cachedPrograms;
         } catch (e) {
           console.error('Error parsing cached therapy programs:', e);
         }
       }
     }
+    
+    // If forcing refresh, check if we're within cooldown period
+    if (forceRefresh && timeSinceLastFetch < minFetchInterval) {
+      console.log(`⏱️ Therapy programs fetch cooldown active (${Math.ceil((minFetchInterval - timeSinceLastFetch) / 1000)}s remaining). Using cached data.`);
+      return therapyProgramsManager._getAllFromLocalStorage();
+    }
+    
+    // Update last fetch time
+    therapyProgramsManager._lastFetchTime = now;
     
     // Fetch from Supabase (source of truth)
     try {
@@ -3155,6 +3229,7 @@ export const therapyProgramsManager = {
 
     console.log("🔔 Setting up real-time subscription for therapy programs...");
     
+    // Real-time subscription - just update state, don't fetch (periodic sync handles fetching)
     therapyProgramsManager._subscription = supabase
       .channel('therapy-programs-changes')
       .on(
@@ -3167,33 +3242,21 @@ export const therapyProgramsManager = {
         async (payload) => {
           console.log('🔔 Real-time therapy program change detected:', payload.eventType, payload);
           
-          try {
-            // Refresh therapy programs from Supabase
-            const { data, error } = await therapyProgramsService.getAll();
-            
-            if (!error && data) {
-              const supabasePrograms = data.map((p) => therapyProgramsService.mapSupabaseToLocal(p));
-              
-              // Update localStorage cache
-              therapyProgramsManager.saveAll(supabasePrograms);
-              
-              // Call the callback to notify UI
-              if (callback && typeof callback === 'function') {
-                callback(supabasePrograms, payload);
-              }
-              
-              console.log('✅ Real-time update applied:', payload.eventType);
-            } else {
-              console.warn('⚠️ Failed to refresh therapy programs after real-time change:', error);
-            }
-          } catch (err) {
-            console.error('❌ Exception handling real-time change:', err);
+          // Just notify the UI - don't fetch immediately
+          // The periodic sync (every 10 seconds) will fetch the latest data
+          // This prevents excessive requests while still being responsive
+          if (callback && typeof callback === 'function') {
+            // Get cached data to update UI immediately
+            const cachedPrograms = therapyProgramsManager._getAllFromLocalStorage();
+            callback(cachedPrograms, payload);
           }
+          
+          console.log('✅ Real-time notification sent (periodic sync will fetch latest data)');
         }
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time subscription active for therapy programs');
+          console.log('✅ Real-time subscription active for therapy programs (notifications only - periodic sync handles fetching)');
         } else if (status === 'CHANNEL_ERROR') {
           console.warn('⚠️ Real-time subscription error - table may not exist');
         }
@@ -3220,7 +3283,23 @@ export const therapyProgramsManager = {
 
   // Fetch therapy programs from Supabase and sync with local storage
   syncFromSupabase: async () => {
+    const now = Date.now();
+    const timeSinceLastSync = now - therapyProgramsManager._lastSyncTime;
+    
+    // If sync was called recently, skip it to prevent excessive requests
+    if (timeSinceLastSync < therapyProgramsManager._syncCooldown) {
+      const secondsLeft = Math.ceil((therapyProgramsManager._syncCooldown - timeSinceLastSync) / 1000);
+      console.log(`⏱️ Therapy programs sync cooldown active (${secondsLeft}s remaining). Skipping sync.`);
+      return {
+        synced: false,
+        skipped: true,
+        nextAllowedIn: therapyProgramsManager._syncCooldown - timeSinceLastSync,
+        error: null
+      };
+    }
+    
     try {
+      therapyProgramsManager._lastSyncTime = now;
       const { data, error } = await therapyProgramsService.getAll();
 
       if (error) {
@@ -3368,6 +3447,13 @@ export const forParentsManager = {
   _cacheTimestamp: null,
   _cacheTimeout: 5 * 60 * 1000, // 5 minutes
   
+  // Track last sync time to prevent excessive syncs
+  _lastSyncTime: 0,
+  _syncCooldown: 10000, // 10 seconds cooldown between syncs
+  
+  // Track last fetch time to prevent excessive getAll() calls
+  _lastFetchTime: 0,
+  
   // Real-time subscription channel
   _subscription: null,
 
@@ -3378,23 +3464,41 @@ export const forParentsManager = {
     const useCache = options.useCache !== false; // Default to true for performance
     const forceRefresh = options.forceRefresh === true;
     
+    // Track last fetch time to prevent excessive requests
+    const now = Date.now();
+    const timeSinceLastFetch = now - (forParentsManager._lastFetchTime || 0);
+    const minFetchInterval = 10000; // 10 seconds minimum between fetches
+    
     // If we have cached data and not forcing refresh, return it immediately
-    // Then refresh in background
+    // Only refresh in background if enough time has passed
     if (useCache && !forceRefresh) {
       const cached = localStorage.getItem("eacsl_for_parents");
       if (cached) {
         try {
           const cachedArticles = JSON.parse(cached);
-          // Return cached data immediately, then refresh in background
-          forParentsManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
-            console.warn('Background refresh failed:', err);
-          });
+          // Only do background refresh if enough time has passed (10 seconds)
+          if (timeSinceLastFetch >= minFetchInterval) {
+            forParentsManager._lastFetchTime = now;
+            // Return cached data immediately, then refresh in background
+            forParentsManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
+              console.warn('Background refresh failed:', err);
+            });
+          }
           return cachedArticles;
         } catch (e) {
           console.error('Error parsing cached for parents articles:', e);
         }
       }
     }
+    
+    // If forcing refresh, check if we're within cooldown period
+    if (forceRefresh && timeSinceLastFetch < minFetchInterval) {
+      console.log(`⏱️ For parents articles fetch cooldown active (${Math.ceil((minFetchInterval - timeSinceLastFetch) / 1000)}s remaining). Using cached data.`);
+      return forParentsManager._getAllFromLocalStorage();
+    }
+    
+    // Update last fetch time
+    forParentsManager._lastFetchTime = now;
     
     // Fetch from Supabase (source of truth)
     try {
@@ -3707,6 +3811,7 @@ export const forParentsManager = {
 
     console.log("🔔 Setting up real-time subscription for for parents articles...");
     
+    // Real-time subscription - just update state, don't fetch (periodic sync handles fetching)
     forParentsManager._subscription = supabase
       .channel('for-parents-changes')
       .on(
@@ -3719,33 +3824,21 @@ export const forParentsManager = {
         async (payload) => {
           console.log('🔔 Real-time for parents article change detected:', payload.eventType, payload);
           
-          try {
-            // Refresh articles from Supabase
-            const { data, error } = await forParentsService.getAll();
-            
-            if (!error && data) {
-              const supabaseArticles = data.map((a) => forParentsService.mapSupabaseToLocal(a));
-              
-              // Update localStorage cache
-              forParentsManager.saveAll(supabaseArticles);
-              
-              // Call the callback to notify UI
-              if (callback && typeof callback === 'function') {
-                callback(supabaseArticles, payload);
-              }
-              
-              console.log('✅ Real-time update applied:', payload.eventType);
-            } else {
-              console.warn('⚠️ Failed to refresh for parents articles after real-time change:', error);
-            }
-          } catch (err) {
-            console.error('❌ Exception handling real-time change:', err);
+          // Just notify the UI - don't fetch immediately
+          // The periodic sync (every 10 seconds) will fetch the latest data
+          // This prevents excessive requests while still being responsive
+          if (callback && typeof callback === 'function') {
+            // Get cached data to update UI immediately
+            const cachedArticles = forParentsManager._getAllFromLocalStorage();
+            callback(cachedArticles, payload);
           }
+          
+          console.log('✅ Real-time notification sent (periodic sync will fetch latest data)');
         }
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time subscription active for for parents articles');
+          console.log('✅ Real-time subscription active for for parents articles (notifications only - periodic sync handles fetching)');
         } else if (status === 'CHANNEL_ERROR') {
           console.warn('⚠️ Real-time subscription error - table may not exist');
         }
@@ -3772,7 +3865,23 @@ export const forParentsManager = {
 
   // Fetch parent articles from Supabase and sync with local storage
   syncFromSupabase: async () => {
+    const now = Date.now();
+    const timeSinceLastSync = now - forParentsManager._lastSyncTime;
+    
+    // If sync was called recently, skip it to prevent excessive requests
+    if (timeSinceLastSync < forParentsManager._syncCooldown) {
+      const secondsLeft = Math.ceil((forParentsManager._syncCooldown - timeSinceLastSync) / 1000);
+      console.log(`⏱️ For parents articles sync cooldown active (${secondsLeft}s remaining). Skipping sync.`);
+      return {
+        synced: false,
+        skipped: true,
+        nextAllowedIn: forParentsManager._syncCooldown - timeSinceLastSync,
+        error: null
+      };
+    }
+    
     try {
+      forParentsManager._lastSyncTime = now;
       const { data, error } = await forParentsService.getAll();
 
       if (error) {

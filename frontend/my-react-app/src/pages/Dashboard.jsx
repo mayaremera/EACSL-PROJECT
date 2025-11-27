@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useSearchParams, useLocation } from "react-router-dom";
 import {
     BookOpen,
@@ -29,6 +29,7 @@ import { supabase } from '../lib/supabase';
 import { membershipFormsService } from '../services/membershipFormsService';
 import { contactFormsService } from '../services/contactFormsService';
 import { reservationsService } from '../services/reservationsService';
+import { useToast } from '../contexts/ToastContext';
 import CourseCard from '../components/cards/CourseCard';
 import MemberCard from '../components/cards/MemberCard';
 import CourseEditForm from '../components/dashboard/CourseEditForm';
@@ -386,7 +387,7 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
     // Function to download file from base64 data or Supabase Storage
     const handleDownload = async (file, label) => {
         if (!file) {
-            alert('File not available for download');
+            toast.error('File not available for download');
             return;
         }
 
@@ -460,10 +461,10 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
                 }
             }
 
-            alert('File data not available. This file was submitted before the download feature was added.');
+            toast.warning('File data not available. This file was submitted before the download feature was added.');
         } catch (error) {
             console.error('Error downloading file:', error);
-            alert('Error downloading file. Please try again.');
+            toast.error('Error downloading file. Please try again.');
         }
     };
 
@@ -1075,6 +1076,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const Dashboard = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const location = useLocation();
+    const toast = useToast();
     
     // Get tab from URL, default to "courses"
     const getTabFromURL = () => {
@@ -1149,6 +1151,17 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const [selectedEventRegistration, setSelectedEventRegistration] = useState(null);
     const [selectedContactForm, setSelectedContactForm] = useState(null);
     const [selectedReservation, setSelectedReservation] = useState(null);
+    
+    // Refs to track last load times and prevent excessive requests
+    const lastEventsLoadTime = useRef(0);
+    const eventsLoadCooldown = 10000; // 10 seconds cooldown between loads
+    const lastArticlesLoadTime = useRef(0);
+    const articlesLoadCooldown = 5000; // 5 seconds cooldown between loads
+    const lastTherapyProgramsLoadTime = useRef(0);
+    const therapyProgramsLoadCooldown = 10000; // 10 seconds cooldown between loads
+    const lastForParentsLoadTime = useRef(0);
+    const forParentsLoadCooldown = 10000; // 10 seconds cooldown between loads
+    const eventsSyncInterval = useRef(null);
 
     // Initialize data and load
     useEffect(() => {
@@ -1166,11 +1179,11 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         loadContactForms();
         // Load events after initialization (now async, fetches from Supabase first)
         setTimeout(() => {
-            loadEvents().catch(err => {
+            loadEvents(true).catch(err => {
                 console.error('Failed to load events:', err);
             });
         }, 100);
-        loadArticles().catch(err => {
+        loadArticles(true).catch(err => {
             console.error('Failed to load articles:', err);
         });
         loadTherapyPrograms().catch(err => {
@@ -1281,15 +1294,42 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         };
     }, []);
 
-    // Reload events when switching to events tab
+    // Set up periodic sync for events (every 10 seconds when on events tab)
     useEffect(() => {
         if (activeTab === 'events') {
-            loadEvents().catch(err => {
+            // Load immediately with cache
+            loadEvents(false).catch(err => {
                 console.error('Failed to load events:', err);
             });
+            
+            // Set up periodic sync every 10 seconds
+            eventsSyncInterval.current = setInterval(() => {
+                console.log('🔄 Periodic events sync (10s interval)');
+                loadEvents(true).catch(err => {
+                    console.error('Failed to sync events:', err);
+                });
+            }, 10000); // 10 seconds
+            
+            // Cleanup interval on tab change or unmount
+            return () => {
+                if (eventsSyncInterval.current) {
+                    clearInterval(eventsSyncInterval.current);
+                    eventsSyncInterval.current = null;
+                }
+            };
+        } else {
+            // Clear interval when not on events tab
+            if (eventsSyncInterval.current) {
+                clearInterval(eventsSyncInterval.current);
+                eventsSyncInterval.current = null;
+            }
         }
+    }, [activeTab]); // Add activeTab as dependency
+    
+    // Handle other tab loads
+    useEffect(() => {
         if (activeTab === 'articles') {
-            loadArticles().catch(err => {
+            loadArticles(false).catch(err => {
                 console.error('Failed to load articles:', err);
             });
         }
@@ -1369,16 +1409,30 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         setForParentsArticles(e.detail || []);
     };
 
-    const loadArticles = async () => {
+    const loadArticles = async (forceRefresh = false) => {
         try {
+            const now = Date.now();
+            const timeSinceLastLoad = now - lastArticlesLoadTime.current;
+            
+            // If we're forcing refresh but it's been less than cooldown time, use cache instead
+            if (forceRefresh && timeSinceLastLoad < articlesLoadCooldown) {
+                console.log(`⏱️ Articles load cooldown active (${Math.ceil((articlesLoadCooldown - timeSinceLastLoad) / 1000)}s remaining). Using cached data.`);
+                const cachedArticles = articlesManager._getAllFromLocalStorage();
+                setArticles(cachedArticles || []);
+                return;
+            }
+            
             console.log('📥 Dashboard.loadArticles() - Starting...');
-            // getAll() is now async and fetches from Supabase first
-            // Force refresh to get latest data from Supabase
-            const allArticles = await articlesManager.getAll({ forceRefresh: true });
+            // Only force refresh if explicitly requested and cooldown has passed
+            const allArticles = await articlesManager.getAll({ forceRefresh: forceRefresh });
             console.log(`📥 Dashboard.loadArticles() - Got ${allArticles?.length || 0} articles`);
             if (allArticles && allArticles.length > 0) {
                 console.log('Sample article in loadArticles:', allArticles[0]);
             }
+            
+            // Update last load time
+            lastArticlesLoadTime.current = now;
+            
             setArticles(allArticles || []);
             console.log('✅ Dashboard.loadArticles() - Articles state updated');
         } catch (error) {
@@ -1391,33 +1445,75 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         }
     };  
 
-    const loadTherapyPrograms = async () => {
+    const loadTherapyPrograms = async (forceRefresh = false) => {
         try {
+            const now = Date.now();
+            const timeSinceLastLoad = now - lastTherapyProgramsLoadTime.current;
+            
+            // If we're forcing refresh but it's been less than cooldown time, use cache instead
+            if (forceRefresh && timeSinceLastLoad < therapyProgramsLoadCooldown) {
+                console.log(`⏱️ Therapy programs load cooldown active (${Math.ceil((therapyProgramsLoadCooldown - timeSinceLastLoad) / 1000)}s remaining). Using cached data.`);
+                const cachedPrograms = therapyProgramsManager._getAllFromLocalStorage();
+                setTherapyPrograms(cachedPrograms || []);
+                return;
+            }
+            
+            // First, load from cache for immediate display
+            const cachedPrograms = therapyProgramsManager._getAllFromLocalStorage();
+            if (cachedPrograms && cachedPrograms.length > 0) {
+                setTherapyPrograms(cachedPrograms);
+            }
+            
             console.log('🔄 Loading therapy programs from Supabase...');
-            // Force refresh from Supabase (source of truth)
-            const allPrograms = await therapyProgramsManager.getAll({ forceRefresh: true });
+            // Only force refresh if explicitly requested and cooldown has passed
+            const allPrograms = await therapyProgramsManager.getAll({ forceRefresh: forceRefresh });
             console.log(`✅ Loaded ${allPrograms?.length || 0} therapy programs`);
+            
+            // Update last load time
+            lastTherapyProgramsLoadTime.current = now;
+            
             setTherapyPrograms(allPrograms || []);
         } catch (error) {
             console.error('Error loading therapy programs:', error);
             // Fallback to cached data
             const cachedPrograms = therapyProgramsManager._getAllFromLocalStorage();
-            setTherapyPrograms(cachedPrograms);
+            setTherapyPrograms(cachedPrograms || []);
         }
     };
 
-    const loadForParentsArticles = async () => {
+    const loadForParentsArticles = async (forceRefresh = false) => {
         try {
+            const now = Date.now();
+            const timeSinceLastLoad = now - lastForParentsLoadTime.current;
+            
+            // If we're forcing refresh but it's been less than cooldown time, use cache instead
+            if (forceRefresh && timeSinceLastLoad < forParentsLoadCooldown) {
+                console.log(`⏱️ For parents articles load cooldown active (${Math.ceil((forParentsLoadCooldown - timeSinceLastLoad) / 1000)}s remaining). Using cached data.`);
+                const cachedArticles = forParentsManager._getAllFromLocalStorage();
+                setForParentsArticles(cachedArticles || []);
+                return;
+            }
+            
+            // First, load from cache for immediate display
+            const cachedArticles = forParentsManager._getAllFromLocalStorage();
+            if (cachedArticles && cachedArticles.length > 0) {
+                setForParentsArticles(cachedArticles);
+            }
+            
             console.log('🔄 Loading for parents articles from Supabase...');
-            // Force refresh from Supabase (source of truth)
-            const allArticles = await forParentsManager.getAll({ forceRefresh: true });
+            // Only force refresh if explicitly requested and cooldown has passed
+            const allArticles = await forParentsManager.getAll({ forceRefresh: forceRefresh });
             console.log(`✅ Loaded ${allArticles?.length || 0} for parents articles`);
+            
+            // Update last load time
+            lastForParentsLoadTime.current = now;
+            
             setForParentsArticles(allArticles || []);
         } catch (error) {
             console.error('Error loading for parents articles:', error);
             // Fallback to cached data
             const cachedArticles = forParentsManager._getAllFromLocalStorage();
-            setForParentsArticles(cachedArticles);
+            setForParentsArticles(cachedArticles || []);
         }
     };
 
@@ -1474,18 +1570,18 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             
             if (result.error) {
                 if (result.error.code === 'TABLE_NOT_FOUND') {
-                    alert(
-                        '❌ Membership Forms Table Not Found\n\n' +
+                    toast.error(
                         'The membership_forms table does not exist in Supabase.\n\n' +
                         'To fix this:\n' +
                         '1. Go to Supabase Dashboard → SQL Editor\n' +
                         '2. Run the SQL script from CREATE_MEMBERSHIP_FORMS_TABLE.sql\n' +
                         '3. Try syncing again\n\n' +
-                        'See MEMBERSHIP_FORMS_SUPABASE_SETUP.md for detailed instructions.'
+                        'See MEMBERSHIP_FORMS_SUPABASE_SETUP.md for detailed instructions.',
+                        { title: 'Membership Forms Table Not Found' }
                     );
                     return;
                 }
-                alert(`Error syncing forms from Supabase: ${result.error.message || 'Unknown error'}`);
+                toast.error(`Error syncing forms from Supabase: ${result.error.message || 'Unknown error'}`);
                 return;
             }
 
@@ -1494,14 +1590,14 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 formsManager.data = result.data;
                 formsManager.save();
                 setForms(result.data);
-                alert(`✅ Successfully synced ${result.data.length} form(s) from Supabase!`);
+                toast.success(`Successfully synced ${result.data.length} form(s) from Supabase!`);
             } else {
                 setForms([]);
-                alert('No forms found in Supabase.');
+                toast.info('No forms found in Supabase.');
             }
         } catch (error) {
             console.error('Error syncing forms from Supabase:', error);
-            alert(`Error syncing forms: ${error.message || 'Unknown error'}`);
+            toast.error(`Error syncing forms: ${error.message || 'Unknown error'}`);
         }
     };
 
@@ -1524,10 +1620,10 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         try {
             await loadEventRegistrations();
             // Show success message
-            alert('Event registrations synced successfully from Supabase!');
+            toast.success('Event registrations synced successfully from Supabase!');
         } catch (error) {
             console.error('Error syncing event registrations:', error);
-            alert('Failed to sync event registrations. Please check the console for details.');
+            toast.error('Failed to sync event registrations. Please check the console for details.');
         } finally {
             setIsSyncingEventRegistrations(false);
         }
@@ -1562,18 +1658,18 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             
             if (result.error) {
                 if (result.error.code === 'TABLE_NOT_FOUND') {
-                    alert(
-                        '❌ Contact Forms Table Not Found\n\n' +
+                    toast.error(
                         'The contact_forms table does not exist in Supabase.\n\n' +
                         'To fix this:\n' +
                         '1. Go to Supabase Dashboard → SQL Editor\n' +
                         '2. Run the SQL script from CREATE_CONTACT_FORMS_TABLE.sql\n' +
                         '3. Try syncing again\n\n' +
-                        'See CONTACT_FORMS_SUPABASE_SETUP.md for detailed instructions.'
+                        'See CONTACT_FORMS_SUPABASE_SETUP.md for detailed instructions.',
+                        { title: 'Contact Forms Table Not Found' }
                     );
                     return;
                 }
-                alert(`Error syncing contact forms from Supabase: ${result.error.message || 'Unknown error'}`);
+                toast.error(`Error syncing contact forms from Supabase: ${result.error.message || 'Unknown error'}`);
                 return;
             }
 
@@ -1582,14 +1678,14 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 contactFormsManager.data = result.data;
                 contactFormsManager.save();
                 setContactForms(result.data);
-                alert(`✅ Successfully synced ${result.data.length} contact form(s) from Supabase!`);
+                toast.success(`Successfully synced ${result.data.length} contact form(s) from Supabase!`);
             } else {
                 setContactForms([]);
-                alert('No contact forms found in Supabase.');
+                toast.info('No contact forms found in Supabase.');
             }
         } catch (error) {
             console.error('Error syncing contact forms from Supabase:', error);
-            alert(`Error syncing contact forms: ${error.message || 'Unknown error'}`);
+            toast.error(`Error syncing contact forms: ${error.message || 'Unknown error'}`);
         }
     };
 
@@ -1620,18 +1716,18 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             
             if (result.error) {
                 if (result.error.code === 'TABLE_NOT_FOUND') {
-                    alert(
-                        '❌ Reservations Table Not Found\n\n' +
+                    toast.error(
                         'The reservations table does not exist in Supabase.\n\n' +
                         'To fix this:\n' +
                         '1. Go to Supabase Dashboard → SQL Editor\n' +
                         '2. Run the SQL script from CREATE_RESERVATIONS_TABLE.sql\n' +
                         '3. Try syncing again\n\n' +
-                        'See RESERVATIONS_SUPABASE_SETUP.md for detailed instructions.'
+                        'See RESERVATIONS_SUPABASE_SETUP.md for detailed instructions.',
+                        { title: 'Reservations Table Not Found' }
                     );
                     return;
                 }
-                alert(`Error syncing reservations from Supabase: ${result.error.message || 'Unknown error'}`);
+                toast.error(`Error syncing reservations from Supabase: ${result.error.message || 'Unknown error'}`);
                 return;
             }
 
@@ -1640,14 +1736,14 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 reservationsManager.data = result.data;
                 reservationsManager.save();
                 setReservations(result.data);
-                alert(`✅ Successfully synced ${result.data.length} reservation(s) from Supabase!`);
+                toast.success(`Successfully synced ${result.data.length} reservation(s) from Supabase!`);
             } else {
                 setReservations([]);
-                alert('No reservations found in Supabase.');
+                toast.info('No reservations found in Supabase.');
             }
         } catch (error) {
             console.error('Error syncing reservations from Supabase:', error);
-            alert(`Error syncing reservations: ${error.message || 'Unknown error'}`);
+            toast.error(`Error syncing reservations: ${error.message || 'Unknown error'}`);
         }
     };
 
@@ -1855,7 +1951,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
 
                         if (error) {
                             if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
-                                alert('Event registrations table not found in Supabase. Please create it first.');
+                                toast.error('Event registrations table not found in Supabase. Please create it first.');
                                 break;
                             }
                             results.eventRegistrations.errors++;
@@ -1890,7 +1986,17 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             message += `• Reservations: ${results.reservations.synced} synced, ${results.reservations.skipped} skipped, ${results.reservations.errors} errors\n`;
             message += `• Event Registrations: ${results.eventRegistrations.synced} synced, ${results.eventRegistrations.skipped} skipped, ${results.eventRegistrations.errors} errors`;
 
-            alert(message);
+            toast.success(
+                `Synced: ${totalSynced} item(s)\n` +
+                `Skipped (already exists): ${totalSkipped} item(s)\n` +
+                (totalErrors > 0 ? `Errors: ${totalErrors} item(s)\n` : '') +
+                '\nDetails:\n' +
+                `• Member Forms: ${results.memberForms.synced} synced, ${results.memberForms.skipped} skipped, ${results.memberForms.errors} errors\n` +
+                `• Contact Forms: ${results.contactForms.synced} synced, ${results.contactForms.skipped} skipped, ${results.contactForms.errors} errors\n` +
+                `• Reservations: ${results.reservations.synced} synced, ${results.reservations.skipped} skipped, ${results.reservations.errors} errors\n` +
+                `• Event Registrations: ${results.eventRegistrations.synced} synced, ${results.eventRegistrations.skipped} skipped, ${results.eventRegistrations.errors} errors`,
+                { title: 'Sync to Supabase Complete!' }
+            );
 
             // Refresh data from Supabase after sync
             await loadForms();
@@ -1900,15 +2006,30 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
 
         } catch (error) {
             console.error('Error syncing to Supabase:', error);
-            alert(`Error syncing to Supabase: ${error.message || 'Unknown error'}`);
+            toast.error(`Error syncing to Supabase: ${error.message || 'Unknown error'}`);
         }
     };
 
-    const loadEvents = async () => {
+    const loadEvents = async (forceRefresh = false) => {
         try {
+            const now = Date.now();
+            const timeSinceLastLoad = now - lastEventsLoadTime.current;
+            
+            // If we're forcing refresh but it's been less than cooldown time, use cache instead
+            if (forceRefresh && timeSinceLastLoad < eventsLoadCooldown) {
+                console.log(`⏱️ Events load cooldown active (${Math.ceil((eventsLoadCooldown - timeSinceLastLoad) / 1000)}s remaining). Using cached data.`);
+                const cachedEvents = eventsManager._getAllFromLocalStorage();
+                const eventsData = {
+                    upcoming: Array.isArray(cachedEvents.upcoming) ? cachedEvents.upcoming : [],
+                    past: Array.isArray(cachedEvents.past) ? cachedEvents.past : []
+                };
+                setEvents(eventsData);
+                return;
+            }
+            
             console.log('🔄 Loading events from Supabase...');
-            // Force refresh from Supabase (source of truth)
-            const allEvents = await eventsManager.getAll({ forceRefresh: true });
+            // Only force refresh if explicitly requested and cooldown has passed
+            const allEvents = await eventsManager.getAll({ forceRefresh: forceRefresh });
             // Ensure we have the correct structure
             const eventsData = {
                 upcoming: Array.isArray(allEvents.upcoming) ? allEvents.upcoming : [],
@@ -1916,6 +2037,9 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             };
             
             console.log(`✅ Loaded ${eventsData.upcoming.length} upcoming and ${eventsData.past.length} past events from Supabase`);
+            
+            // Update last load time
+            lastEventsLoadTime.current = now;
             
             setEvents(eventsData);
         } catch (error) {
@@ -1948,14 +2072,14 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         }
 
         if (!form) {
-            alert('Form not found');
+            toast.error('Form not found');
             return;
         }
 
         // Validate email before proceeding
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!form.email || !emailRegex.test(form.email)) {
-            alert('Invalid email address in the application. Please check the email before approving.');
+            toast.error('Invalid email address in the application. Please check the email before approving.');
             return;
         }
 
@@ -2003,21 +2127,21 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 loadMembers(); // Refresh members list
 
                 // Show detailed message from service (includes member ID and status)
-                alert(result.message || 
-                    `✅ Application Approved Successfully!\n\n` +
+                const successMessage = result.message || 
+                    `Application Approved Successfully!\n\n` +
                     `Member: ${form.username} (${form.email})\n` +
                     `Member ID: ${result.memberId || 'N/A'}\n\n` +
                     `✅ Member added to Members table\n` +
                     `✅ Authentication account created (for login)\n` +
                     `✅ Confirmation email sent\n\n` +
-                    `The member can now log in and access their profile.`
-                );
+                    `The member can now log in and access their profile.`;
+                toast.success(successMessage, { title: 'Application Approved' });
             } else {
-                alert(`❌ Failed to approve application:\n\n${result.error}\n\nPlease try again or contact support.`);
+                toast.error(`Failed to approve application:\n\n${result.error}\n\nPlease try again or contact support.`);
             }
         } catch (error) {
             console.error('Error approving application:', error);
-            alert(`❌ Error approving application:\n\n${error.message}\n\nPlease try again.`);
+            toast.error(`Error approving application:\n\n${error.message}\n\nPlease try again.`);
         }
     };
 
@@ -2386,8 +2510,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         // First, try to sync from Supabase (download)
         const result = await eventsManager.syncFromSupabase();
         if (result.synced) {
-            // Reload events to reflect changes
-            await loadEvents();
+            // Reload events to reflect changes (force refresh after sync)
+            await loadEvents(true);
             
             // Show detailed sync results
             let message = `✅ Successfully synced from Supabase!\n\n`;
@@ -2409,7 +2533,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                         const pushResult = await eventsManager.syncToSupabase();
                         if (pushResult.synced) {
                             alert(`✅ Successfully uploaded ${pushResult.syncedCount} event(s) to Supabase!`);
-                            await loadEvents();
+                            await loadEvents(true);
                         } else {
                             alert(`❌ Failed to upload events: ${pushResult.error?.message || 'Unknown error'}`);
                         }
@@ -2500,7 +2624,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 console.log('✅ Event added:', savedEvent);
             }
             // Wait for events to reload from Supabase before closing form
-            await loadEvents();
+            await loadEvents(true);
             
             // Update URL to show the saved event
             if (savedEvent && savedEvent.id) {
@@ -2519,21 +2643,21 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const handleDeleteEvent = async (id) => {
         if (window.confirm('Are you sure you want to delete this event?')) {
             await eventsManager.delete(id);
-            await loadEvents();
+            await loadEvents(true);
         }
     };
 
     const handleMoveToPast = async (id) => {
         if (window.confirm('Move this event to past events? You can move it back later if needed.')) {
             await eventsManager.moveToPast(id);
-            await loadEvents();
+            await loadEvents(true);
         }
     };
 
     const handleMoveToUpcoming = async (id) => {
         if (window.confirm('Move this event back to upcoming events?')) {
             await eventsManager.moveToUpcoming(id);
-            await loadEvents();
+            await loadEvents(true);
         }
     };
 
@@ -2549,7 +2673,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 console.log('✅ Article added:', added);
             }
             // Wait for articles to reload from Supabase before closing form
-            await loadArticles();
+            await loadArticles(true);
             setEditingArticle(null);
             setIsAddingArticle(false);
         } catch (error) {
@@ -2561,7 +2685,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const handleDeleteArticle = async (id) => {
         if (window.confirm('Are you sure you want to delete this article?')) {
             await articlesManager.delete(id);
-            await loadArticles();
+            await loadArticles(true);
         }
     };
 
@@ -2569,8 +2693,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         // First, try to sync from Supabase (download)
         const result = await articlesManager.syncFromSupabase();
         if (result.synced) {
-            // Reload articles to reflect changes
-            await loadArticles();
+            // Reload articles to reflect changes (force refresh after sync)
+            await loadArticles(true);
             
             // Show detailed sync results
             let message = `✅ Successfully synced from Supabase!\n\n`;
@@ -2589,7 +2713,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                         const pushResult = await articlesManager.syncToSupabase();
                         if (pushResult.synced) {
                             alert(`✅ Successfully uploaded ${pushResult.syncedCount} article(s) to Supabase!`);
-                            await loadArticles();
+                            await loadArticles(true);
                         } else {
                             alert(`❌ Failed to upload articles: ${pushResult.error?.message || 'Unknown error'}`);
                         }
@@ -2818,19 +2942,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                     </ul>
                 </nav>
 
-                {/* User Profile */}
-                <div className="p-4 border-t border-gray-100">
-                    <div className="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
-                        <div className="w-10 h-10 rounded-full bg-[#5A9B8E] flex items-center justify-center">
-                            <span className="text-white font-semibold text-sm">AD</span>
-                        </div>
-                        <div className="flex-1">
-                            <p className="text-sm font-medium text-gray-800">Admin</p>
-                            <p className="text-xs text-gray-500">admin@eacsl.net</p>
-                        </div>
-                    </div>
                 </div>
-            </div>
 
             {/* Main Content Area */}
             <div className="flex-1 p-4 md:p-8 overflow-y-auto">
@@ -3010,7 +3122,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             {activeTab === 'events' && (
                                 <div className="hidden md:flex items-center gap-2 md:gap-3">
                                     <button
-                                        onClick={loadEvents}
+                                        onClick={() => loadEvents(true)}
                                         className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                                         title="Refresh Events"
                                     >
@@ -3036,7 +3148,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             {activeTab === 'articles' && (
                                 <div className="hidden md:flex items-center gap-2 md:gap-3">
                                     <button
-                                        onClick={loadArticles}
+                                        onClick={() => loadArticles(true)}
                                         className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                                         title="Refresh Articles"
                                     >
@@ -3261,7 +3373,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             <>
                             <div className="md:hidden flex items-center gap-2 mb-3 flex-wrap">
                                 <button
-                                    onClick={loadArticles}
+                                    onClick={() => loadArticles(true)}
                                     className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
                                     title="Refresh Articles"
                                 >
@@ -3351,7 +3463,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             <>
                             <div className="md:hidden flex items-center gap-2 mb-3 flex-wrap">
                                 <button
-                                    onClick={loadEvents}
+                                    onClick={() => loadEvents(true)}
                                     className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
                                     title="Refresh Events"
                                 >

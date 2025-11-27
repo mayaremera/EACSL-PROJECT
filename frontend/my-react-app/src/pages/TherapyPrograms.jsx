@@ -15,7 +15,13 @@ const TherapyPrograms = () => {
   useEffect(() => {
     const loadPrograms = async () => {
       try {
-        // getAll() is now async and fetches from Supabase first
+        // First, load from cache for immediate display
+        const cachedPrograms = therapyProgramsManager._getAllFromLocalStorage();
+        if (cachedPrograms && cachedPrograms.length > 0) {
+          setPrograms(cachedPrograms);
+        }
+        
+        // Then refresh from Supabase in the background
         const allPrograms = await therapyProgramsManager.getAll();
         setPrograms(allPrograms);
       } catch (error) {

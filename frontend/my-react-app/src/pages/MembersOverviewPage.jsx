@@ -13,6 +13,13 @@ function MembersOverviewPage() {
   useEffect(() => {
     const loadMembers = async () => {
       try {
+        // First, load from cache for immediate display
+        const cachedMembers = membersManager._getAllFromLocalStorage();
+        if (cachedMembers && cachedMembers.length > 0) {
+          setMembers(cachedMembers);
+        }
+        
+        // Then refresh from Supabase in the background
         const allMembers = await membersManager.getAll();
         setMembers(allMembers);
       } catch (error) {

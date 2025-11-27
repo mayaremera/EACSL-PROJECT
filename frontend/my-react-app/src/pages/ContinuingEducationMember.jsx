@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   BookOpen, 
@@ -32,6 +32,8 @@ function ContinuingEducationMember() {
   const [activeTab, setActiveTab] = useState('active');
   const [member, setMember] = useState(null);
   const [loading, setLoading] = useState(true);
+  const lastUpdateTime = useRef(0);
+  const updateCooldown = 10000; // 10 seconds cooldown between updates
 
   useEffect(() => {
     const loadMember = async () => {
@@ -42,35 +44,40 @@ function ContinuingEducationMember() {
       
       // If user is logged in and no memberId provided, use logged-in user's member data
       if (user && !memberId) {
-        // Fetch fresh data from Supabase first (source of truth)
+        // First, try cached data for immediate display
+        const cachedMembers = membersManager._getAllFromLocalStorage();
+        let memberData = cachedMembers.find(m => m.supabaseUserId === user.id);
+        if (!memberData) {
+          memberData = cachedMembers.find(m => m.email === user.email);
+        }
+        if (memberData) {
+          setMember(memberData);
+          setLoading(false);
+        }
+        
+        // Then refresh from Supabase in the background
         try {
           const allMembers = await membersManager.getAll();
           // Try to find by supabaseUserId first
-          let memberData = allMembers.find(m => m.supabaseUserId === user.id);
+          let refreshedMember = allMembers.find(m => m.supabaseUserId === user.id);
           
           // If not found, try by email
-          if (!memberData) {
-            memberData = allMembers.find(m => m.email === user.email);
+          if (!refreshedMember) {
+            refreshedMember = allMembers.find(m => m.email === user.email);
           }
           
-          if (memberData) {
-            setMember(memberData);
-            setLoading(false);
+          if (refreshedMember) {
+            setMember(refreshedMember);
             return;
           }
         } catch (error) {
           console.warn('Could not fetch members from Supabase:', error);
-          // Fallback to cached data
-          const cachedMembers = membersManager._getAllFromLocalStorage();
-          let memberData = cachedMembers.find(m => m.supabaseUserId === user.id);
-          if (!memberData) {
-            memberData = cachedMembers.find(m => m.email === user.email);
-          }
-          if (memberData) {
-            setMember(memberData);
-            setLoading(false);
-            return;
-          }
+          // Already set from cache above, so no need to do anything
+        }
+        
+        // If we found member from cache, return early (refresh will happen in background)
+        if (memberData) {
+          return;
         }
         
         // If still not found, try to fetch directly from Supabase by user ID
@@ -119,7 +126,15 @@ function ContinuingEducationMember() {
         setLoading(false);
         return;
       } else if (memberId) {
-        // Use memberId from URL - fetch from Supabase first
+        // Use memberId from URL - first try cached data for immediate display
+        const cachedMembers = membersManager._getAllFromLocalStorage();
+        const cachedMember = cachedMembers.find(m => m.id === parseInt(memberId));
+        if (cachedMember) {
+          setMember(cachedMember);
+          setLoading(false);
+        }
+        
+        // Then refresh from Supabase in the background
         try {
           const allMembers = await membersManager.getAll();
           const memberData = allMembers.find(m => m.id === parseInt(memberId));
@@ -128,14 +143,11 @@ function ContinuingEducationMember() {
           }
         } catch (error) {
           console.warn('Could not fetch members from Supabase:', error);
-          // Fallback to cached data
-          const cachedMembers = membersManager._getAllFromLocalStorage();
-          const memberData = cachedMembers.find(m => m.id === parseInt(memberId));
-          if (memberData) {
-            setMember(memberData);
-          }
+          // Already set from cache above, so no need to do anything
         } finally {
-          setLoading(false);
+          if (!cachedMember) {
+            setLoading(false);
+          }
         }
       } else {
         // No user and no memberId - redirect or show error
@@ -145,9 +157,48 @@ function ContinuingEducationMember() {
     
     loadMember();
 
-    const handleMemberUpdate = (e) => {
+    const handleMemberUpdate = async (e) => {
+      const now = Date.now();
+      const timeSinceLastUpdate = now - lastUpdateTime.current;
+      
+      // If update was called recently, skip it to prevent excessive requests
+      if (timeSinceLastUpdate < updateCooldown) {
+        const secondsLeft = Math.ceil((updateCooldown - timeSinceLastUpdate) / 1000);
+        console.log(`⏱️ Member update cooldown active (${secondsLeft}s remaining). Using cached data.`);
+        
+        // Use cached data or event data instead
+        let updatedMember = null;
+        if (e && e.detail && Array.isArray(e.detail)) {
+          if (user && !memberId) {
+            updatedMember = e.detail.find(m => 
+              m.supabaseUserId === user.id || m.email === user.email
+            );
+          } else if (memberId) {
+            updatedMember = e.detail.find(m => m.id === parseInt(memberId));
+          }
+        } else {
+          // Fallback to cached data
+          const allMembers = membersManager._getAllFromLocalStorage();
+          if (user && !memberId) {
+            updatedMember = getMemberByUserId(user.id);
+            if (!updatedMember) {
+              updatedMember = allMembers.find(m => m.email === user.email);
+            }
+          } else if (memberId) {
+            updatedMember = allMembers.find(m => m.id === parseInt(memberId));
+          }
+        }
+        if (updatedMember) {
+          setMember(updatedMember);
+        }
+        return;
+      }
+      
+      // Update last update time
+      lastUpdateTime.current = now;
+      
+      // First, try to use event data or cached data for immediate update
       let updatedMember = null;
-      // If event has detail (members array), use it directly
       if (e && e.detail && Array.isArray(e.detail)) {
         if (user && !memberId) {
           updatedMember = e.detail.find(m => 
@@ -156,20 +207,33 @@ function ContinuingEducationMember() {
         } else if (memberId) {
           updatedMember = e.detail.find(m => m.id === parseInt(memberId));
         }
-      } else {
-        // Fallback to cached data
-        const allMembers = membersManager._getAllFromLocalStorage();
-        if (user && !memberId) {
-          updatedMember = getMemberByUserId(user.id);
-          if (!updatedMember) {
-            updatedMember = allMembers.find(m => m.email === user.email);
-          }
-        } else if (memberId) {
-          updatedMember = allMembers.find(m => m.id === parseInt(memberId));
+        if (updatedMember) {
+          setMember(updatedMember);
         }
       }
-      if (updatedMember) {
-        setMember(updatedMember);
+      
+      // Then refresh from Supabase in the background (without forceRefresh to use cache first)
+      try {
+        const allMembers = await membersManager.getAll();
+        let refreshedMember = null;
+        
+        if (user && !memberId) {
+          // Try to find by supabaseUserId first
+          refreshedMember = allMembers.find(m => m.supabaseUserId === user.id);
+          // If not found, try by email
+          if (!refreshedMember) {
+            refreshedMember = allMembers.find(m => m.email === user.email);
+          }
+        } else if (memberId) {
+          refreshedMember = allMembers.find(m => m.id === parseInt(memberId));
+        }
+        
+        if (refreshedMember) {
+          setMember(refreshedMember);
+        }
+      } catch (error) {
+        console.warn('Could not refresh member from Supabase:', error);
+        // Already updated from event data or cache above, so no need to do anything
       }
     };
 

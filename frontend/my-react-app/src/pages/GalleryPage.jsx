@@ -51,9 +51,9 @@ const GalleryPage = () => {
   const getSizeClass = (size) => {
     switch (size) {
       case 'tall':
-        return 'row-span-2';
+        return 'md:row-span-2';
       case 'wide':
-        return 'col-span-2';
+        return 'md:col-span-2';
       default:
         return '';
     }
@@ -72,12 +72,12 @@ const GalleryPage = () => {
       <Breadcrumbs items={[{ label: 'Gallery' }]} />
 
       {/* Gallery Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 auto-rows-[200px]">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 auto-rows-[250px] sm:auto-rows-[200px]">
           {galleryImages.map((image) => (
             <div
               key={image.id}
-              className={`relative group cursor-pointer overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-all duration-300 ${getSizeClass(image.size)}`}
+              className={`relative group cursor-pointer overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-all duration-300 min-h-[250px] sm:min-h-0 ${getSizeClass(image.size)}`}
               onClick={() => setSelectedImage(image)}
             >
               <img
@@ -86,9 +86,9 @@ const GalleryPage = () => {
                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="absolute bottom-0 left-0 right-0 p-4 flex items-center justify-between">
-                  <span className="text-white text-sm font-medium">View Image</span>
-                  <ZoomIn className="text-white" size={20} />
+                <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 flex items-center justify-between">
+                  <span className="text-white text-xs sm:text-sm font-medium">View Image</span>
+                  <ZoomIn className="text-white" size={18} />
                 </div>
               </div>
             </div>
@@ -99,37 +99,38 @@ const GalleryPage = () => {
       {/* Lightbox Modal */}
       {selectedImage && (
         <div
-          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-2 sm:p-4"
           onClick={() => setSelectedImage(null)}
         >
           <button
-            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
+            className="absolute top-2 right-2 sm:top-4 sm:right-4 text-white hover:text-gray-300 transition-colors z-10 p-2"
             onClick={() => setSelectedImage(null)}
+            aria-label="Close image"
           >
-            <X size={32} />
+            <X size={28} className="sm:w-8 sm:h-8" />
           </button>
           <img
             src={selectedImage.url}
             alt={`Gallery image ${selectedImage.id}`}
-            className="max-w-full max-h-full object-contain rounded-lg"
+            className="max-w-full max-h-[95vh] sm:max-h-full object-contain rounded-lg"
             onClick={(e) => e.stopPropagation()}
           />
         </div>
       )}
 
       {/* Footer CTA Section */}
-      <div className="bg-white border-t border-gray-200 py-12 mt-12">
+      <div className="bg-white border-t border-gray-200 py-8 sm:py-12 mt-8 sm:mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-[#5A9B8E] rounded-2xl p-8 md:p-12 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+          <div className="bg-[#5A9B8E] rounded-2xl p-6 sm:p-8 md:p-12 text-center">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-3 sm:mb-4">
               Join Our Community
             </h2>
-            <p className="text-teal-50 mb-6 max-w-2xl mx-auto">
+            <p className="text-teal-50 mb-4 sm:mb-6 max-w-2xl mx-auto text-sm sm:text-base px-4">
               Become a member and be part of our growing professional community
             </p>
             <a 
               href="/apply-membership"
-              className="inline-block bg-white text-[#5A9B8E] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
+              className="inline-block bg-white text-[#5A9B8E] hover:bg-gray-50 px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg text-sm sm:text-base"
             >
               Become a Member
             </a>

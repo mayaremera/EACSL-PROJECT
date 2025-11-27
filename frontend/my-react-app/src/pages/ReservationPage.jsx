@@ -4,9 +4,11 @@ import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import { useNavigate } from 'react-router-dom';
 import { reservationsService } from '../services/reservationsService';
+import { useToast } from '../contexts/ToastContext';
 
 const ReservationPage = () => {
   const navigate = useNavigate();
+  const toast = useToast();
   const [formData, setFormData] = useState({
     kidsName: '',
     yourName: '',
@@ -57,14 +59,14 @@ const ReservationPage = () => {
       if (result.error) {
         // Handle specific errors
         if (result.error.code === 'TABLE_NOT_FOUND') {
-          alert(
-            '❌ Database Table Not Found\n\n' +
+          toast.error(
             'The reservations table does not exist in Supabase.\n\n' +
             'To fix this:\n' +
             '1. Go to Supabase Dashboard → SQL Editor\n' +
             '2. Run the SQL script from CREATE_RESERVATIONS_TABLE.sql\n' +
             '3. Try submitting again\n\n' +
-            'See RESERVATIONS_SUPABASE_SETUP.md for detailed instructions.'
+            'See RESERVATIONS_SUPABASE_SETUP.md for detailed instructions.',
+            { title: 'Database Table Not Found' }
           );
           setIsSubmitting(false);
           return;
@@ -88,7 +90,7 @@ const ReservationPage = () => {
       setIsSubmitted(true);
     } catch (error) {
       console.error('Error submitting reservation:', error);
-      alert(
+      toast.error(
         `Failed to save your reservation: ${error.message || 'Unknown error'}\n\n` +
         'Please try again or contact support if the issue persists.'
       );

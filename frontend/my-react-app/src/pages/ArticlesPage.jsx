@@ -14,7 +14,13 @@ const ArticlesPage = () => {
   useEffect(() => {
     const loadArticles = async () => {
       try {
-        // getAll() is now async and fetches from Supabase first
+        // First, load from cache for immediate display
+        const cachedArticles = articlesManager._getAllFromLocalStorage();
+        if (cachedArticles && cachedArticles.length > 0) {
+          setArticles(cachedArticles);
+        }
+        
+        // Then refresh from Supabase in the background
         const allArticles = await articlesManager.getAll();
         setArticles(allArticles);
       } catch (error) {

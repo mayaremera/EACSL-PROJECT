@@ -12,7 +12,13 @@ const ForParentsPage = () => {
   useEffect(() => {
     const loadArticles = async () => {
       try {
-        // getAll() is now async and fetches from Supabase first
+        // First, load from cache for immediate display
+        const cachedArticles = forParentsManager._getAllFromLocalStorage();
+        if (cachedArticles && cachedArticles.length > 0) {
+          setArticles(cachedArticles);
+        }
+        
+        // Then refresh from Supabase in the background
         const allArticles = await forParentsManager.getAll();
         setArticles(allArticles);
       } catch (error) {

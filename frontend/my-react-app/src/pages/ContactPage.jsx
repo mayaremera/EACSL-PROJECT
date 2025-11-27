@@ -3,8 +3,10 @@ import { MapPin, Phone, Mail, Clock, Send, CheckCircle, MessageCircle } from 'lu
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import { contactFormsService } from '../services/contactFormsService';
+import { useToast } from '../contexts/ToastContext';
 
 const ContactPage = () => {
+  const toast = useToast();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -44,14 +46,14 @@ const ContactPage = () => {
       if (result.error) {
         // Handle specific errors
         if (result.error.code === 'TABLE_NOT_FOUND') {
-          alert(
-            '❌ Database Table Not Found\n\n' +
+          toast.error(
             'The contact_forms table does not exist in Supabase.\n\n' +
             'To fix this:\n' +
             '1. Go to Supabase Dashboard → SQL Editor\n' +
             '2. Run the SQL script from CREATE_CONTACT_FORMS_TABLE.sql\n' +
             '3. Try submitting again\n\n' +
-            'See CONTACT_FORMS_SUPABASE_SETUP.md for detailed instructions.'
+            'See CONTACT_FORMS_SUPABASE_SETUP.md for detailed instructions.',
+            { title: 'Database Table Not Found' }
           );
           setIsSubmitting(false);
           return;
