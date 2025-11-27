@@ -20,7 +20,7 @@ const AboutUsSection = () => {
             </div>
 
             {/* Title With Logo */}
-            <div className="flex items-left justify-left lg:justify-start mb-5 lg:mb-7 mt-[0.5rem] lg:mt-0">
+            <div className="flex items-left justify-left lg:justify-start mb-5 lg:mb-9 mt-[0.5rem] lg:mt-0">
               <img
                 src={halfCircle}
                 alt="Logo"

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { BookOpen, X, ExternalLink, Calendar, User } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { BookOpen, X, ExternalLink, Calendar, User, ChevronLeft, ChevronRight } from 'lucide-react';
 import { forParentsManager } from '../utils/dataManager';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
@@ -8,6 +8,7 @@ import ImagePlaceholder from '../components/ui/ImagePlaceholder';
 const ForParentsPage = () => {
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [articles, setArticles] = useState([]);
+  const scrollContainerRef = useRef(null);
 
   useEffect(() => {
     const loadArticles = async () => {
@@ -50,6 +51,21 @@ const ForParentsPage = () => {
     };
   }, []);
 
+  // Scroll functions for mobile slider
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      const cardWidth = scrollContainerRef.current.querySelector('.parent-card')?.offsetWidth || 320;
+      scrollContainerRef.current.scrollBy({ left: -cardWidth - 24, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      const cardWidth = scrollContainerRef.current.querySelector('.parent-card')?.offsetWidth || 320;
+      scrollContainerRef.current.scrollBy({ left: cardWidth + 24, behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -62,54 +78,143 @@ const ForParentsPage = () => {
       {/* Breadcrumb */}
       <Breadcrumbs items={[{ label: 'For Parents' }]} />
 
-      {/* Articles Grid */}
+      {/* Articles Cards */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {articles.map((article) => (
-            <div
-              key={article.id}
-              className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden cursor-pointer"
-              onClick={() => setSelectedArticle(article)}
-            >
-              {/* Image */}
-              <div className="relative h-48 overflow-hidden">
-                <ImagePlaceholder
-                  src={article.image || article.imageUrl}
-                  alt={article.title}
-                  name={article.title}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-                />
-                <div className="absolute top-3 right-3">
-                  <div className="bg-white p-2 rounded-full shadow-lg">
-                    <BookOpen className="w-5 h-5 text-[#5A9B8E]" />
-                  </div>
-                </div>
-              </div>
+        {articles.length > 0 ? (
+          <>
+            {/* Mobile Slider - Only visible on mobile */}
+            <div className="md:hidden relative">
+              {/* Navigation Buttons */}
+              <button
+                onClick={scrollLeft}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-50 transition-colors"
+                aria-label="Scroll left"
+              >
+                <ChevronLeft size={24} className="text-[#5A9B8E]" />
+              </button>
+              <button
+                onClick={scrollRight}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-50 transition-colors"
+                aria-label="Scroll right"
+              >
+                <ChevronRight size={24} className="text-[#5A9B8E]" />
+              </button>
 
-              {/* Content */}
-              <div className="p-5" dir="rtl" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
-                <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 hover:text-[#5A9B8E] transition-colors" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '18px' }}>
-                  {article.title}
-                </h3>
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}>
-                  {article.excerpt}
-                </p>
+              {/* Scrollable Container */}
+              <div
+                ref={scrollContainerRef}
+                className="flex gap-6 overflow-x-auto scroll-smooth pb-4 hide-scrollbar"
+                style={{
+                  scrollSnapType: 'x mandatory',
+                  WebkitOverflowScrolling: 'touch',
+                }}
+              >
+                {articles.map((article) => (
+                  <div
+                    key={article.id}
+                    className="parent-card flex-shrink-0 w-[85vw] max-w-[320px]"
+                    style={{ scrollSnapAlign: 'start' }}
+                  >
+                    <div
+                      className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden cursor-pointer h-full"
+                      onClick={() => setSelectedArticle(article)}
+                    >
+                      {/* Image */}
+                      <div className="relative h-48 overflow-hidden">
+                        <ImagePlaceholder
+                          src={article.image || article.imageUrl}
+                          alt={article.title}
+                          name={article.title}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                        />
+                        <div className="absolute top-3 right-3">
+                          <div className="bg-white p-2 rounded-full shadow-lg">
+                            <BookOpen className="w-5 h-5 text-[#5A9B8E]" />
+                          </div>
+                        </div>
+                      </div>
 
-                {/* Meta Info */}
-                <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
-                  <div className="flex items-center gap-1" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
-                    <User size={14} />
-                    <span>{article.author}</span>
+                      {/* Content */}
+                      <div className="p-5" dir="rtl" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 hover:text-[#5A9B8E] transition-colors" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '18px' }}>
+                          {article.title}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-4 line-clamp-2" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}>
+                          {article.excerpt}
+                        </p>
+
+                        {/* Meta Info */}
+                        <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
+                          <div className="flex items-center gap-1" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
+                            <User size={14} />
+                            <span>{article.author}</span>
+                          </div>
+                          <div className="flex items-center gap-1" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
+                            <Calendar size={14} />
+                            <span>{article.date}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
-                    <Calendar size={14} />
-                    <span>{article.date}</span>
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
+
+            {/* Tablet & Desktop Grid - Hidden on mobile */}
+            <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {articles.map((article) => (
+                <div
+                  key={article.id}
+                  className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden cursor-pointer"
+                  onClick={() => setSelectedArticle(article)}
+                >
+                  {/* Image */}
+                  <div className="relative h-48 overflow-hidden">
+                    <ImagePlaceholder
+                      src={article.image || article.imageUrl}
+                      alt={article.title}
+                      name={article.title}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                    />
+                    <div className="absolute top-3 right-3">
+                      <div className="bg-white p-2 rounded-full shadow-lg">
+                        <BookOpen className="w-5 h-5 text-[#5A9B8E]" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Content */}
+                  <div className="p-5" dir="rtl" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 hover:text-[#5A9B8E] transition-colors" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '18px' }}>
+                      {article.title}
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-4 line-clamp-2" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}>
+                      {article.excerpt}
+                    </p>
+
+                    {/* Meta Info */}
+                    <div className="flex items-center justify-between text-xs text-gray-500 pt-3 border-t border-gray-100">
+                      <div className="flex items-center gap-1" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
+                        <User size={14} />
+                        <span>{article.author}</span>
+                      </div>
+                      <div className="flex items-center gap-1" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
+                        <Calendar size={14} />
+                        <span>{article.date}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-12">
+            <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 text-lg">No articles available</p>
+          </div>
+        )}
       </div>
 
       {/* Article Modal */}

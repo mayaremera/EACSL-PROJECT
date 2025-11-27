@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Users } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Search, Users, ChevronLeft, ChevronRight } from 'lucide-react';
 import { filterMembers } from '../data/members';
 import { membersManager } from '../utils/dataManager';
 import MemberCard from '../components/cards/MemberCard';
@@ -9,6 +9,7 @@ import Breadcrumbs from '../components/ui/Breadcrumbs';
 function MembersOverviewPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [members, setMembers] = useState([]);
+  const scrollContainerRef = useRef(null);
 
   useEffect(() => {
     const loadMembers = async () => {
@@ -52,6 +53,21 @@ function MembersOverviewPage() {
     searchTerm: searchTerm
   }, members);
 
+  // Scroll functions for mobile slider
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      const cardWidth = scrollContainerRef.current.querySelector('.member-card')?.offsetWidth || 320;
+      scrollContainerRef.current.scrollBy({ left: -cardWidth - 24, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      const cardWidth = scrollContainerRef.current.querySelector('.member-card')?.offsetWidth || 320;
+      scrollContainerRef.current.scrollBy({ left: cardWidth + 24, behavior: 'smooth' });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
@@ -89,19 +105,61 @@ function MembersOverviewPage() {
           </div>
         </div>
 
-        {/* Members Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredMembers.length > 0 ? (
-            filteredMembers.map((member) => (
-              <MemberCard key={member.id} {...member} />
-            ))
-          ) : (
-            <div className="col-span-full text-center py-12">
-              <p className="text-gray-500 text-lg">No members found matching your criteria</p>
-              <p className="text-gray-400 text-sm mt-2">Try adjusting your search or filter</p>
+        {/* Members Cards */}
+        {filteredMembers.length > 0 ? (
+          <>
+            {/* Mobile Slider - Only visible on mobile */}
+            <div className="md:hidden relative">
+              {/* Navigation Buttons */}
+              <button
+                onClick={scrollLeft}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-50 transition-colors"
+                aria-label="Scroll left"
+              >
+                <ChevronLeft size={24} className="text-[#5A9B8E]" />
+              </button>
+              <button
+                onClick={scrollRight}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-50 transition-colors"
+                aria-label="Scroll right"
+              >
+                <ChevronRight size={24} className="text-[#5A9B8E]" />
+              </button>
+
+              {/* Scrollable Container */}
+              <div
+                ref={scrollContainerRef}
+                className="flex gap-6 overflow-x-auto scroll-smooth pb-4 hide-scrollbar"
+                style={{
+                  scrollSnapType: 'x mandatory',
+                  WebkitOverflowScrolling: 'touch',
+                }}
+              >
+                {filteredMembers.map((member) => (
+                  <div
+                    key={member.id}
+                    className="member-card flex-shrink-0 w-[85vw] max-w-[320px]"
+                    style={{ scrollSnapAlign: 'start' }}
+                  >
+                    <MemberCard {...member} />
+                  </div>
+                ))}
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* Tablet & Desktop Grid - Hidden on mobile */}
+            <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {filteredMembers.map((member) => (
+                <MemberCard key={member.id} {...member} />
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg">No members found matching your criteria</p>
+            <p className="text-gray-400 text-sm mt-2">Try adjusting your search or filter</p>
+          </div>
+        )}
       </div>
 
       {/* Footer CTA Section */}

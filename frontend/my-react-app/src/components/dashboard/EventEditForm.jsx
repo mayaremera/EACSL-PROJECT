@@ -30,7 +30,8 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
     ],
     heroImageUrl: '',
     day1Title: 'Day One - Knowledge and Innovation',
-    day2Title: 'Day Two - Collaboration and Future Directions'
+    day2Title: 'Day Two - Collaboration and Future Directions',
+    eventDate: ''
   });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -39,6 +40,19 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
 
   useEffect(() => {
     if (event) {
+      // Format eventDate for date input (YYYY-MM-DD format)
+      let formattedDate = '';
+      if (event.eventDate) {
+        try {
+          const date = new Date(event.eventDate);
+          if (!isNaN(date.getTime())) {
+            formattedDate = date.toISOString().split('T')[0];
+          }
+        } catch (e) {
+          console.error('Error formatting event date:', e);
+        }
+      }
+
       setFormData({
         heroTitle: event.heroTitle || '',
         heroDescription: event.heroDescription || '',
@@ -56,7 +70,8 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
         scheduleDay2: event.scheduleDay2 || [],
         heroImageUrl: event.heroImageUrl || '',
         day1Title: event.day1Title || 'Day One - Knowledge and Innovation',
-        day2Title: event.day2Title || 'Day Two - Collaboration and Future Directions'
+        day2Title: event.day2Title || 'Day Two - Collaboration and Future Directions',
+        eventDate: formattedDate
       });
       // Set preview if image exists
       if (event.heroImageUrl) {
@@ -278,6 +293,22 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                 placeholder="Join leading experts for a two-day conference focused on advancing clinical practice, enhancing research impact, and exploring innovation across speech, swallowing, language disorders, and audiology."
                 required
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Event Date
+              </label>
+              <input
+                type="date"
+                name="eventDate"
+                value={formData.eventDate}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                This date will be displayed in the hero section badge instead of "TBA" and "2025"
+              </p>
             </div>
           </div>
 

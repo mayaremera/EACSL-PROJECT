@@ -409,11 +409,6 @@ function ContinuingEducationMember() {
                       )}
                     </div>
                   </div>
-
-                  <button className="flex items-center gap-2 bg-[#5A9B8E] text-white px-6 py-3 rounded-lg hover:bg-[#4A8B7E] transition-colors duration-200 font-semibold shadow-md">
-                    <Download className="w-4 h-4" />
-                    Download CV
-                  </button>
                 </div>
 
                 {/* Contact Info */}

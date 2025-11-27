@@ -57,7 +57,21 @@ const EventCard = () => {
     if (!dateString) return { dayMonth: 'TBA', year: new Date().getFullYear().toString() };
 
     try {
-      const date = new Date(dateString);
+      // Handle both YYYY-MM-DD format and ISO date strings
+      let date;
+      if (typeof dateString === 'string' && dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        // Parse YYYY-MM-DD format directly to avoid timezone issues
+        const [year, month, day] = dateString.split('-').map(Number);
+        date = new Date(year, month - 1, day);
+      } else {
+        date = new Date(dateString);
+      }
+
+      // Check if date is valid
+      if (isNaN(date.getTime())) {
+        return { dayMonth: 'TBA', year: new Date().getFullYear().toString() };
+      }
+
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
         'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
       const day = date.getDate();
@@ -67,6 +81,7 @@ const EventCard = () => {
       // Format as "18 Jul" for compact display in badge
       return { dayMonth: `${day} ${month}`, year };
     } catch (e) {
+      console.error('Error formatting date:', e, dateString);
       return { dayMonth: 'TBA', year: new Date().getFullYear().toString() };
     }
   };
@@ -89,7 +104,7 @@ const EventCard = () => {
         {/* Date Badge */}
         <div className="absolute top-0 left-0 bg-[#8B0000] text-white rounded-tr-3xl rounded-br-full w-[6.5rem] h-[6.5rem]">
           <div
-            className="absolute text-2xl lg:text-[1.3rem] font-bold leading-none"
+            className="absolute text-[1.1rem] lg:text-[1.1rem] font-bold leading-none"
             style={{ top: "1.5rem", left: "40%", transform: "translateX(-50%)" }}
           >
             {dateInfo.dayMonth}
@@ -120,7 +135,7 @@ const EventCard = () => {
         </p>
 
         {/* Team Grid - Single row, no text overflow */}
-        <div className="flex flex-wrap items-center justify-center gap-2 md:gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-4 md:gap-x-10 md:gap-y-4">
           {/* Person 1 */}
           <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
             <img
@@ -253,7 +268,7 @@ const HeroSection = () => {
   return (
     <section className="relative min-h-[90vh] flex items-center overflow-hidden bg-[#f7f8fa] py-20">
       {/* Container */}
-      <div className="relative z-10 max-w-[1400px] w-full mx-auto grid lg:grid-cols-[62%_38%] items-center gap-8 lg:gap-5 px-6 md:px-12 lg:px-[7rem]">
+      <div className="relative z-10 max-w-[84rem] w-full mx-auto grid lg:grid-cols-[64%_35%] items-center gap-8 lg:gap-5 px-4 sm:px-8">
 
         {/* Left Side - Order first on mobile, second on desktop */}
         <div className="space-y-6 flex flex-col items-center lg:items-start order-1 lg:order-1">

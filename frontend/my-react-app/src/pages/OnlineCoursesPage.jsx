@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { BookOpen, X, Clock, Users, Search, ChevronDown, ArrowRight, Filter } from 'lucide-react';
+import { BookOpen, X, Clock, Users, Search, ChevronDown, ArrowRight, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { getCategories, getLevels } from '../data/courses';
 import { coursesManager } from '../utils/dataManager';
 import CourseCard from '../components/cards/CourseCard';
@@ -18,6 +18,7 @@ const OnlineCoursesPage = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [courses, setCourses] = useState([]);
   const modalRef = useRef(null);
+  const scrollContainerRef = useRef(null);
 
   useEffect(() => {
     const loadCourses = async () => {
@@ -79,6 +80,21 @@ const OnlineCoursesPage = () => {
       course.title.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesLevel && matchesSearch;
   });
+
+  // Scroll functions for mobile slider
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      const cardWidth = scrollContainerRef.current.querySelector('.course-card')?.offsetWidth || 320;
+      scrollContainerRef.current.scrollBy({ left: -cardWidth - 20, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      const cardWidth = scrollContainerRef.current.querySelector('.course-card')?.offsetWidth || 320;
+      scrollContainerRef.current.scrollBy({ left: cardWidth + 20, behavior: 'smooth' });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -149,18 +165,63 @@ const OnlineCoursesPage = () => {
           </p>
         </div>
 
-        {/* Courses Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filteredCourses.map((course) => (
-            <CourseCard
-              key={course.id}
-              course={course}
-              onClick={() => navigate(`/course-details/${course.id}`, { replace: location.pathname !== '/' })}
-            />
-          ))}
-        </div>
+        {/* Courses Cards */}
+        {filteredCourses.length > 0 ? (
+          <>
+            {/* Mobile Slider - Only visible on mobile */}
+            <div className="md:hidden relative">
+              {/* Navigation Buttons */}
+              <button
+                onClick={scrollLeft}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-50 transition-colors"
+                aria-label="Scroll left"
+              >
+                <ChevronLeft size={24} className="text-[#5A9B8E]" />
+              </button>
+              <button
+                onClick={scrollRight}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-50 transition-colors"
+                aria-label="Scroll right"
+              >
+                <ChevronRight size={24} className="text-[#5A9B8E]" />
+              </button>
 
-        {filteredCourses.length === 0 && (
+              {/* Scrollable Container */}
+              <div
+                ref={scrollContainerRef}
+                className="flex gap-5 overflow-x-auto scroll-smooth pb-4 hide-scrollbar"
+                style={{
+                  scrollSnapType: 'x mandatory',
+                  WebkitOverflowScrolling: 'touch',
+                }}
+              >
+                {filteredCourses.map((course) => (
+                  <div
+                    key={course.id}
+                    className="course-card flex-shrink-0 w-[85vw] max-w-[320px]"
+                    style={{ scrollSnapAlign: 'start' }}
+                  >
+                    <CourseCard
+                      course={course}
+                      onClick={() => navigate(`/course-details/${course.id}`, { replace: location.pathname !== '/' })}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Tablet & Desktop Grid - Hidden on mobile */}
+            <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {filteredCourses.map((course) => (
+                <CourseCard
+                  key={course.id}
+                  course={course}
+                  onClick={() => navigate(`/course-details/${course.id}`, { replace: location.pathname !== '/' })}
+                />
+              ))}
+            </div>
+          </>
+        ) : (
           <div className="text-center py-12">
             <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">No courses found</p>

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { BookOpen, X, Tag, ExternalLink, Search, Filter } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { BookOpen, X, Tag, ExternalLink, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { articlesManager } from '../utils/dataManager';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
@@ -10,6 +10,7 @@ const ArticlesPage = () => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [articles, setArticles] = useState([]);
+  const scrollContainerRef = useRef(null);
 
   useEffect(() => {
     const loadArticles = async () => {
@@ -70,6 +71,21 @@ const ArticlesPage = () => {
       article.excerptEn?.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
   });
+
+  // Scroll functions for mobile slider
+  const scrollLeft = () => {
+    if (scrollContainerRef.current) {
+      const cardWidth = scrollContainerRef.current.querySelector('.article-card')?.offsetWidth || 320;
+      scrollContainerRef.current.scrollBy({ left: -cardWidth - 24, behavior: 'smooth' });
+    }
+  };
+
+  const scrollRight = () => {
+    if (scrollContainerRef.current) {
+      const cardWidth = scrollContainerRef.current.querySelector('.article-card')?.offsetWidth || 320;
+      scrollContainerRef.current.scrollBy({ left: cardWidth + 24, behavior: 'smooth' });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -160,47 +176,121 @@ const ArticlesPage = () => {
           Showing {filteredArticles.length} {filteredArticles.length === 1 ? 'article' : 'articles'}
         </div>
 
-        {/* Articles Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-          {filteredArticles.map((article) => (
-            <div
-              key={article.id}
-              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer"
-              onClick={() => setSelectedArticle(article)}
-            >
-              <div className="aspect-video bg-gray-100 overflow-hidden">
-                <ImagePlaceholder
-                  src={article.image}
-                  alt={article.titleEn}
-                  name={article.titleEn}
-                  className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
-                />
-              </div>
-              <div className="p-6">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="px-3 py-1 bg-teal-50 text-[#5A9B8E] text-sm font-medium rounded-full">
-                    {article.category}
-                  </span>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
-                  {article.titleEn}
-                </h3>
-                <p className="text-sm text-gray-600 mb-3 line-clamp-3">
-                  {article.excerptEn}
-                </p>
-                <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                  <span className="text-sm text-gray-500">{article.date}</span>
-                  <button className="text-[#5A9B8E] hover:text-[#4A8B7E] text-sm font-medium flex items-center gap-1">
-                    Read More
-                    <ExternalLink className="w-4 h-4" />
-                  </button>
-                </div>
+        {/* Articles Cards */}
+        {filteredArticles.length > 0 ? (
+          <>
+            {/* Mobile Slider - Only visible on mobile */}
+            <div className="md:hidden relative mb-8">
+              {/* Navigation Buttons */}
+              <button
+                onClick={scrollLeft}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-50 transition-colors"
+                aria-label="Scroll left"
+              >
+                <ChevronLeft size={24} className="text-[#5A9B8E]" />
+              </button>
+              <button
+                onClick={scrollRight}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-50 transition-colors"
+                aria-label="Scroll right"
+              >
+                <ChevronRight size={24} className="text-[#5A9B8E]" />
+              </button>
+
+              {/* Scrollable Container */}
+              <div
+                ref={scrollContainerRef}
+                className="flex gap-6 overflow-x-auto scroll-smooth pb-4 hide-scrollbar"
+                style={{
+                  scrollSnapType: 'x mandatory',
+                  WebkitOverflowScrolling: 'touch',
+                }}
+              >
+                {filteredArticles.map((article) => (
+                  <div
+                    key={article.id}
+                    className="article-card flex-shrink-0 w-[85vw] max-w-[320px]"
+                    style={{ scrollSnapAlign: 'start' }}
+                  >
+                    <div
+                      className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer h-full"
+                      onClick={() => setSelectedArticle(article)}
+                    >
+                      <div className="aspect-video bg-gray-100 overflow-hidden">
+                        <ImagePlaceholder
+                          src={article.image}
+                          alt={article.titleEn}
+                          name={article.titleEn}
+                          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                        />
+                      </div>
+                      <div className="p-6">
+                        <div className="flex items-center gap-2 mb-3">
+                          <span className="px-3 py-1 bg-teal-50 text-[#5A9B8E] text-sm font-medium rounded-full">
+                            {article.category}
+                          </span>
+                        </div>
+                        <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
+                          {article.titleEn}
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-3 line-clamp-3">
+                          {article.excerptEn}
+                        </p>
+                        <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                          <span className="text-sm text-gray-500">{article.date}</span>
+                          <button className="text-[#5A9B8E] hover:text-[#4A8B7E] text-sm font-medium flex items-center gap-1">
+                            Read More
+                            <ExternalLink className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
-          ))}
-        </div>
 
-        {filteredArticles.length === 0 && (
+            {/* Tablet & Desktop Grid - Hidden on mobile */}
+            <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {filteredArticles.map((article) => (
+                <div
+                  key={article.id}
+                  className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow duration-300 cursor-pointer"
+                  onClick={() => setSelectedArticle(article)}
+                >
+                  <div className="aspect-video bg-gray-100 overflow-hidden">
+                    <ImagePlaceholder
+                      src={article.image}
+                      alt={article.titleEn}
+                      name={article.titleEn}
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="p-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="px-3 py-1 bg-teal-50 text-[#5A9B8E] text-sm font-medium rounded-full">
+                        {article.category}
+                      </span>
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
+                      {article.titleEn}
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-3 line-clamp-3">
+                      {article.excerptEn}
+                    </p>
+                    <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                      <span className="text-sm text-gray-500">{article.date}</span>
+                      <button className="text-[#5A9B8E] hover:text-[#4A8B7E] text-sm font-medium flex items-center gap-1">
+                        Read More
+                        <ExternalLink className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
           <div className="text-center py-12">
             <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg">No articles found | لم يتم العثور على مقالات</p>
