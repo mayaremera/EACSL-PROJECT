@@ -234,8 +234,23 @@ const Header = () => {
 
 
   const handleSignOut = async () => {
-    await signOut();
-    setUserDropdownOpen(false);
+    try {
+      const { error } = await signOut();
+      if (error) {
+        console.error('Sign out error:', error);
+        // Still close dropdown and clear UI even if API call fails
+        // The AuthContext will handle clearing local state
+      }
+      setUserDropdownOpen(false);
+      setIsMenuOpen(false);
+      // Redirect to home page after sign out
+      window.location.href = '/';
+    } catch (err) {
+      console.error('Unexpected error during sign out:', err);
+      setUserDropdownOpen(false);
+      setIsMenuOpen(false);
+      window.location.href = '/';
+    }
   };
 
   // Build navigation links based on user login status

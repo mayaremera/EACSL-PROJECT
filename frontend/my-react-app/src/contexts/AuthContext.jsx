@@ -471,7 +471,14 @@ export const AuthProvider = ({ children }) => {
 
   // Sign out
   const signOut = async () => {
-    const { error } = await supabase.auth.signOut();
+    // Use local scope to avoid 403 errors - this signs out only the current session
+    const { error } = await supabase.auth.signOut({ scope: 'local' });
+    if (error) {
+      console.error('Sign out error:', error);
+      // Even if there's an error, clear local session state
+      setSession(null);
+      setUser(null);
+    }
     return { error };
   };
 
