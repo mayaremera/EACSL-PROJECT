@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { membersManager } from '../utils/dataManager';
 import { membersService } from '../services/membersService';
@@ -17,13 +17,39 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const tokenRefreshAttemptsRef = useRef(0);
+  const lastTokenRefreshErrorRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
     
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    // Get initial session with error handling for 429 rate limits
+    supabase.auth.getSession().then(async ({ data: { session }, error }) => {
       if (!mounted) return;
+      
+      // Handle 429 rate limit errors gracefully
+      if (error) {
+        // If it's a 429 error, log it but don't clear the session
+        // The session might still be valid in localStorage
+        if (error.status === 429 || error.message?.includes('429')) {
+          console.warn('Rate limit error during session check (429). Using cached session if available.');
+          lastTokenRefreshErrorRef.current = Date.now();
+          tokenRefreshAttemptsRef.current += 1;
+          
+          // If we have too many 429 errors, wait before retrying
+          if (tokenRefreshAttemptsRef.current > 3) {
+            console.warn('Multiple rate limit errors detected. Waiting before retry...');
+            // Don't clear user/session on rate limit - keep existing state
+            if (mounted) {
+              setLoading(false);
+            }
+            return;
+          }
+        } else {
+          // For other errors, log them
+          console.error('Error getting session:', error);
+        }
+      }
       
       setSession(session);
       setUser(session?.user ?? null);
@@ -155,6 +181,9 @@ export const AuthProvider = ({ children }) => {
         if (session) {
           setSession(session);
           setUser(session.user);
+          // Reset error tracking on successful refresh
+          tokenRefreshAttemptsRef.current = 0;
+          lastTokenRefreshErrorRef.current = null;
         }
         // Don't clear user if session is temporarily null during refresh
         // The refresh should complete quickly

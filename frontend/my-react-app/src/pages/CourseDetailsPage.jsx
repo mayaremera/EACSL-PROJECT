@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { BookOpen, Clock, Users, Calendar, Award, CheckCircle, PlayCircle, FileText, Globe, Video, ExternalLink, Download } from 'lucide-react';
 import { coursesManager, initializeData } from '../utils/dataManager';
@@ -13,6 +13,8 @@ const CourseDetailPage = () => {
     const { user, loading: authLoading } = useAuth();
     const [activeTab, setActiveTab] = useState('details');
     const [courseData, setCourseData] = useState(null);
+    const redirectTimeoutRef = useRef(null);
+    const lastUserCheckRef = useRef(null);
 
     // Helper function to convert YouTube watch URLs to embed URLs
     const convertToEmbedUrl = (url) => {
@@ -175,9 +177,46 @@ const CourseDetailPage = () => {
     }, [courseId, generateDefaultCurriculum, generateDefaultLearningOutcomes]);
 
     // Check authentication - redirect to login if not signed in
+    // Added debounce and token refresh handling to prevent 429 errors
     useEffect(() => {
-        if (!authLoading && !user) {
-            // Redirect to login page with the course details URL to return to after login
+        // Clear any pending redirect timeout
+        if (redirectTimeoutRef.current) {
+            clearTimeout(redirectTimeoutRef.current);
+            redirectTimeoutRef.current = null;
+        }
+
+        // If still loading, wait
+        if (authLoading) {
+            return;
+        }
+
+        // If user exists, clear any pending redirect and reset check time
+        if (user) {
+            lastUserCheckRef.current = Date.now();
+            return;
+        }
+
+        // User is null and not loading - check if this is a temporary state during token refresh
+        const now = Date.now();
+        const timeSinceLastCheck = lastUserCheckRef.current ? now - lastUserCheckRef.current : Infinity;
+        
+        // If we had a user recently (within last 5 seconds), it might be a token refresh
+        // Wait a bit before redirecting to avoid interrupting token refresh
+        if (timeSinceLastCheck < 5000) {
+            // Wait 2 seconds before redirecting - gives token refresh time to complete
+            redirectTimeoutRef.current = setTimeout(() => {
+                // Check again after delay - if still no user, then redirect
+                if (!authLoading && !user) {
+                    navigate('/login', { 
+                        replace: true,
+                        state: { 
+                            redirectTo: `/course-details/${courseId}` 
+                        } 
+                    });
+                }
+            }, 2000);
+        } else {
+            // No recent user check - safe to redirect immediately
             navigate('/login', { 
                 replace: true,
                 state: { 
@@ -185,6 +224,13 @@ const CourseDetailPage = () => {
                 } 
             });
         }
+
+        // Cleanup timeout on unmount
+        return () => {
+            if (redirectTimeoutRef.current) {
+                clearTimeout(redirectTimeoutRef.current);
+            }
+        };
     }, [user, authLoading, navigate, courseId]);
 
     // Show loading state while checking auth or loading course
