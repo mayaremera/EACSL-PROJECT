@@ -54,7 +54,7 @@ export const AuthProvider = ({ children }) => {
       }
       
       setSession(session);
-      // Only update user if we have a session - preserve user state during token refresh
+      // Set user from session - initial load, so we can set it directly
       if (session?.user) {
         setUser(session.user);
         // Clear refreshing flag if we have a valid session
@@ -64,22 +64,8 @@ export const AuthProvider = ({ children }) => {
             clearTimeout(tokenRefreshTimeoutRef.current);
           }
         }
-      } else if (!session && user) {
-        // Session is null but we have a user - might be token refresh, preserve user state
-        // Don't clear user - let token refresh complete
-        if (mounted) {
-          setIsRefreshingToken(true);
-          if (tokenRefreshTimeoutRef.current) {
-            clearTimeout(tokenRefreshTimeoutRef.current);
-          }
-          tokenRefreshTimeoutRef.current = setTimeout(() => {
-            if (mounted && !session) {
-              setIsRefreshingToken(false);
-            }
-          }, 5000);
-        }
-      } else if (!session) {
-        // No session and no user - truly logged out
+      } else {
+        // No session - user is logged out
         setUser(null);
       }
       
@@ -252,8 +238,30 @@ export const AuthProvider = ({ children }) => {
           // If SIGNED_IN event but no session, something went wrong
           // Don't clear user state though - keep existing state
           console.warn('SIGNED_IN event but no session provided');
-        // Note: We don't clear user state here even if session is null temporarily
-        // This prevents redirects during token refresh
+        } else if (!session) {
+          // Session is null - check if we should preserve user state (token refresh)
+          // Use the current user state to detect token refresh
+          const previousUser = user;
+          if (previousUser) {
+            // We had a user but now session is null - might be token refresh
+            // Set flag to prevent redirects during refresh
+            if (mounted) {
+              setIsRefreshingToken(true);
+              if (tokenRefreshTimeoutRef.current) {
+                clearTimeout(tokenRefreshTimeoutRef.current);
+              }
+              tokenRefreshTimeoutRef.current = setTimeout(() => {
+                if (mounted) {
+                  setIsRefreshingToken(false);
+                }
+              }, 5000);
+            }
+            // Don't clear user - preserve it during token refresh
+          } else {
+            // No user and no session - truly logged out
+            setUser(null);
+          }
+        }
       }
       
       // Sync user to members list when they sign in or confirm email
