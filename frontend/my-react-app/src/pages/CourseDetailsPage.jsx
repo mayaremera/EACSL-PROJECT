@@ -10,11 +10,13 @@ import ImagePlaceholder from '../components/ui/ImagePlaceholder';
 const CourseDetailPage = () => {
     const { courseId } = useParams();
     const navigate = useNavigate();
-    const { user, loading: authLoading } = useAuth();
+    const { user, loading: authLoading, isRefreshingToken } = useAuth();
     const [activeTab, setActiveTab] = useState('details');
     const [courseData, setCourseData] = useState(null);
     const redirectTimeoutRef = useRef(null);
     const lastUserCheckRef = useRef(null);
+    const courseRefreshIntervalRef = useRef(null);
+    const lastCourseFetchRef = useRef(0);
 
     // Helper function to convert YouTube watch URLs to embed URLs
     const convertToEmbedUrl = (url) => {
@@ -80,99 +82,118 @@ const CourseDetailPage = () => {
         // Initialize data and load course
         initializeData();
         
-        const loadCourse = async () => {
+        const loadCourse = async (forceRefresh = false) => {
+            // Throttle: Only fetch if enough time has passed (10 seconds) or if forcing refresh
+            const now = Date.now();
+            const timeSinceLastFetch = now - lastCourseFetchRef.current;
+            const minFetchInterval = 10000; // 10 seconds minimum between fetches
+            
+            if (!forceRefresh && timeSinceLastFetch < minFetchInterval) {
+                // Too soon - just use cache if we don't have data yet
+                const cachedCourses = coursesManager._getAllFromLocalStorage();
+                const course = cachedCourses.find(c => c.id === parseInt(courseId));
+                if (course) {
+                    setCourseDataFromCourse(course);
+                }
+                return;
+            }
+            
+            // Update last fetch time
+            lastCourseFetchRef.current = now;
+            
             // First, load from cache for immediate display
             const cachedCourses = coursesManager._getAllFromLocalStorage();
             let course = cachedCourses.find(c => c.id === parseInt(courseId));
             
             if (course) {
                 // Set course data immediately from cache
-                setCourseData({
-                    titleAr: course.titleAr || course.title,
-                    titleEn: course.title,
-                    category: course.category,
-                    categoryAr: course.categoryAr || course.category,
-                    level: course.level,
-                    lessons: course.lessons,
-                    duration: course.duration,
-                    students: course.students,
-                    enrolled: course.enrolled || course.students,
-                    lectures: course.lectures || course.lessons,
-                    skillLevel: course.skillLevel || course.level,
-                    language: course.language || "English",
-                    quiz: course.quiz || '',
-                    price: course.price,
-                    moneyBackGuarantee: course.moneyBackGuarantee || "30-Day Money-Back Guarantee",
-                    image: course.image,
-                    instructor: course.instructor,
-                    instructorImage: course.instructorImage,
-                    instructorTitle: course.instructorTitle || `Expert in ${course.category}`,
-                    instructorBio: course.instructorBio || `Experienced professional in ${course.category} with a passion for teaching and helping students succeed.`,
-                    descriptionShort: course.descriptionShort || course.description,
-                    description: course.description,
-                    curriculum: course.curriculum || generateDefaultCurriculum(course.lessons),
-                    learningOutcomes: course.learningOutcomes || generateDefaultLearningOutcomes(course),
-                    requirements: course.requirements || [
-                        "A computer with internet connection",
-                        "Basic understanding of the subject area",
-                        "Willingness to learn and practice regularly"
-                    ]
-                });
-            } else {
-                setCourseData(null);
+                setCourseDataFromCourse(course);
             }
             
-            // Then refresh from Supabase in the background
-            try {
-                const courses = await coursesManager.getAll();
-                const freshCourse = courses.find(c => c.id === parseInt(courseId));
-                if (freshCourse) {
-                    setCourseData({
-                        titleAr: freshCourse.titleAr || freshCourse.title,
-                        titleEn: freshCourse.title,
-                        category: freshCourse.category,
-                        categoryAr: freshCourse.categoryAr || freshCourse.category,
-                        level: freshCourse.level,
-                        lessons: freshCourse.lessons,
-                        duration: freshCourse.duration,
-                        students: freshCourse.students,
-                        enrolled: freshCourse.enrolled || freshCourse.students,
-                        lectures: freshCourse.lectures || freshCourse.lessons,
-                        skillLevel: freshCourse.skillLevel || freshCourse.level,
-                        language: freshCourse.language || "English",
-                        quiz: freshCourse.quiz || '',
-                        price: freshCourse.price,
-                        moneyBackGuarantee: freshCourse.moneyBackGuarantee || "30-Day Money-Back Guarantee",
-                        image: freshCourse.image,
-                        instructor: freshCourse.instructor,
-                        instructorImage: freshCourse.instructorImage,
-                        instructorTitle: freshCourse.instructorTitle || `Expert in ${freshCourse.category}`,
-                        instructorBio: freshCourse.instructorBio || `Experienced professional in ${freshCourse.category} with a passion for teaching and helping students succeed.`,
-                        descriptionShort: freshCourse.descriptionShort || freshCourse.description,
-                        description: freshCourse.description,
-                        curriculum: freshCourse.curriculum || generateDefaultCurriculum(freshCourse.lessons),
-                        learningOutcomes: freshCourse.learningOutcomes || generateDefaultLearningOutcomes(freshCourse),
-                        requirements: freshCourse.requirements || [
-                            "A computer with internet connection",
-                            "Basic understanding of the subject area",
-                            "Willingness to learn and practice regularly"
-                        ]
-                    });
-                } else {
-                    setCourseData(null);
+            // Then refresh from Supabase in the background (only if forcing refresh or enough time passed)
+            if (forceRefresh || timeSinceLastFetch >= minFetchInterval) {
+                try {
+                    const courses = await coursesManager.getAll({ forceRefresh: true });
+                    const freshCourse = courses.find(c => c.id === parseInt(courseId));
+                    if (freshCourse) {
+                        setCourseDataFromCourse(freshCourse);
+                    } else {
+                        // Course not found - only set to null if we don't have cached data
+                        if (!course) {
+                            setCourseData(null);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error refreshing course from Supabase:', error);
                 }
-            } catch (error) {
-                console.error('Error refreshing course from Supabase:', error);
             }
         };
 
-        loadCourse();
+        // Helper function to set course data
+        const setCourseDataFromCourse = (course) => {
+            setCourseData({
+                titleAr: course.titleAr || course.title,
+                titleEn: course.title,
+                category: course.category,
+                categoryAr: course.categoryAr || course.category,
+                level: course.level,
+                lessons: course.lessons,
+                duration: course.duration,
+                students: course.students,
+                enrolled: course.enrolled || course.students,
+                lectures: course.lectures || course.lessons,
+                skillLevel: course.skillLevel || course.level,
+                language: course.language || "English",
+                quiz: course.quiz || '',
+                price: course.price,
+                moneyBackGuarantee: course.moneyBackGuarantee || "30-Day Money-Back Guarantee",
+                image: course.image,
+                instructor: course.instructor,
+                instructorImage: course.instructorImage,
+                instructorTitle: course.instructorTitle || `Expert in ${course.category}`,
+                instructorBio: course.instructorBio || `Experienced professional in ${course.category} with a passion for teaching and helping students succeed.`,
+                descriptionShort: course.descriptionShort || course.description,
+                description: course.description,
+                curriculum: course.curriculum || generateDefaultCurriculum(course.lessons),
+                learningOutcomes: course.learningOutcomes || generateDefaultLearningOutcomes(course),
+                requirements: course.requirements || [
+                    "A computer with internet connection",
+                    "Basic understanding of the subject area",
+                    "Willingness to learn and practice regularly"
+                ]
+            });
+        };
 
-        // Listen for course updates from dashboard
-        window.addEventListener('coursesUpdated', loadCourse);
+        // Load immediately (with cache)
+        loadCourse(false);
+
+        // Set up periodic refresh every 10 seconds (same as Dashboard events)
+        courseRefreshIntervalRef.current = setInterval(() => {
+            console.log('🔄 Periodic course sync (10s interval)');
+            loadCourse(true).catch(err => {
+                console.error('Failed to sync course:', err);
+            });
+        }, 10000); // 10 seconds
+
+        // Throttled event listener for course updates (only update if enough time passed)
+        const handleCoursesUpdate = () => {
+            const now = Date.now();
+            const timeSinceLastFetch = now - lastCourseFetchRef.current;
+            if (timeSinceLastFetch >= 10000) {
+                loadCourse(true).catch(err => {
+                    console.error('Failed to load course on update:', err);
+                });
+            }
+        };
+
+        window.addEventListener('coursesUpdated', handleCoursesUpdate);
 
         return () => {
-            window.removeEventListener('coursesUpdated', loadCourse);
+            if (courseRefreshIntervalRef.current) {
+                clearInterval(courseRefreshIntervalRef.current);
+                courseRefreshIntervalRef.current = null;
+            }
+            window.removeEventListener('coursesUpdated', handleCoursesUpdate);
         };
     }, [courseId, generateDefaultCurriculum, generateDefaultLearningOutcomes]);
 
@@ -185,8 +206,8 @@ const CourseDetailPage = () => {
             redirectTimeoutRef.current = null;
         }
 
-        // If still loading, wait
-        if (authLoading) {
+        // If still loading or token is refreshing, wait - don't redirect during refresh
+        if (authLoading || isRefreshingToken) {
             return;
         }
 
@@ -196,17 +217,17 @@ const CourseDetailPage = () => {
             return;
         }
 
-        // User is null and not loading - check if this is a temporary state during token refresh
+        // User is null and not loading/refreshing - check if this is a temporary state
         const now = Date.now();
         const timeSinceLastCheck = lastUserCheckRef.current ? now - lastUserCheckRef.current : Infinity;
         
-        // If we had a user recently (within last 5 seconds), it might be a token refresh
+        // If we had a user recently (within last 10 seconds), it might be a token refresh
         // Wait a bit before redirecting to avoid interrupting token refresh
-        if (timeSinceLastCheck < 5000) {
-            // Wait 2 seconds before redirecting - gives token refresh time to complete
+        if (timeSinceLastCheck < 10000) {
+            // Wait 3 seconds before redirecting - gives token refresh more time to complete
             redirectTimeoutRef.current = setTimeout(() => {
-                // Check again after delay - if still no user, then redirect
-                if (!authLoading && !user) {
+                // Check again after delay - if still no user and not refreshing, then redirect
+                if (!authLoading && !isRefreshingToken && !user) {
                     navigate('/login', { 
                         replace: true,
                         state: { 
@@ -214,7 +235,7 @@ const CourseDetailPage = () => {
                         } 
                     });
                 }
-            }, 2000);
+            }, 3000);
         } else {
             // No recent user check - safe to redirect immediately
             navigate('/login', { 
@@ -231,7 +252,7 @@ const CourseDetailPage = () => {
                 clearTimeout(redirectTimeoutRef.current);
             }
         };
-    }, [user, authLoading, navigate, courseId]);
+    }, [user, authLoading, isRefreshingToken, navigate, courseId]);
 
     // Show loading state while checking auth or loading course
     if (authLoading) {

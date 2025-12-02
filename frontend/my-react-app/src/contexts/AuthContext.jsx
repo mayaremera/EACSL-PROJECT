@@ -17,8 +17,10 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isRefreshingToken, setIsRefreshingToken] = useState(false);
   const tokenRefreshAttemptsRef = useRef(0);
   const lastTokenRefreshErrorRef = useRef(null);
+  const tokenRefreshTimeoutRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
@@ -52,7 +54,34 @@ export const AuthProvider = ({ children }) => {
       }
       
       setSession(session);
-      setUser(session?.user ?? null);
+      // Only update user if we have a session - preserve user state during token refresh
+      if (session?.user) {
+        setUser(session.user);
+        // Clear refreshing flag if we have a valid session
+        if (mounted) {
+          setIsRefreshingToken(false);
+          if (tokenRefreshTimeoutRef.current) {
+            clearTimeout(tokenRefreshTimeoutRef.current);
+          }
+        }
+      } else if (!session && user) {
+        // Session is null but we have a user - might be token refresh, preserve user state
+        // Don't clear user - let token refresh complete
+        if (mounted) {
+          setIsRefreshingToken(true);
+          if (tokenRefreshTimeoutRef.current) {
+            clearTimeout(tokenRefreshTimeoutRef.current);
+          }
+          tokenRefreshTimeoutRef.current = setTimeout(() => {
+            if (mounted && !session) {
+              setIsRefreshingToken(false);
+            }
+          }, 5000);
+        }
+      } else if (!session) {
+        // No session and no user - truly logged out
+        setUser(null);
+      }
       
       // Sync user to members list if they exist
       if (session?.user) {
@@ -185,10 +214,14 @@ export const AuthProvider = ({ children }) => {
           tokenRefreshAttemptsRef.current = 0;
           lastTokenRefreshErrorRef.current = null;
         }
-        // Don't clear user if session is temporarily null during refresh
-        // The refresh should complete quickly
+        // Clear the refreshing flag after a short delay to allow components to react
         if (mounted) {
+          setIsRefreshingToken(false);
           setLoading(false);
+          // Clear any existing timeout
+          if (tokenRefreshTimeoutRef.current) {
+            clearTimeout(tokenRefreshTimeoutRef.current);
+          }
         }
         return; // CRITICAL: Don't run member sync on token refresh
       } else if (event === 'INITIAL_SESSION') {
@@ -208,11 +241,19 @@ export const AuthProvider = ({ children }) => {
         if (session) {
           setSession(session);
           setUser(session.user);
+          // Clear refreshing flag if we have a session
+          if (mounted) {
+            setIsRefreshingToken(false);
+            if (tokenRefreshTimeoutRef.current) {
+              clearTimeout(tokenRefreshTimeoutRef.current);
+            }
+          }
         } else if (event === 'SIGNED_IN') {
           // If SIGNED_IN event but no session, something went wrong
           // Don't clear user state though - keep existing state
           console.warn('SIGNED_IN event but no session provided');
-        }
+        // Note: We don't clear user state here even if session is null temporarily
+        // This prevents redirects during token refresh
       }
       
       // Sync user to members list when they sign in or confirm email
@@ -340,6 +381,9 @@ export const AuthProvider = ({ children }) => {
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      if (tokenRefreshTimeoutRef.current) {
+        clearTimeout(tokenRefreshTimeoutRef.current);
+      }
     };
   }, []);
 
@@ -612,6 +656,7 @@ export const AuthProvider = ({ children }) => {
     user,
     session,
     loading,
+    isRefreshingToken,
     signUp,
     signIn,
     signOut,
