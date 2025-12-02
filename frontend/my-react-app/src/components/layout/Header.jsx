@@ -209,7 +209,7 @@ const Header = () => {
     }
     setShowSearchDropdown(false);
     setSearchQuery('');
-    navigate(url, { replace: true });
+    navigate(url);
   };
 
   // Get category icon

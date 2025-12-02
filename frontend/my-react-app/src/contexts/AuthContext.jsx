@@ -484,10 +484,39 @@ export const AuthProvider = ({ children }) => {
 
   // Reset password
   const resetPassword = async (email) => {
-    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
-    });
-    return { data, error };
+    try {
+      // Use the current origin (localhost for dev, production URL for prod)
+      // This ensures the redirect goes to the correct environment
+      const redirectUrl = `${window.location.origin}/set-password`;
+      console.log('Sending password reset email to:', email);
+      console.log('Current origin:', window.location.origin);
+      console.log('Redirect URL:', redirectUrl);
+      console.log('IMPORTANT: Make sure this URL is added to Supabase Redirect URLs in Dashboard');
+      
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl,
+      });
+      
+      // Log the response
+      if (error) {
+        console.error('Supabase resetPasswordForEmail error:', error);
+        console.error('Error details:', JSON.stringify(error, null, 2));
+      } else {
+        console.log('Password reset email sent successfully');
+        console.log('Email will redirect to:', redirectUrl);
+        console.log('⚠️ If clicking the link opens the wrong URL, check Supabase Dashboard → Authentication → URL Configuration → Redirect URLs');
+      }
+      
+      return { data, error };
+    } catch (err) {
+      console.error('Exception in resetPassword:', err);
+      return { 
+        data: null, 
+        error: { 
+          message: err.message || 'Failed to send password reset email' 
+        } 
+      };
+    }
   };
 
   // Sync current user to members list (creates member record if doesn't exist)

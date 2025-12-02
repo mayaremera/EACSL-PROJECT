@@ -26,8 +26,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
     description: '',
     descriptionShort: '',
     language: 'English',
-    classTime: '4:00 PM - 6:00 PM',
-    startDate: 'Monday-Friday',
+    quiz: '',
     learningOutcomes: [],
     curriculum: []
   });
@@ -75,7 +74,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
         lectures: course.lectures || course.lessons || 0,
         students: course.students || 0,
         enrolled: course.enrolled || course.students || 0,
-        price: course.price || '',
+        price: (course.price && course.price !== '0' && String(course.price).trim() !== '') ? course.price : '',
         moneyBackGuarantee: course.moneyBackGuarantee || '30-Day Money-Back Guarantee',
         image: course.image || '',
         instructor: course.instructor || '',
@@ -85,8 +84,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
         description: course.description || '',
         descriptionShort: course.descriptionShort || course.description || '',
         language: course.language || 'English',
-        classTime: course.classTime || '4:00 PM - 6:00 PM',
-        startDate: course.startDate || 'Monday-Friday',
+        quiz: course.quiz || '',
         learningOutcomes: learningOutcomes,
         curriculum: curriculum
       });
@@ -144,6 +142,33 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
     });
   };
 
+  // Helper function to convert YouTube watch URLs to embed URLs
+  const convertToEmbedUrl = (url) => {
+    if (!url) return '';
+    
+    // If already an embed URL, return as is
+    if (url.includes('youtube.com/embed/')) {
+      return url;
+    }
+    
+    // Extract video ID from different YouTube URL formats
+    let videoId = '';
+    
+    // Format: https://www.youtube.com/watch?v=VIDEO_ID
+    const watchMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+    if (watchMatch) {
+      videoId = watchMatch[1];
+    }
+    
+    // If we found a video ID, convert to embed URL
+    if (videoId) {
+      return `https://www.youtube.com/embed/${videoId}`;
+    }
+    
+    // If no match, return original URL (might be a direct video URL)
+    return url;
+  };
+
   const handleCurriculumLessonChange = (sectionIndex, lessonIndex, field, value) => {
     setFormData(prev => {
       const newCurriculum = [...(prev.curriculum || [])];
@@ -151,8 +176,14 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
         newCurriculum[sectionIndex] = { title: '', lessons: [] };
       }
       if (!newCurriculum[sectionIndex].lessons[lessonIndex]) {
-        newCurriculum[sectionIndex].lessons[lessonIndex] = { name: '', duration: '', type: 'video' };
+        newCurriculum[sectionIndex].lessons[lessonIndex] = { name: '', duration: '', type: 'video', videoUrl: '', pdfUrl: '', quizUrl: '' };
       }
+      
+      // Auto-convert YouTube URLs to embed format when videoUrl is changed
+      if (field === 'videoUrl' && value && value.includes('youtube.com')) {
+        value = convertToEmbedUrl(value);
+      }
+      
       newCurriculum[sectionIndex].lessons[lessonIndex][field] = value;
       return { ...prev, curriculum: newCurriculum };
     });
@@ -181,7 +212,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
       }
       newCurriculum[sectionIndex].lessons = [
         ...(newCurriculum[sectionIndex].lessons || []),
-        { name: '', duration: '', type: 'video' }
+        { name: '', duration: '', type: 'video', videoUrl: '', pdfUrl: '', quizUrl: '' }
       ];
       return { ...prev, curriculum: newCurriculum };
     });
@@ -315,9 +346,15 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
         console.warn('⚠️ Instructor image is a data URL. Consider uploading to storage.');
       }
 
+      // Clean price: if it's '0', empty, or just whitespace, set it to empty string
+      const cleanedPrice = formData.price && formData.price !== '0' && String(formData.price).trim() !== '' 
+        ? String(formData.price).trim() 
+        : '';
+
       // Prepare data to save with storage URLs and paths
       const dataToSave = {
         ...formData,
+        price: cleanedPrice,
         image: imageUrl,
         image_url: imageUrl,
         image_path: imagePath,
@@ -330,6 +367,8 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
     } catch (error) {
       console.error('Error submitting course form:', error);
       alert(`Failed to save course: ${error.message || 'Unknown error'}`);
+      // Re-throw so Dashboard can handle it
+      throw error;
     } finally {
       setIsLoading(false);
     }
@@ -453,17 +492,28 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
             {/* Price */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Price *
+                Price
               </label>
-              <input
-                type="text"
-                name="price"
-                value={formData.price}
-                onChange={handleChange}
-                placeholder="e.g., 2,500 EGP"
-                required
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
-              />
+              <div className="relative">
+                <input
+                  type="text"
+                  name="price"
+                  value={formData.price}
+                  onChange={handleChange}
+                  placeholder="e.g., 2,500 EGP (leave empty to hide price)"
+                  className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
+                />
+                {formData.price && (
+                  <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, price: '' }))}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors p-1"
+                    title="Remove price"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Course Image Upload */}
@@ -808,32 +858,17 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                 />
               </div>
 
-              {/* Class Time */}
+              {/* Quizzes */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Class Time
+                  Quizzes
                 </label>
                 <input
                   type="text"
-                  name="classTime"
-                  value={formData.classTime}
+                  name="quiz"
+                  value={formData.quiz}
                   onChange={handleChange}
-                  placeholder="e.g., 4:00 PM - 6:00 PM"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
-                />
-              </div>
-
-              {/* Start Date */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Start Date / Class Day
-                </label>
-                <input
-                  type="text"
-                  name="startDate"
-                  value={formData.startDate}
-                  onChange={handleChange}
-                  placeholder="e.g., Monday-Friday"
+                  placeholder="e.g., Quiz 1, Quiz 2, etc."
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
                 />
               </div>
@@ -927,39 +962,93 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                      <div className="space-y-2 ml-4">
+                      <div className="space-y-4 ml-4">
                         {Array.isArray(section.lessons) && section.lessons.length > 0 && section.lessons.map((lesson, lessonIndex) => (
-                          <div key={lessonIndex} className="flex gap-2">
-                            <input
-                              type="text"
-                              value={lesson.name || ''}
-                              onChange={(e) => handleCurriculumLessonChange(sectionIndex, lessonIndex, 'name', e.target.value)}
-                              placeholder="Lesson name"
-                              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none bg-white text-sm"
-                            />
-                            <input
-                              type="text"
-                              value={lesson.duration || ''}
-                              onChange={(e) => handleCurriculumLessonChange(sectionIndex, lessonIndex, 'duration', e.target.value)}
-                              placeholder="Duration"
-                              className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none bg-white text-sm"
-                            />
-                            <select
-                              value={lesson.type || 'video'}
-                              onChange={(e) => handleCurriculumLessonChange(sectionIndex, lessonIndex, 'type', e.target.value)}
-                              className="w-32 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none bg-white text-sm"
-                            >
-                              <option value="video">Video</option>
-                              <option value="text">Text</option>
-                              <option value="quiz">Quiz</option>
-                            </select>
-                            <button
-                              type="button"
-                              onClick={() => removeCurriculumLesson(sectionIndex, lessonIndex)}
-                              className="px-2 py-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
+                          <div key={lessonIndex} className="border border-gray-300 rounded-lg p-4 bg-white">
+                            <div className="flex gap-2 mb-3">
+                              <input
+                                type="text"
+                                value={lesson.name || ''}
+                                onChange={(e) => handleCurriculumLessonChange(sectionIndex, lessonIndex, 'name', e.target.value)}
+                                placeholder="Lesson name"
+                                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm"
+                              />
+                              <input
+                                type="text"
+                                value={lesson.duration || ''}
+                                onChange={(e) => handleCurriculumLessonChange(sectionIndex, lessonIndex, 'duration', e.target.value)}
+                                placeholder="Duration"
+                                className="w-24 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm"
+                              />
+                              <select
+                                value={lesson.type || 'video'}
+                                onChange={(e) => handleCurriculumLessonChange(sectionIndex, lessonIndex, 'type', e.target.value)}
+                                className="w-36 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm"
+                              >
+                                <option value="video">Video</option>
+                                <option value="pdf">PDF</option>
+                                <option value="quiz_link">Quiz Link</option>
+                              </select>
+                              <button
+                                type="button"
+                                onClick={() => removeCurriculumLesson(sectionIndex, lessonIndex)}
+                                className="px-2 py-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                            
+                            {/* Video URL Input */}
+                            {lesson.type === 'video' && (
+                              <div className="mb-2">
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                  Video URL (YouTube embed URL or direct video URL)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={lesson.videoUrl || ''}
+                                  onChange={(e) => handleCurriculumLessonChange(sectionIndex, lessonIndex, 'videoUrl', e.target.value)}
+                                  placeholder="https://www.youtube.com/embed/... or https://..."
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">
+                                  Paste any YouTube URL (watch or embed) - it will be converted automatically. 
+                                  Example: https://www.youtube.com/watch?v=VIDEO_ID
+                                </p>
+                              </div>
+                            )}
+                            
+                            {/* PDF URL Input */}
+                            {lesson.type === 'pdf' && (
+                              <div className="mb-2">
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                  PDF URL or File Path
+                                </label>
+                                <input
+                                  type="text"
+                                  value={lesson.pdfUrl || ''}
+                                  onChange={(e) => handleCurriculumLessonChange(sectionIndex, lessonIndex, 'pdfUrl', e.target.value)}
+                                  placeholder="https://... or /path/to/file.pdf"
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm"
+                                />
+                              </div>
+                            )}
+                            
+                            {/* Quiz Link URL Input */}
+                            {lesson.type === 'quiz_link' && (
+                              <div className="mb-2">
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                  Quiz Link URL
+                                </label>
+                                <input
+                                  type="text"
+                                  value={lesson.quizUrl || ''}
+                                  onChange={(e) => handleCurriculumLessonChange(sectionIndex, lessonIndex, 'quizUrl', e.target.value)}
+                                  placeholder="https://..."
+                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm"
+                                />
+                              </div>
+                            )}
                           </div>
                         ))}
                         <button

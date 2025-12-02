@@ -203,7 +203,7 @@ const OnlineCoursesPage = () => {
                   >
                     <CourseCard
                       course={course}
-                      onClick={() => navigate(`/course-details/${course.id}`, { replace: location.pathname !== '/' })}
+                      onClick={() => navigate(`/course-details/${course.id}`)}
                     />
                   </div>
                 ))}
@@ -296,13 +296,15 @@ const OnlineCoursesPage = () => {
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-2xl font-bold text-[#5A9B8E]">{selectedCourse.price}</p>
+                  {selectedCourse.price && selectedCourse.price !== '0' && String(selectedCourse.price).trim() !== '' && (
+                    <p className="text-2xl font-bold text-[#5A9B8E] mb-2">{selectedCourse.price}</p>
+                  )}
                   <button 
                     onClick={() => {
                       setSelectedCourse(null);
-                      navigate(`/course-details/${selectedCourse.id}`, { replace: location.pathname !== '/' });
+                      navigate(`/course-details/${selectedCourse.id}`);
                     }}
-                    className="mt-2 bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white px-6 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
+                    className="bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white px-6 py-2 rounded-lg text-sm font-semibold transition-colors flex items-center gap-2"
                   >
                     View Details
                     <ArrowRight className="w-4 h-4" />

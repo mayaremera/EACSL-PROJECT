@@ -18,6 +18,7 @@ import { membersManager, initializeData } from '../utils/dataManager';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import ImagePlaceholder from '../components/ui/ImagePlaceholder';
+import { getDisplayRole } from '../utils/roleDisplay';
 
 function MemberProfile() {
     const { memberId } = useParams();
@@ -85,7 +86,7 @@ function MemberProfile() {
                     <h1 className="text-2xl font-bold text-gray-900 mb-4">Member Not Found</h1>
                     <p className="text-gray-600 mb-6">The member profile you're looking for doesn't exist.</p>
                     <button
-                        onClick={() => navigate('/active-members', { replace: true })}
+                        onClick={() => navigate('/members-overview')}
                         className="px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors"
                     >
                         Back to Members
@@ -97,7 +98,7 @@ function MemberProfile() {
 
     const profile = {
         name: member.name || '',
-        title: member.role || '',
+        title: getDisplayRole(member.role || '', member.displayRole || null),
         image: member.image || '',
         coverImage: "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?ixlib=rb-4.1.0&auto=format&fit=crop&q=60&w=1200",
         location: member.location || '',

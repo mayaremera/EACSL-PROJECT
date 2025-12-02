@@ -308,8 +308,7 @@ export const coursesService = {
       students: typeof supabaseCourse.students === 'number' ? supabaseCourse.students : (parseInt(supabaseCourse.students) || 0),
       enrolled: typeof supabaseCourse.enrolled === 'number' ? supabaseCourse.enrolled : (parseInt(supabaseCourse.enrolled) || 0),
       language: supabaseCourse.language || 'English',
-      classTime: supabaseCourse.class_time || supabaseCourse.classTime || '',
-      startDate: supabaseCourse.start_date || supabaseCourse.startDate || '',
+      quiz: supabaseCourse.quizzes || supabaseCourse.quiz || '',
       moneyBackGuarantee: supabaseCourse.money_back_guarantee || supabaseCourse.moneyBackGuarantee || '',
       learningOutcomes: Array.isArray(supabaseCourse.learning_outcomes) 
         ? supabaseCourse.learning_outcomes 
@@ -338,7 +337,7 @@ export const coursesService = {
       instructor_bio: localCourse.instructorBio || localCourse.instructor_bio || '',
       instructor_image: localCourse.instructor_image_url || localCourse.instructorImage || localCourse.instructor_image || '',
       instructor_image_path: localCourse.instructor_image_path || '',
-      price: localCourse.price || '',
+      price: localCourse.price && localCourse.price.trim() !== '' ? localCourse.price : '0',
       duration: localCourse.duration || '',
       level: localCourse.level || '',
       skill_level: localCourse.skillLevel || localCourse.skill_level || localCourse.level || '',
@@ -349,8 +348,7 @@ export const coursesService = {
       students: typeof localCourse.students === 'number' ? localCourse.students : (parseInt(localCourse.students) || 0),
       enrolled: typeof localCourse.enrolled === 'number' ? localCourse.enrolled : (parseInt(localCourse.enrolled) || 0),
       language: localCourse.language || 'English',
-      class_time: localCourse.classTime || localCourse.class_time || '',
-      start_date: localCourse.startDate || localCourse.start_date || '',
+      quizzes: localCourse.quiz || '',
       money_back_guarantee: localCourse.moneyBackGuarantee || localCourse.money_back_guarantee || '',
       learning_outcomes: Array.isArray(localCourse.learningOutcomes) 
         ? localCourse.learningOutcomes 

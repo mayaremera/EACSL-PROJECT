@@ -109,6 +109,8 @@ export const articlesService = {
         url: article.url || '',
         image_url: article.imageUrl || null,
         image_path: article.imagePath || null,
+        modal_image_url: article.modalImageUrl || null,
+        modal_image_path: article.modalImagePath || null,
       };
       
       // Only add Arabic fields if they exist in the table schema
@@ -173,6 +175,8 @@ export const articlesService = {
         url: article.url || '',
         image_url: article.imageUrl || null,
         image_path: article.imagePath || null,
+        modal_image_url: article.modalImageUrl || null,
+        modal_image_path: article.modalImagePath || null,
       };
       
       // Only add Arabic fields if they exist in the table schema
@@ -351,6 +355,15 @@ export const articlesService = {
         imageUrl = urlData.publicUrl;
       }
 
+      // Use modal_image_path if available, otherwise fall back to modal_image_url
+      let modalImageUrl = supabaseArticle.modal_image_url || '';
+      if (supabaseArticle.modal_image_path) {
+        const { data: urlData } = supabase.storage
+          .from('ArticlesBucket')
+          .getPublicUrl(supabaseArticle.modal_image_path);
+        modalImageUrl = urlData.publicUrl;
+      }
+
       return {
         id: supabaseArticle.id,
         titleEn: supabaseArticle.title_en || '',
@@ -361,6 +374,9 @@ export const articlesService = {
         image: imageUrl, // Combined: path URL or external URL
         imageUrl: supabaseArticle.image_url || '',
         imagePath: supabaseArticle.image_path || '',
+        modalImage: modalImageUrl, // Combined: path URL or external URL
+        modalImageUrl: supabaseArticle.modal_image_url || '',
+        modalImagePath: supabaseArticle.modal_image_path || '',
         excerptEn: supabaseArticle.excerpt_en || '',
         excerptAr: supabaseArticle.excerpt_ar || supabaseArticle.excerpt_en || '', // Fallback to English if Arabic doesn't exist
         url: supabaseArticle.url || '',
@@ -377,6 +393,8 @@ export const articlesService = {
   mapLocalToSupabase(localArticle) {
     // Handle backward compatibility: if 'image' exists but 'imageUrl' doesn't, use 'image'
     const imageUrl = localArticle.imageUrl || (localArticle.image && !localArticle.imagePath ? localArticle.image : null);
+    // Handle backward compatibility for modal image
+    const modalImageUrl = localArticle.modalImageUrl || (localArticle.modalImage && !localArticle.modalImagePath ? localArticle.modalImage : null);
     
     return {
       title_ar: localArticle.titleAr || localArticle.titleEn || '', // Use English as fallback if Arabic not provided
@@ -386,6 +404,8 @@ export const articlesService = {
       date: localArticle.date || new Date().toISOString().split('T')[0],
       image_url: imageUrl,
       image_path: localArticle.imagePath || null,
+      modal_image_url: modalImageUrl,
+      modal_image_path: localArticle.modalImagePath || null,
       excerpt_ar: localArticle.excerptAr || localArticle.excerptEn || '', // Use English as fallback if Arabic not provided
       excerpt_en: localArticle.excerptEn || '',
       url: localArticle.url || '',

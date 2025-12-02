@@ -8,6 +8,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
     name: '',
     role: 'Member',
+    displayRole: '', // Public-facing role (editable in dashboard)
     description: '',
     fullDescription: '',
     email: '',
@@ -62,9 +63,15 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         }
       }
       
+      // Determine displayRole: use member.displayRole if set, otherwise fall back to role
+      const initialDisplayRole = (member.displayRole && String(member.displayRole).trim() !== '') 
+        ? String(member.displayRole).trim() 
+        : (member.role || 'Member');
+      
       setFormData({
         name: member.name || '',
         role: member.role || 'Member',
+        displayRole: initialDisplayRole, // Public-facing role (defaults to role if not set)
         description: member.description || '',
         fullDescription: member.fullDescription || '',
         email: member.email || '',
@@ -79,15 +86,18 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         totalMoneySpent: member.totalMoneySpent || '0 EGP',
         coursesEnrolled: member.coursesEnrolled || 0,
         totalHoursLearned: member.totalHoursLearned || 0,
-        activeCourses: member.activeCourses || [],
-        completedCourses: member.completedCourses || []
+        // Ensure activeCourses and completedCourses are always arrays
+        activeCourses: Array.isArray(member.activeCourses) ? member.activeCourses : [],
+        completedCourses: Array.isArray(member.completedCourses) ? member.completedCourses : []
       });
       setEmailExistsError(null); // Reset error when editing existing member
     } else {
       // Reset to defaults when adding new member
+      // For new members, displayRole defaults to role
       setFormData({
         name: '',
         role: 'Member',
+        displayRole: 'Member', // Default to 'Member' for new members
         description: '',
         fullDescription: '',
         email: '',
@@ -145,8 +155,9 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
             totalMoneySpent: updatedMember.totalMoneySpent || '0 EGP',
             coursesEnrolled: updatedMember.coursesEnrolled || 0,
             totalHoursLearned: updatedMember.totalHoursLearned || 0,
-            activeCourses: updatedMember.activeCourses || [],
-            completedCourses: updatedMember.completedCourses || []
+            // Ensure activeCourses and completedCourses are always arrays
+            activeCourses: Array.isArray(updatedMember.activeCourses) ? updatedMember.activeCourses : [],
+            completedCourses: Array.isArray(updatedMember.completedCourses) ? updatedMember.completedCourses : []
           });
         }
       }
@@ -177,7 +188,12 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
     loadCourses();
   }, []);
 
-  const roles = ['Board Member', 'Vice President', 'Secretary General', 'Treasurer', 'Research Director', 'Member'];
+  // Roles available in the system (Admin is NOT in this list - it's set directly in Supabase)
+  // Admin role is for authentication only and should not be selectable in the dropdown
+  const roles = ['Member', 'Affiliated Member', 'Board Member', 'Honorary President', 'Founder'];
+  
+  // Display roles (what shows on the website)
+  const displayRoles = ['Member', 'Affiliated Member', 'Board Member', 'Honorary President', 'Founder'];
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -476,9 +492,12 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
       }
 
       // Ensure all fields are properly saved, especially isActive as boolean
+      // Note: role is read-only and comes from Supabase, but we preserve it
+      // displayRole is required and will default to role if not set
       const dataToSave = {
         name: formData.name || '',
-        role: formData.role || 'Member',
+        role: formData.role || 'Member', // Preserved from Supabase (read-only)
+        displayRole: formData.displayRole || formData.role || 'Member', // Public-facing role (required, falls back to role)
         description: formData.description || '',
         fullDescription: formData.fullDescription || '',
         email: formData.email || '',
@@ -493,8 +512,9 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         totalMoneySpent: formData.totalMoneySpent || '0 EGP',
         coursesEnrolled: formData.coursesEnrolled || 0,
         totalHoursLearned: formData.totalHoursLearned || 0,
-        activeCourses: formData.activeCourses || [],
-        completedCourses: formData.completedCourses || [],
+        // Ensure activeCourses and completedCourses are always arrays when saving
+        activeCourses: Array.isArray(formData.activeCourses) ? formData.activeCourses : [],
+        completedCourses: Array.isArray(formData.completedCourses) ? formData.completedCourses : [],
         createAuthAccount: !member && createAuthAccount // Only for new members
       };
       
@@ -541,19 +561,46 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
             {/* Role */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Role *
+                Role <span className="text-xs text-gray-500 font-normal">(Read-only - set in Supabase)</span>
               </label>
               <select
                 name="role"
                 value={formData.role ?? 'Member'}
                 onChange={handleChange}
-                required
-                className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
+                disabled
+                className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed outline-none text-sm md:text-base"
               >
                 {roles.map(role => (
                   <option key={role} value={role}>{role}</option>
                 ))}
+                {formData.role && !roles.includes(formData.role) && (
+                  <option value={formData.role}>{formData.role}</option>
+                )}
               </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Role is managed in Supabase. Use Display Role to control what shows on the website.
+              </p>
+            </div>
+
+            {/* Display Role */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Display Role * <span className="text-xs text-gray-500 font-normal">(Shown on website)</span>
+              </label>
+              <select
+                name="displayRole"
+                value={formData.displayRole || formData.role || 'Member'}
+                onChange={handleChange}
+                required
+                className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
+              >
+                {displayRoles.map(role => (
+                  <option key={role} value={role}>{role}</option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                This is what visitors see on the website. Required field.
+              </p>
             </div>
 
             {/* Email */}
@@ -879,22 +926,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               <h3 className="text-xl font-bold text-gray-900">Continuing Education</h3>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mb-4 md:mb-6">
-              {/* Money Spent */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Money Spent
-                </label>
-                <input
-                  type="text"
-                  name="totalMoneySpent"
-                  value={formData.totalMoneySpent ?? '0 EGP'}
-                  onChange={handleChange}
-                  placeholder="0 EGP"
-                  className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
-                />
-              </div>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6">
               {/* Courses Enrolled */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -969,7 +1001,10 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">{course.title}</p>
-                        <p className="text-xs text-gray-600 truncate">{course.category} • {course.level}</p>
+                        <p className="text-xs text-gray-600 truncate">
+                          {course.category} • {course.level}
+                          {course.price && course.price !== '0' && String(course.price).trim() !== '' && ` • ${course.price}`}
+                        </p>
                       </div>
                     </div>
                     <button
@@ -1033,7 +1068,10 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                       )}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 truncate">{course.title}</p>
-                        <p className="text-xs text-gray-600 truncate">{course.category} • {course.level}</p>
+                        <p className="text-xs text-gray-600 truncate">
+                          {course.category} • {course.level}
+                          {course.price && course.price !== '0' && String(course.price).trim() !== '' && ` • ${course.price}`}
+                        </p>
                       </div>
                     </div>
                     <button

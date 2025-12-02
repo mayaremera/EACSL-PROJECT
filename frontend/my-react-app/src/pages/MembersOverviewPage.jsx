@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Users, ChevronLeft, ChevronRight } from 'lucide-react';
-import { filterMembers } from '../data/members';
+import { Search, Users, ChevronLeft, ChevronRight, MapPin, Briefcase } from 'lucide-react';
+import { filterMembers, getLocations, getSpecialties } from '../data/members';
 import { membersManager } from '../utils/dataManager';
 import MemberCard from '../components/cards/MemberCard';
 import PageHero from '../components/ui/PageHero';
@@ -8,6 +8,8 @@ import Breadcrumbs from '../components/ui/Breadcrumbs';
 
 function MembersOverviewPage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [locationFilter, setLocationFilter] = useState('all');
+  const [specialtyFilter, setSpecialtyFilter] = useState('all');
   const [members, setMembers] = useState([]);
   const scrollContainerRef = useRef(null);
 
@@ -48,9 +50,15 @@ function MembersOverviewPage() {
     };
   }, []);
 
+  // Get available locations and specialties from current members
+  const availableLocations = getLocations(members);
+  const availableSpecialties = getSpecialties();
+
   // Filter members using helper function
   const filteredMembers = filterMembers({
-    searchTerm: searchTerm
+    searchTerm: searchTerm,
+    location: locationFilter,
+    specialty: specialtyFilter
   }, members);
 
   // Scroll functions for mobile slider
@@ -90,11 +98,59 @@ function MembersOverviewPage() {
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
-                  placeholder="Search members by name, role... | ابحث عن الأعضاء بالاسم أو الدور..."
+                  placeholder="Search members by name, role, location... | ابحث عن الأعضاء بالاسم أو الدور أو الموقع..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm"
                 />
+              </div>
+            </div>
+            
+            {/* Location Filter */}
+            {availableLocations.length > 1 && (
+              <div className="md:w-64">
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <select
+                    value={locationFilter}
+                    onChange={(e) => setLocationFilter(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm appearance-none bg-white cursor-pointer"
+                  >
+                    {availableLocations.map((location) => (
+                      <option key={location.value} value={location.value}>
+                        {location.label}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Specialty Filter */}
+            <div className="md:w-64">
+              <div className="relative">
+                <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <select
+                  value={specialtyFilter}
+                  onChange={(e) => setSpecialtyFilter(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm appearance-none bg-white cursor-pointer"
+                >
+                  {availableSpecialties.map((specialty) => (
+                    <option key={specialty.value} value={specialty.value}>
+                      {specialty.label}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                  <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
             </div>
           </div>
@@ -102,6 +158,17 @@ function MembersOverviewPage() {
           {/* Results count */}
           <div className="mt-4 text-sm text-gray-600">
             Showing {filteredMembers.length} of {members.length} members
+            {(locationFilter !== 'all' || specialtyFilter !== 'all') && (
+              <span className="ml-2 text-[#5A9B8E] font-medium">
+                • Filters: 
+                {locationFilter !== 'all' && (
+                  <span> {availableLocations.find(l => l.value === locationFilter)?.label || locationFilter}</span>
+                )}
+                {specialtyFilter !== 'all' && (
+                  <span>{locationFilter !== 'all' ? ', ' : ' '}{availableSpecialties.find(s => s.value === specialtyFilter)?.label || specialtyFilter}</span>
+                )}
+              </span>
+            )}
           </div>
         </div>
 
@@ -138,19 +205,19 @@ function MembersOverviewPage() {
                 {filteredMembers.map((member) => (
                   <div
                     key={member.id}
-                    className="member-card flex-shrink-0 w-[85vw] max-w-[320px]"
+                    className="member-card flex-shrink-0 w-[75vw] max-w-[280px]"
                     style={{ scrollSnapAlign: 'start' }}
                   >
-                    <MemberCard {...member} />
+                    <MemberCard {...member} compact={true} />
                   </div>
                 ))}
               </div>
             </div>
 
             {/* Tablet & Desktop Grid - Hidden on mobile */}
-            <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
               {filteredMembers.map((member) => (
-                <MemberCard key={member.id} {...member} />
+                <MemberCard key={member.id} {...member} compact={true} />
               ))}
             </div>
           </>

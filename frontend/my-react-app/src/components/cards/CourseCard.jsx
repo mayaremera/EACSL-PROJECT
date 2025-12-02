@@ -103,7 +103,9 @@ const CourseCard = ({
             />
             <span className="text-xs font-semibold text-gray-900">{course.instructor}</span>
           </div>
-          <span className="text-sm font-bold text-[#5A9B8E]">{course.price}</span>
+          {course.price && course.price !== '0' && String(course.price).trim() !== '' && (
+            <span className="text-sm font-bold text-[#5A9B8E]">{course.price}</span>
+          )}
         </div>
       </div>
     </div>

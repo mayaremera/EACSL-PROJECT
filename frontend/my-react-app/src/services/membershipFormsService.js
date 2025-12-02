@@ -306,6 +306,7 @@ export const membershipFormsService = {
       specialty: Array.isArray(localForm.specialty)
         ? localForm.specialty
         : [],
+      location: localForm.location || "",
       previous_work: localForm.previousWork || "",
       status: localForm.status || "pending",
       
@@ -344,6 +345,7 @@ export const membershipFormsService = {
       specialty: Array.isArray(supabaseForm.specialty)
         ? supabaseForm.specialty
         : [],
+      location: supabaseForm.location || "",
       previousWork: supabaseForm.previous_work || "",
       status: supabaseForm.status || "pending",
       

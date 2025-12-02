@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { BookOpen, Clock, Users, Calendar, Award, CheckCircle, PlayCircle, FileText, Globe, Video } from 'lucide-react';
+import { BookOpen, Clock, Users, Calendar, Award, CheckCircle, PlayCircle, FileText, Globe, Video, ExternalLink, Download } from 'lucide-react';
 import { coursesManager, initializeData } from '../utils/dataManager';
+import { useAuth } from '../contexts/AuthContext';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import ImagePlaceholder from '../components/ui/ImagePlaceholder';
@@ -9,8 +10,36 @@ import ImagePlaceholder from '../components/ui/ImagePlaceholder';
 const CourseDetailPage = () => {
     const { courseId } = useParams();
     const navigate = useNavigate();
+    const { user, loading: authLoading } = useAuth();
     const [activeTab, setActiveTab] = useState('details');
     const [courseData, setCourseData] = useState(null);
+
+    // Helper function to convert YouTube watch URLs to embed URLs
+    const convertToEmbedUrl = (url) => {
+        if (!url) return '';
+        
+        // If already an embed URL, return as is
+        if (url.includes('youtube.com/embed/')) {
+            return url;
+        }
+        
+        // Extract video ID from different YouTube URL formats
+        let videoId = '';
+        
+        // Format: https://www.youtube.com/watch?v=VIDEO_ID
+        const watchMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+        if (watchMatch) {
+            videoId = watchMatch[1];
+        }
+        
+        // If we found a video ID, convert to embed URL
+        if (videoId) {
+            return `https://www.youtube.com/embed/${videoId}`;
+        }
+        
+        // If no match, return original URL (might be a direct video URL)
+        return url;
+    };
 
     // Helper function to generate default curriculum
     const generateDefaultCurriculum = useCallback((lessonCount) => {
@@ -23,7 +52,10 @@ const CourseDetailPage = () => {
                 lessons: Array.from({ length: lessonsInSection }, (_, j) => ({
                     name: `Lesson ${i * 5 + j + 1}`,
                     duration: "15:00",
-                    type: "video"
+                    type: "video",
+                    videoUrl: "",
+                    pdfUrl: "",
+                    quizUrl: ""
                 }))
             });
         }
@@ -66,8 +98,7 @@ const CourseDetailPage = () => {
                     lectures: course.lectures || course.lessons,
                     skillLevel: course.skillLevel || course.level,
                     language: course.language || "English",
-                    classTime: course.classTime || "4:00 PM - 6:00 PM",
-                    startDate: course.startDate || "Monday-Friday",
+                    quiz: course.quiz || '',
                     price: course.price,
                     moneyBackGuarantee: course.moneyBackGuarantee || "30-Day Money-Back Guarantee",
                     image: course.image,
@@ -107,8 +138,7 @@ const CourseDetailPage = () => {
                         lectures: freshCourse.lectures || freshCourse.lessons,
                         skillLevel: freshCourse.skillLevel || freshCourse.level,
                         language: freshCourse.language || "English",
-                        classTime: freshCourse.classTime || "4:00 PM - 6:00 PM",
-                        startDate: freshCourse.startDate || "Monday-Friday",
+                        quiz: freshCourse.quiz || '',
                         price: freshCourse.price,
                         moneyBackGuarantee: freshCourse.moneyBackGuarantee || "30-Day Money-Back Guarantee",
                         image: freshCourse.image,
@@ -144,6 +174,36 @@ const CourseDetailPage = () => {
         };
     }, [courseId, generateDefaultCurriculum, generateDefaultLearningOutcomes]);
 
+    // Check authentication - redirect to login if not signed in
+    useEffect(() => {
+        if (!authLoading && !user) {
+            // Redirect to login page with the course details URL to return to after login
+            navigate('/login', { 
+                replace: true,
+                state: { 
+                    redirectTo: `/course-details/${courseId}` 
+                } 
+            });
+        }
+    }, [user, authLoading, navigate, courseId]);
+
+    // Show loading state while checking auth or loading course
+    if (authLoading) {
+        return (
+            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+                <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5A9B8E] mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading...</p>
+                </div>
+            </div>
+        );
+    }
+
+    // If not authenticated, don't render (redirect will happen)
+    if (!user) {
+        return null;
+    }
+
     // Show loading or not found state
     if (!courseData) {
         return (
@@ -152,7 +212,7 @@ const CourseDetailPage = () => {
                         <h2 className="text-2xl font-bold text-gray-900 mb-2">Course Not Found</h2>
                     <p className="text-gray-600 mb-4">The course you're looking for doesn't exist.</p>
                     <button
-                        onClick={() => navigate('/online-courses', { replace: true })}
+                        onClick={() => navigate('/online-courses')}
                         className="bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white px-6 py-2 rounded-lg font-semibold transition-colors"
                     >
                         Back to Courses
@@ -207,29 +267,105 @@ const CourseDetailPage = () => {
 
             case 'curriculum':
                 return (
-                    <div className="space-y-4">
+                    <div className="space-y-6">
                         <h3 className="text-xl font-bold text-gray-900 mb-4">Course Curriculum</h3>
                         {courseData.curriculum && courseData.curriculum.map((section, sectionIndex) => (
-                            <div key={sectionIndex} className="border border-gray-200 rounded-lg overflow-hidden">
-                                <div className="bg-gray-50 px-5 py-4">
-                                    <h4 className="font-semibold text-gray-900">{section.title}</h4>
+                            <div key={sectionIndex} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                                <div className="bg-gradient-to-r from-[#5A9B8E] to-[#4A8B7E] px-5 py-4">
+                                    <h4 className="font-semibold text-white text-lg">{section.title}</h4>
                                 </div>
                                 {section.lessons && section.lessons.length > 0 && (
-                                    <div className="px-5 py-4 space-y-3">
+                                    <div className="px-5 py-4 space-y-4">
                                         {section.lessons.map((lesson, lessonIndex) => (
-                                            <div key={lessonIndex} className="flex items-center gap-3 py-2 border-b border-gray-100 last:border-b-0">
-                                                {lesson.type === 'video' && <Video className="w-5 h-5 text-[#5A9B8E] flex-shrink-0" />}
-                                                {lesson.type === 'text' && <FileText className="w-5 h-5 text-[#5A9B8E] flex-shrink-0" />}
-                                                {lesson.type === 'quiz' && <Award className="w-5 h-5 text-[#5A9B8E] flex-shrink-0" />}
-                                                <div className="flex-1">
-                                                    <p className="text-gray-900 font-medium">{lesson.name}</p>
-                                                    {lesson.duration && (
-                                                        <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                                                            <Clock className="w-3 h-3" />
-                                                            {lesson.duration}
-                                                        </p>
-                                                    )}
+                                            <div key={lessonIndex} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                                {/* Lesson Header */}
+                                                <div className="flex items-start gap-3 mb-3">
+                                                    {lesson.type === 'video' && <Video className="w-5 h-5 text-[#5A9B8E] flex-shrink-0 mt-0.5" />}
+                                                    {lesson.type === 'pdf' && <FileText className="w-5 h-5 text-[#5A9B8E] flex-shrink-0 mt-0.5" />}
+                                                    {lesson.type === 'quiz_link' && <Award className="w-5 h-5 text-[#5A9B8E] flex-shrink-0 mt-0.5" />}
+                                                    <div className="flex-1">
+                                                        <p className="text-gray-900 font-semibold text-base">{lesson.name}</p>
+                                                        {lesson.duration && (
+                                                            <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                                                                <Clock className="w-3 h-3" />
+                                                                {lesson.duration}
+                                                            </p>
+                                                        )}
+                                                    </div>
                                                 </div>
+                                                
+                                                {/* Video Player */}
+                                                {lesson.type === 'video' && lesson.videoUrl && (
+                                                    <div className="mt-3">
+                                                        <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+                                                            <iframe
+                                                                src={convertToEmbedUrl(lesson.videoUrl)}
+                                                                className="absolute top-0 left-0 w-full h-full rounded-lg"
+                                                                frameBorder="0"
+                                                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                                                allowFullScreen
+                                                                title={lesson.name}
+                                                            ></iframe>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* PDF Viewer/Download */}
+                                                {lesson.type === 'pdf' && lesson.pdfUrl && (
+                                                    <div className="mt-3">
+                                                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                                                            <div className="flex items-center justify-between">
+                                                                <div className="flex items-center gap-2">
+                                                                    <FileText className="w-5 h-5 text-[#5A9B8E]" />
+                                                                    <span className="text-sm text-gray-700">PDF Document</span>
+                                                                </div>
+                                                                <a
+                                                                    href={lesson.pdfUrl}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="flex items-center gap-2 px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors text-sm font-semibold"
+                                                                >
+                                                                    <Download className="w-4 h-4" />
+                                                                    View PDF
+                                                                </a>
+                                                            </div>
+                                                            {lesson.pdfUrl.startsWith('http') && (
+                                                                <div className="mt-3" style={{ height: '300px' }}>
+                                                                    <iframe
+                                                                        src={lesson.pdfUrl}
+                                                                        className="w-full h-full rounded-lg border border-gray-300"
+                                                                        title={lesson.name}
+                                                                    ></iframe>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Quiz Link */}
+                                                {lesson.type === 'quiz_link' && lesson.quizUrl && (
+                                                    <div className="mt-3">
+                                                        <a
+                                                            href={lesson.quizUrl}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-[#5A9B8E] to-[#4A8B7E] text-white rounded-lg hover:from-[#4A8B7E] hover:to-[#3A7B6E] transition-all shadow-md hover:shadow-lg font-semibold"
+                                                        >
+                                                            <Award className="w-5 h-5" />
+                                                            Take Quiz
+                                                            <ExternalLink className="w-4 h-4" />
+                                                        </a>
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Show message if content URL is missing */}
+                                                {((lesson.type === 'video' && !lesson.videoUrl) || 
+                                                  (lesson.type === 'pdf' && !lesson.pdfUrl) || 
+                                                  (lesson.type === 'quiz_link' && !lesson.quizUrl)) && (
+                                                    <div className="mt-3 text-sm text-gray-500 italic">
+                                                        Content URL not provided
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -354,10 +490,14 @@ const CourseDetailPage = () => {
                             </div>
 
                             {/* Price */}
-                            <div className="text-center mb-6">
-                                <div className="text-3xl font-bold text-[#5A9B8E] mb-2">{courseData.price}</div>
-                                <p className="text-sm text-gray-600">{courseData.moneyBackGuarantee}</p>
-                            </div>
+                            {courseData.price && courseData.price !== '0' && String(courseData.price).trim() !== '' && (
+                                <div className="text-center mb-6">
+                                    <div className="text-3xl font-bold text-[#5A9B8E] mb-2">{courseData.price}</div>
+                                    {courseData.moneyBackGuarantee && (
+                                        <p className="text-sm text-gray-600">{courseData.moneyBackGuarantee}</p>
+                                    )}
+                                </div>
+                            )}
 
                             {/* Buy Button */}
                             <button className="w-full bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white py-3 rounded-lg font-semibold transition-colors mb-6">
@@ -366,10 +506,6 @@ const CourseDetailPage = () => {
 
                             {/* Course Info */}
                             <div className="space-y-4 mb-6">
-                                <div className="flex items-center justify-between py-3 border-b border-gray-200">
-                                    <span className="text-gray-600">Start Date</span>
-                                    <span className="font-semibold text-gray-900">{courseData.startDate}</span>
-                                </div>
                                 <div className="flex items-center justify-between py-3 border-b border-gray-200">
                                     <span className="text-gray-600">Enrolled</span>
                                     <span className="font-semibold text-gray-900">{courseData.enrolled}</span>
@@ -383,16 +519,12 @@ const CourseDetailPage = () => {
                                     <span className="font-semibold text-gray-900">{courseData.skillLevel}</span>
                                 </div>
                                 <div className="flex items-center justify-between py-3 border-b border-gray-200">
-                                    <span className="text-gray-600">Class/Name Day</span>
-                                    <span className="font-semibold text-gray-900">{courseData.startDate}</span>
-                                </div>
-                                <div className="flex items-center justify-between py-3 border-b border-gray-200">
                                     <span className="text-gray-600">Language</span>
                                     <span className="font-semibold text-gray-900">{courseData.language}</span>
                                 </div>
-                                <div className="flex items-center justify-between py-3">
-                                    <span className="text-gray-600">{courseData.classTime}</span>
-                                    <span className="font-semibold text-gray-900">{courseData.classTime}</span>
+                                <div className="flex items-center justify-between py-3 border-b border-gray-200">
+                                    <span className="text-gray-600">Quizzes</span>
+                                    <span className="font-semibold text-gray-900">{courseData.quiz}</span>
                                 </div>
                             </div>
                         </div>

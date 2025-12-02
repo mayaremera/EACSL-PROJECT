@@ -10,12 +10,18 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
     image: '',
     imageUrl: '',
     imagePath: '',
+    modalImage: '',
+    modalImageUrl: '',
+    modalImagePath: '',
     excerptEn: '',
     url: ''
   });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [modalImageFile, setModalImageFile] = useState(null);
+  const [modalImagePreview, setModalImagePreview] = useState(null);
   const [dragActive, setDragActive] = useState(false);
+  const [modalDragActive, setModalDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
@@ -28,6 +34,9 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
         image: article.image || '',
         imageUrl: article.imageUrl || article.image || '',
         imagePath: article.imagePath || '',
+        modalImage: article.modalImage || '',
+        modalImageUrl: article.modalImageUrl || article.modalImage || '',
+        modalImagePath: article.modalImagePath || '',
         excerptEn: article.excerptEn || '',
         url: article.url || ''
       };
@@ -44,6 +53,17 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
         console.log('📝 ArticleEditForm - No image found for preview');
         setImagePreview(null);
       }
+      
+      // Set modal image preview
+      const previewModalImage = article.modalImageUrl || article.modalImage || (article.modalImagePath ? 
+        `https://jwhvfugznhwtpfurdkxm.supabase.co/storage/v1/object/public/ArticlesBucket/${article.modalImagePath}` : null);
+      if (previewModalImage) {
+        console.log('📝 ArticleEditForm - Setting modal image preview:', previewModalImage);
+        setModalImagePreview(previewModalImage);
+      } else {
+        console.log('📝 ArticleEditForm - No modal image found for preview');
+        setModalImagePreview(null);
+      }
     } else {
       console.log('📝 ArticleEditForm - No article provided (adding new)');
       // Reset form when no article (adding new)
@@ -54,10 +74,14 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
         image: '',
         imageUrl: '',
         imagePath: '',
+        modalImage: '',
+        modalImageUrl: '',
+        modalImagePath: '',
         excerptEn: '',
         url: ''
       });
       setImagePreview(null);
+      setModalImagePreview(null);
     }
   }, [article]);
 
@@ -151,6 +175,70 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
     }));
   };
 
+  const handleModalFileChange = (file) => {
+    if (file) {
+      // Check if it's an image file
+      const isValidImage = file.type.startsWith('image/') || 
+                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(file.name);
+      
+      if (isValidImage) {
+        // Clean up old preview URL if it exists
+        if (modalImagePreview && modalImagePreview.startsWith('blob:')) {
+          URL.revokeObjectURL(modalImagePreview);
+        }
+        
+        // Create preview URL for the uploaded file
+        const previewUrl = URL.createObjectURL(file);
+        setModalImagePreview(previewUrl);
+        setModalImageFile(file);
+      } else {
+        alert('Please upload only image files (JPG, PNG, GIF, etc.)');
+      }
+    }
+  };
+
+  const handleModalDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setModalDragActive(true);
+    } else if (e.type === "dragleave") {
+      setModalDragActive(false);
+    }
+  };
+
+  const handleModalDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setModalDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      handleModalFileChange(file);
+    }
+  };
+
+  const handleModalFileInput = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleModalFileChange(e.target.files[0]);
+    }
+  };
+
+  const removeModalImage = () => {
+    // Clean up preview URL
+    if (modalImagePreview && modalImagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(modalImagePreview);
+    }
+    setModalImagePreview(null);
+    setModalImageFile(null);
+    setFormData(prev => ({
+      ...prev,
+      modalImage: '',
+      modalImageUrl: '',
+      modalImagePath: ''
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsUploading(true);
@@ -158,6 +246,8 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
     try {
       let finalImageUrl = formData.imageUrl;
       let finalImagePath = formData.imagePath;
+      let finalModalImageUrl = formData.modalImageUrl;
+      let finalModalImagePath = formData.modalImagePath;
 
       // If a new file was uploaded, upload it to ArticlesBucket
       if (imageFile) {
@@ -172,9 +262,25 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
         }
       }
 
-      // Clean up preview URL if it was a blob
+      // If a new modal image file was uploaded, upload it to ArticlesBucket
+      if (modalImageFile) {
+        const uploadResult = await articlesService.uploadImage(modalImageFile, `modal-${modalImageFile.name}`);
+        if (uploadResult.data && !uploadResult.error) {
+          finalModalImagePath = uploadResult.data.path;
+          finalModalImageUrl = uploadResult.data.url;
+        } else {
+          alert('Failed to upload modal image. Please try again.');
+          setIsUploading(false);
+          return;
+        }
+      }
+
+      // Clean up preview URLs if they were blobs
       if (imagePreview && imagePreview.startsWith('blob:')) {
         URL.revokeObjectURL(imagePreview);
+      }
+      if (modalImagePreview && modalImagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(modalImagePreview);
       }
 
       // Prepare data to save
@@ -182,7 +288,10 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
         ...formData,
         image: finalImageUrl || finalImagePath || formData.image, // For backward compatibility
         imageUrl: finalImageUrl,
-        imagePath: finalImagePath
+        imagePath: finalImagePath,
+        modalImage: finalModalImageUrl || finalModalImagePath || formData.modalImage, // For backward compatibility
+        modalImageUrl: finalModalImageUrl,
+        modalImagePath: finalModalImagePath
       };
 
       console.log('💾 ArticleEditForm - Saving article data:', dataToSave);
@@ -340,6 +449,89 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
                 }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm"
                 placeholder="https://example.com/image.jpg"
+              />
+            </div>
+          </div>
+
+          {/* Modal Image Upload - Drag and Drop */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Modal Image (for article modal display)
+            </label>
+            <p className="text-xs text-gray-500 mb-2">
+              Optional: A separate image that will be displayed in the article modal. If not provided, the main article image will be used.
+            </p>
+            
+            {/* Drag and Drop Area */}
+            <div
+              className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                modalDragActive
+                  ? 'border-[#5A9B8E] bg-[#5A9B8E]/5'
+                  : 'border-gray-300 hover:border-gray-400'
+              }`}
+              onDragEnter={handleModalDrag}
+              onDragLeave={handleModalDrag}
+              onDragOver={handleModalDrag}
+              onDrop={handleModalDrop}
+            >
+              {modalImagePreview ? (
+                <div className="relative">
+                  <img
+                    src={modalImagePreview}
+                    alt="Modal Preview"
+                    className="w-full h-48 object-cover rounded-lg border border-gray-200"
+                  />
+                  <button
+                    type="button"
+                    onClick={removeModalImage}
+                    className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                  <p className="text-sm text-gray-600 mb-2">
+                    Drag and drop a modal image here, or click to select
+                  </p>
+                  <p className="text-xs text-gray-500 mb-4">
+                    Supports: JPG, PNG, GIF, WebP
+                  </p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleModalFileInput}
+                    className="hidden"
+                    id="modal-image-upload"
+                  />
+                  <label
+                    htmlFor="modal-image-upload"
+                    className="inline-block px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] cursor-pointer transition-colors"
+                  >
+                    Select Modal Image
+                  </label>
+                </>
+              )}
+            </div>
+
+            {/* Fallback: Modal Image URL input (for external URLs) */}
+            <div className="mt-4">
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Or use external modal image URL (optional)
+              </label>
+              <input
+                type="url"
+                name="modalImageUrl"
+                value={formData.modalImageUrl}
+                onChange={(e) => {
+                  setFormData(prev => ({ ...prev, modalImageUrl: e.target.value }));
+                  if (e.target.value && !modalImageFile) {
+                    setModalImagePreview(e.target.value);
+                  }
+                }}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm"
+                placeholder="https://example.com/modal-image.jpg"
               />
             </div>
           </div>

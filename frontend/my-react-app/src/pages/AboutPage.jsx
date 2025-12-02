@@ -3,6 +3,7 @@ import { Target, Eye, Users, Calendar, Award, ExternalLink, Info } from 'lucide-
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import ImagePlaceholder from '../components/ui/ImagePlaceholder';
+import { getDisplayRole } from '../utils/roleDisplay';
 import SaharAAlsamahi from '../assets/MembersImages/sahar-samahi.png';
 import OsamaElsayed from '../assets/MembersImages/osama-sayed.avif';
 import RehamAli from '../assets/MembersImages/reham-ali.avif';
@@ -17,6 +18,7 @@ import AhmedFawzy from '../assets/MembersImages/ahmed-fawzy.avif';
 import SohaSamy from '../assets/MembersImages/soha-samy.jpg';
 import SaniNaiim from '../assets/MembersImages/sami-naiim.jpg';
 import DrWaelAlDakroury from '../assets/MembersImages/dr-wael.avif';
+import AlshaimaaSalem from '../assets/MembersImages/image.avif';
 
 const AboutPage = () => {
   const boardMembers = [
@@ -38,7 +40,7 @@ const AboutPage = () => {
     { name: "Ahmed Fawzy", image: AhmedFawzy },
     { name: "Soha Samy", image: SohaSamy },
     { name: "Sani Naiim", image: SaniNaiim },
-    { name: "Alshaimaa Salem"},
+    { name: "Alshaimaa Salem", image: AlshaimaaSalem },
   ];
 
   return (
@@ -115,7 +117,7 @@ const AboutPage = () => {
                 />
               </div>
               <h3 className="text-xl font-bold text-gray-900 text-center">Dr. Wael A. Al-Dakroury</h3>
-              <p className="text-sm text-gray-600 text-center mb-2">Ph.D., CCC-SLP</p>
+              <p className="text-sm text-gray-600 text-center mb-2">Ph.D., CCC-SLP (FASHA)</p>
               <p className="text-sm text-[#5A9B8E] font-medium text-center mb-3">Honorary President</p>
               <a 
                 href="https://www.linkedin.com/in/waelslp/" 
@@ -130,19 +132,23 @@ const AboutPage = () => {
 
             <div className="lg:col-span-2 space-y-4">
               <p className="text-gray-700 leading-relaxed">
-                Dr. Wael A. Al-Dakroury is an International Consultant and Speaker and a highly experienced bilingual pediatric Speech-Language Pathologist. He currently serves as the International Speech-Language Pathology Ambassador for the American Speech-Language and Hearing Association (ASHA) and is a Member of the ASHA SIG 17 Coordinating Committee.
+                Dr. Wael A. Al-Dakroury, Ph.D., CCC-SLP is an International Consultant and Speaker and a highly experienced bilingual pediatric Speech-Language Pathologist. Currently, Dr. Al-Dakroury is the International Speech-Language Pathology Ambassador for the American Speech-Language and Hearing Association (ASHA) and a Member of the ASHA SIG 17 Coordinating Committee.
               </p>
               
               <p className="text-gray-700 leading-relaxed">
-                Dr. Al-Dakroury is Co-Founder and Director of the Communication Disorders Department at Psych Care Clinics and Associate Professor at the Faculty of Medicine, Alfaisal University, Riyadh. Recognized for his outstanding international contributions, he received a certificate of recognition award from ASHA in 2023.
+                Dr. Al-Dakroury is Co-Founder and Director of the Communication Disorders Department at Psych Care Clinics and Associate Professor at the Faculty of Medicine, Alfaisal University, Riyadh, Saudi Arabia. Dr. Al-Dakroury has worked with: Jeddah Institute for Speech and Hearing (JISH), King Fahad Medical City (KFMC), Saudi Autistic Society, Center for Autism Research (CFAR) at King Faisal Specialist Hospital, Saudi Health Council, National Developmental Disabilities Registry Program, National Developmental and Behavioral Program at Ministry of Health (MOH); King Saud University (KSU).
               </p>
 
               <p className="text-gray-700 leading-relaxed">
-                With over 30 years of experience, Dr. Wael has worked as a Consultant Speech-Language Pathologist, Clinical Supervisor, and Professional Trainer for numerous medical, rehabilitation, and educational institutions. He has participated in various symposia, forums, and conferences as director, coordinator, and member of scientific committees, including the ASHA Annual Convention Scientific Committee.
+                He is a US-trained Speech-Language Pathologist at the Master's level (San Jose State University, California) and UK-trained at the Ph.D. level (Queen Margaret University, Edinburgh). Dr. Wael is recognized for his outstanding contributions, he has received certifications of recognition from the American Speech-Language-Hearing Association (2023) and the Continuing Education (ACE) Award for ten consecutive intervals from 2007-2024.
               </p>
 
               <p className="text-gray-700 leading-relaxed">
-                His research focuses on pragmatic disorders in children with ADHD and Autism Spectrum Disorder, as well as language disorders in pediatrics. Dr. Al-Dakroury serves as an Editorial Board Member and Reviewer for several leading peer-reviewed journals, including the Journal of Speech, Language, and Hearing Research (JSLHR).
+                Dr. Wael took part in various symposia, forums, and conferences as director, coordinator; Head, and member of the scientific committees (i.e., Member of the American Speech-Language-Hearing Association Annual Convention Scientific Committee). Over 30 years, he worked as a Consultant Speech-Language Pathologist, Clinical Supervisor, and Professional Trainer for different medical, rehabilitation, and educational institutions. Dr. Wael is fortunate enough to be a recognized speaker and professional trainer, which gives him the chance to be invited by several governmental and private entities to train and supervise their SLPs and physicians (i.e., Oman, Kuwait, Saudi Arabia, Bahrain, UAE, and Egypt).
+              </p>
+
+              <p className="text-gray-700 leading-relaxed">
+                Dr. Al-Dakroury's research and publication interests focus on the pragmatic disorders in children with ADHD and Autism Spectrum Disorder, as well as language disorders in pediatrics. Finally, Dr. Wael is an Editorial Board Member and Reviewer for several leading peer-reviewed journals in the field (i.e., Journal of Speech, Language, and Hearing Research, JSLHR).
               </p>
             </div>
           </div>
@@ -170,7 +176,7 @@ const AboutPage = () => {
                   />
                 </div>
                 <h4 className="font-bold text-gray-900 text-sm mb-1">{member.name}</h4>
-                <p className="text-xs text-[#5A9B8E] font-medium">{member.role}</p>
+                <p className="text-xs text-[#5A9B8E] font-medium">{getDisplayRole(member.role, member.displayRole || null)}</p>
               </div>
             ))}
           </div>

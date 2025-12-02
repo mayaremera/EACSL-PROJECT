@@ -1,12 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Award, BookOpen, MapPin, Clock, X } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Calendar, Users, Award, BookOpen, MapPin, Clock, X, Mic, GraduationCap, Briefcase } from 'lucide-react';
 import { eventsManager } from '../utils/dataManager';
+import { eventParticipantsService } from '../services/eventParticipantsService';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
+import ImagePlaceholder from '../components/ui/ImagePlaceholder';
 
 export default function PastEventsPage() {
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [pastEvents, setPastEvents] = useState([]);
+  const [eventParticipants, setEventParticipants] = useState({});
+  const loadingParticipants = useRef(new Set());
 
   useEffect(() => {
     const loadPastEvents = async () => {
@@ -41,6 +45,54 @@ export default function PastEventsPage() {
       window.removeEventListener('eventsUpdated', handleEventsUpdate);
     };
   }, []);
+
+  // Load participants when selected event changes
+  useEffect(() => {
+    const loadParticipants = async () => {
+      if (selectedEvent && selectedEvent.id) {
+        const eventId = selectedEvent.id;
+        
+        // Check if already loaded or currently loading
+        setEventParticipants(prev => {
+          if (prev[eventId] || loadingParticipants.current.has(eventId)) {
+            return prev; // Already loaded or loading
+          }
+          
+          // Mark as loading
+          loadingParticipants.current.add(eventId);
+          
+          // Load participants
+          eventParticipantsService.getByEventId(eventId)
+            .then(participantsResult => {
+              if (participantsResult.data && !participantsResult.error) {
+                setEventParticipants(prevState => {
+                  // Double-check it's still not loaded (race condition protection)
+                  if (prevState[eventId]) {
+                    loadingParticipants.current.delete(eventId);
+                    return prevState;
+                  }
+                  loadingParticipants.current.delete(eventId);
+                  return {
+                    ...prevState,
+                    [eventId]: participantsResult.data
+                  };
+                });
+              } else {
+                loadingParticipants.current.delete(eventId);
+              }
+            })
+            .catch(error => {
+              console.error('Error loading participants:', error);
+              loadingParticipants.current.delete(eventId);
+            });
+          
+          return prev; // Return unchanged
+        });
+      }
+    };
+
+    loadParticipants();
+  }, [selectedEvent]);
 
   if (pastEvents.length === 0) {
     return (
@@ -138,6 +190,12 @@ export default function PastEventsPage() {
                           <span>{event.memberFee} EGP</span>
                         </div>
                       )}
+                      {event.studentFee !== undefined && (
+                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                          <span className="font-medium">Student Fee:</span>
+                          <span>{event.studentFee} EGP</span>
+                        </div>
+                      )}
                       {event.guestFee !== undefined && (
                         <div className="flex items-center gap-2 text-sm text-gray-600">
                           <span className="font-medium">Guest Fee:</span>
@@ -206,6 +264,12 @@ export default function PastEventsPage() {
                     <span>{selectedEvent.memberFee} EGP</span>
                   </div>
                 )}
+                {selectedEvent.studentFee !== undefined && (
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">Student Fee:</span>
+                    <span>{selectedEvent.studentFee} EGP</span>
+                  </div>
+                )}
                 {selectedEvent.guestFee !== undefined && (
                   <div className="flex items-center gap-2">
                     <span className="font-medium">Guest Fee:</span>
@@ -216,6 +280,90 @@ export default function PastEventsPage() {
             </div>
 
             <div className="border-t border-gray-200"></div>
+
+            {/* Speakers Section */}
+            {eventParticipants[selectedEvent.id]?.speakers && eventParticipants[selectedEvent.id].speakers.length > 0 && (
+              <div className="p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <Mic className="w-6 h-6 text-[#5A9B8E]" />
+                  <h3 className="text-2xl font-bold text-gray-900">Speakers</h3>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {eventParticipants[selectedEvent.id].speakers.map((speaker) => (
+                    <div
+                      key={speaker.id}
+                      className="flex flex-col items-center"
+                    >
+                      <div className="mb-3">
+                        <ImagePlaceholder
+                          src={speaker.imageUrl}
+                          alt={speaker.name}
+                          name={speaker.name}
+                          className="w-24 h-24 rounded-full object-cover border-2 border-gray-100"
+                        />
+                      </div>
+                      <h4 className="text-sm font-semibold text-gray-900 text-center">{speaker.name}</h4>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Scientific Committee Section */}
+            {eventParticipants[selectedEvent.id]?.scientific_committee && eventParticipants[selectedEvent.id].scientific_committee.length > 0 && (
+              <div className="p-8 bg-gray-50">
+                <div className="flex items-center gap-3 mb-6">
+                  <GraduationCap className="w-6 h-6 text-[#5A9B8E]" />
+                  <h3 className="text-2xl font-bold text-gray-900">Scientific Committee</h3>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {eventParticipants[selectedEvent.id].scientific_committee.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex flex-col items-center"
+                    >
+                      <div className="mb-3">
+                        <ImagePlaceholder
+                          src={member.imageUrl}
+                          alt={member.name}
+                          name={member.name}
+                          className="w-24 h-24 rounded-full object-cover border-2 border-gray-100"
+                        />
+                      </div>
+                      <h4 className="text-sm font-semibold text-gray-900 text-center">{member.name}</h4>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Organizing Committee Section */}
+            {eventParticipants[selectedEvent.id]?.organizing_committee && eventParticipants[selectedEvent.id].organizing_committee.length > 0 && (
+              <div className="p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <Briefcase className="w-6 h-6 text-[#5A9B8E]" />
+                  <h3 className="text-2xl font-bold text-gray-900">Organizing Committee</h3>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {eventParticipants[selectedEvent.id].organizing_committee.map((member) => (
+                    <div
+                      key={member.id}
+                      className="flex flex-col items-center"
+                    >
+                      <div className="mb-3">
+                        <ImagePlaceholder
+                          src={member.imageUrl}
+                          alt={member.name}
+                          name={member.name}
+                          className="w-24 h-24 rounded-full object-cover border-2 border-gray-100"
+                        />
+                      </div>
+                      <h4 className="text-sm font-semibold text-gray-900 text-center">{member.name}</h4>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Tracks */}
             {selectedEvent.tracks && selectedEvent.tracks.length > 0 && (

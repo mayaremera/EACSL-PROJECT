@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Briefcase, X, Award, Calendar, Edit, Trash2, CheckCircle } from 'lucide-react';
 import ImagePlaceholder from '../ui/ImagePlaceholder';
+import { getDisplayRole } from '../../utils/roleDisplay';
 
 const MemberCard = ({
     image,
     name,
     role,
+    displayRole: memberDisplayRole, // Public-facing role from database
     description,
     fullDescription,
     email,
@@ -21,10 +23,15 @@ const MemberCard = ({
     onEdit,
     onDelete,
     isDashboard = false,
+    compact = false,
     id
 }) => {
     const navigate = useNavigate();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    
+    // Get display role
+    // In Dashboard, show actual role (including Admin). On public pages, use displayRole field or mapped role.
+    const displayRole = isDashboard ? role : getDisplayRole(role, memberDisplayRole);
 
     const handleCardClick = (e) => {
         // Don't trigger onClick if clicking edit/delete buttons
@@ -43,9 +50,83 @@ const MemberCard = ({
             onClick();
         } else if (id) {
             // Navigate to member profile page
-            navigate(`/member-profile/${id}`, { replace: true });
+            navigate(`/member-profile/${id}`);
         }
     };
+
+    // Compact version for overview page
+    if (compact) {
+        return (
+            <div 
+                className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 border border-gray-200 relative group cursor-pointer h-full"
+                onClick={handleCardClick}
+            >
+                {/* Compact Card Layout */}
+                <div className="p-3 h-full flex flex-col">
+                    {/* Image and Basic Info */}
+                    <div className="flex gap-3 mb-2">
+                        {/* Small Image */}
+                        <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border border-gray-200">
+                            <ImagePlaceholder
+                                src={image}
+                                alt={name}
+                                name={name}
+                                className="w-full h-full object-cover object-top"
+                            />
+                        </div>
+                        
+                        {/* Name and Role */}
+                        <div className="flex-1 min-w-0">
+                            <h3 className="text-sm font-bold text-gray-900 mb-0.5 line-clamp-2 group-hover:text-[#5A9B8E] transition-colors leading-tight">
+                                {name}
+                            </h3>
+                            <p className="text-xs text-[#5A9B8E] font-semibold line-clamp-1">
+                                {displayRole}
+                            </p>
+                        </div>
+                    </div>
+                    
+                    {/* Additional Info */}
+                    <div className="space-y-1 flex-1">
+                        {/* Location */}
+                        {location && (
+                            <p className="text-xs text-gray-600 line-clamp-1 flex items-center gap-1">
+                                <svg className="w-3 h-3 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                </svg>
+                                <span className="truncate">{location}</span>
+                            </p>
+                        )}
+                        
+                        {/* Email (truncated) */}
+                        {email && (
+                            <p className="text-xs text-gray-500 line-clamp-1 flex items-center gap-1">
+                                <Mail className="w-3 h-3 text-gray-400 flex-shrink-0" />
+                                <span className="truncate">{email}</span>
+                            </p>
+                        )}
+                    </div>
+                    
+                    {/* Active Status - Bottom */}
+                    <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                        {isActive !== false ? (
+                            <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 px-2 py-0.5 rounded text-[10px] font-medium">
+                                <CheckCircle className="w-2.5 h-2.5" />
+                                Active
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-[10px] font-medium">
+                                <CheckCircle className="w-2.5 h-2.5" />
+                                Inactive
+                            </span>
+                        )}
+                        <span className="text-[10px] text-gray-400 font-medium">View →</span>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <>
@@ -113,8 +194,8 @@ const MemberCard = ({
                 <div className="p-4">
                     {/* Role Tag and Active Status */}
                     <div className="mb-3 flex items-center gap-2 flex-wrap">
-                        <span className="bg-[#5A9B8E] text-white px-2 py-1 text-[10px] font-semibold rounded inline-block max-w-[30%] truncate flex-shrink-0" title={role}>
-                            {role}
+                        <span className="bg-[#5A9B8E] text-white px-2 py-1 text-[10px] font-semibold rounded inline-block max-w-[30%] truncate flex-shrink-0" title={displayRole}>
+                            {displayRole}
                         </span>
                         {isActive !== false ? (
                             <div className="flex items-center gap-2">
@@ -163,7 +244,7 @@ const MemberCard = ({
                             if (onClick) {
                                 onClick();
                             } else if (id) {
-                                navigate(`/member-profile/${id}`, { replace: true });
+                                navigate(`/member-profile/${id}`);
                             } else {
                                 setIsModalOpen(true);
                             }
@@ -220,7 +301,7 @@ const MemberCard = ({
                                             </div>
                                         )}
                                     </div>
-                                    <p className="text-lg font-semibold text-[#5A9B8E] mb-4">{role}</p>
+                                    <p className="text-lg font-semibold text-[#5A9B8E] mb-4">{displayRole}</p>
                                     
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         <div className="flex items-center gap-2 text-sm text-gray-600 sm:col-span-2">

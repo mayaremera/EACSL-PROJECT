@@ -157,6 +157,7 @@ const ApplyMembershipPage = () => {
         email: data.email,
         password: data.password, // Store password for account creation on approval
         specialty: data.specialty,
+        location: data.location,
         previousWork: data.previousWork,
         submittedAt: new Date().toISOString(),
         status: 'pending', // All new submissions start as pending

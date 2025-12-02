@@ -159,6 +159,12 @@ export const eventsService = {
         if ('tracks_description' in sampleEvent) {
           supabaseEvent.tracks_description = event.tracksDescription || null;
         }
+        if ('student_fee' in sampleEvent) {
+          supabaseEvent.student_fee = event.studentFee || 300.00;
+        }
+        if ('booklet_url' in sampleEvent) {
+          supabaseEvent.booklet_url = event.bookletUrl || null;
+        }
       }
       // If table is empty, just use basic fields
 
@@ -233,6 +239,12 @@ export const eventsService = {
         }
         if ('tracks_description' in sampleEvent) {
           supabaseEvent.tracks_description = event.tracksDescription || null;
+        }
+        if ('student_fee' in sampleEvent) {
+          supabaseEvent.student_fee = event.studentFee || 300.00;
+        }
+        if ('booklet_url' in sampleEvent) {
+          supabaseEvent.booklet_url = event.bookletUrl || null;
         }
       }
       // If table is empty, just use basic fields
@@ -396,6 +408,8 @@ export const eventsService = {
       tracksDescription: supabaseEvent.tracks_description || null,
       memberFee: supabaseEvent.member_fee,
       guestFee: supabaseEvent.guest_fee,
+      studentFee: supabaseEvent.student_fee || 300.00,
+      bookletUrl: supabaseEvent.booklet_url || null,
       tracks: supabaseEvent.tracks || [],
       scheduleDay1: supabaseEvent.schedule_day1 || [],
       scheduleDay2: supabaseEvent.schedule_day2 || [],
@@ -424,6 +438,8 @@ export const eventsService = {
       tracks_description: localEvent.tracksDescription || null,
       member_fee: localEvent.memberFee || 500.00,
       guest_fee: localEvent.guestFee || 800.00,
+      student_fee: localEvent.studentFee || 300.00,
+      booklet_url: localEvent.bookletUrl || null,
       tracks: localEvent.tracks || [],
       schedule_day1: localEvent.scheduleDay1 || [],
       schedule_day2: localEvent.scheduleDay2 || [],

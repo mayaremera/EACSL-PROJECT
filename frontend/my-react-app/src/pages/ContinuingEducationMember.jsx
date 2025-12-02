@@ -24,6 +24,7 @@ import {
 import { membersManager, initializeData } from '../utils/dataManager';
 import { useAuth } from '../contexts/AuthContext';
 import ImagePlaceholder from '../components/ui/ImagePlaceholder';
+import { getDisplayRole } from '../utils/roleDisplay';
 
 function ContinuingEducationMember() {
   const { memberId } = useParams();
@@ -290,7 +291,7 @@ function ContinuingEducationMember() {
   // Map member data to profile format (same as MemberProfile)
   const profile = {
     name: member.name || '',
-    title: member.role || '',
+    title: getDisplayRole(member.role || '', member.displayRole || null),
     image: member.image || '',
     location: member.location || '',
     email: member.email || '',
@@ -301,9 +302,9 @@ function ContinuingEducationMember() {
     memberSince: member.membershipDate || '',
   };
 
-  // Get active and completed courses from member data
-  const activeCourses = Array.isArray(member.activeCourses) ? member.activeCourses : [];
-  const completedCourses = Array.isArray(member.completedCourses) ? member.completedCourses : [];
+  // Get active and completed courses from member data - ensure they're always arrays
+  const activeCourses = Array.isArray(member.activeCourses) ? member.activeCourses : (member.activeCourses ? [member.activeCourses] : []);
+  const completedCourses = Array.isArray(member.completedCourses) ? member.completedCourses : (member.completedCourses ? [member.completedCourses] : []);
 
   // Map member data to accountData format for stats
   const accountData = {
@@ -446,18 +447,7 @@ function ContinuingEducationMember() {
         {/* Account Details Section */}
         <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Account Details</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 rounded-lg p-5 border border-blue-200">
-              <div className="flex items-center justify-between mb-3">
-                <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center">
-                  <DollarSign className="w-6 h-6 text-white" />
-                </div>
-                <TrendingUp className="w-5 h-5 text-blue-600" />
-              </div>
-              <p className="text-sm text-gray-600 mb-1">Money Spent</p>
-              <p className="text-2xl font-bold text-gray-900">{accountData.totalMoneySpent}</p>
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-gradient-to-br from-green-50 to-green-100/50 rounded-lg p-5 border border-green-200">
               <div className="flex items-center justify-between mb-3">
                 <div className="w-12 h-12 bg-green-500 rounded-lg flex items-center justify-center">
@@ -574,7 +564,7 @@ function ContinuingEducationMember() {
                             <span className="text-xs text-gray-600">{course.instructor}</span>
                           </div>
                         )}
-                        {course.price && (
+                        {course.price && course.price !== '0' && String(course.price).trim() !== '' && (
                           <span className="text-xs font-semibold text-gray-900">{course.price}</span>
                         )}
                       </div>
@@ -642,7 +632,7 @@ function ContinuingEducationMember() {
                           <span>{new Date(course.completedDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
                         </div>
                       )}
-                      {course.price && (
+                      {course.price && course.price !== '0' && String(course.price).trim() !== '' && (
                         <span className="font-semibold text-gray-900">{course.price}</span>
                       )}
                     </div>

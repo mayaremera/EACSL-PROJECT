@@ -227,6 +227,37 @@ export const getRoles = () => {
   ];
 };
 
+// Helper function to get unique locations from members list
+export const getLocations = (membersList = null) => {
+  const membersToUse = membersList || members;
+  const locations = [...new Set(membersToUse.map(member => member.location).filter(Boolean))].sort();
+  return [
+    { value: 'all', label: 'All Locations | جميع المواقع' },
+    ...locations.map(location => ({ value: location, label: location }))
+  ];
+};
+
+// All available specialties (matching BecomeMemberForm)
+export const allSpecialties = [
+  'Phonetics and linguistics',
+  'Speech and language therapy department',
+  'Speech sound disorder (children)',
+  'Language disorder (children)',
+  'Neurogenic communication disorders',
+  'Voice and upper respiratory disorders',
+  'Fluency disorders',
+  'Craniofacial and velopharyngeal disorders',
+  'Hearing and balance sciences disorders'
+];
+
+// Helper function to get specialties options for filter
+export const getSpecialties = () => {
+  return [
+    { value: 'all', label: 'All Specialties | جميع التخصصات' },
+    ...allSpecialties.map(specialty => ({ value: specialty, label: specialty }))
+  ];
+};
+
 // Helper function to get active members
 export const getActiveMembers = () => {
   return members.filter(member => member.isActive === true);
@@ -235,7 +266,7 @@ export const getActiveMembers = () => {
 // Helper function to get featured members (for homepage section)
 export const getFeaturedMembers = (limit = 4) => {
   // Get active members, prioritize board members and leadership roles
-  const priorityRoles = ['Board Member', 'Vice President', 'Secretary General', 'Treasurer', 'Research Director'];
+  const priorityRoles = ['Founder', 'Honorary President', 'Board Member', 'Affiliated Member', 'Member'];
   
   return [...members]
     .filter(member => member.isActive)
@@ -276,13 +307,34 @@ export const filterMembers = (filters = {}, membersList = null) => {
     filtered = filtered.filter(m => m.isActive === filters.isActive);
   }
   
+  if (filters.location && filters.location !== 'all') {
+    filtered = filtered.filter(m => m.location && m.location.toLowerCase() === filters.location.toLowerCase());
+  }
+  
+  if (filters.specialty && filters.specialty !== 'all') {
+    filtered = filtered.filter(m => {
+      // Handle specialty as array (JSONB array from database)
+      if (Array.isArray(m.specialty) && m.specialty.length > 0) {
+        // Check if any specialty in the array matches the filter (case-insensitive)
+        return m.specialty.some(s => 
+          s && String(s).trim().toLowerCase() === filters.specialty.toLowerCase()
+        );
+      }
+      // If specialty is not an array or is empty, exclude from results
+      return false;
+    });
+  }
+  
   if (filters.searchTerm) {
     const term = filters.searchTerm.toLowerCase();
     filtered = filtered.filter(m => 
       m.name.toLowerCase().includes(term) ||
       m.role.toLowerCase().includes(term) ||
       m.description.toLowerCase().includes(term) ||
-      m.nationality.toLowerCase().includes(term)
+      m.nationality.toLowerCase().includes(term) ||
+      (m.location && m.location.toLowerCase().includes(term)) ||
+      (Array.isArray(m.specialty) && m.specialty.some(s => s && s.toLowerCase().includes(term))) ||
+      (m.specialty && typeof m.specialty === 'string' && m.specialty.toLowerCase().includes(term))
     );
   }
   

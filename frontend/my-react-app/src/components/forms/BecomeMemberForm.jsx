@@ -628,6 +628,7 @@ const BecomeMemberForm = ({ onSubmit }) => {
         password: '',
         confirmPassword: '',
         specialty: [],
+        location: '',
         previousWork: '',
         graduationCert: null,
         cv: null
@@ -635,7 +636,14 @@ const BecomeMemberForm = ({ onSubmit }) => {
 
     const specialties = [
         'Phonetics and linguistics',
-        'Speech and language therapy department'
+        'Speech and language therapy department',
+        'Speech sound disorder (children)',
+        'Language disorder (children)',
+        'Neurogenic communication disorders',
+        'Voice and upper respiratory disorders',
+        'Fluency disorders',
+        'Craniofacial and velopharyngeal disorders',
+        'Hearing and balance sciences disorders'
     ];
 
     const validateField = (name, value) => {
@@ -656,6 +664,8 @@ const BecomeMemberForm = ({ onSubmit }) => {
                 return value === formData.password ? '' : 'Passwords do not match';
             case 'specialty':
                 return value.length > 0 ? '' : 'Select at least one specialty';
+            case 'location':
+                return value.trim() ? '' : 'Location is required';
             case 'previousWork':
                 return value.trim() ? '' : 'Previous work description is required';
             default:
@@ -946,7 +956,8 @@ const BecomeMemberForm = ({ onSubmit }) => {
                         <p className="text-sm text-gray-700">
                             <strong>Username:</strong> {formData.username}<br />
                             <strong>Email:</strong> {formData.email}<br />
-                            <strong>Specialty:</strong> {formData.specialty.join(', ')}
+                            <strong>Specialty:</strong> {formData.specialty.join(', ')}<br />
+                            <strong>Location:</strong> {formData.location}
                         </p>
                     </div>
                     <button
@@ -1192,6 +1203,32 @@ const BecomeMemberForm = ({ onSubmit }) => {
                     <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
                         <AlertCircle className="w-4 h-4" />
                         <span>{errors.specialty}</span>
+                    </div>
+                )}
+            </div>
+
+            {/* Location */}
+            <div className="mb-6">
+                <label className="block text-gray-800 text-sm font-semibold mb-2">
+                    Location <span className="text-red-500">*</span>
+                </label>
+                <input
+                    type="text"
+                    placeholder="Enter your location (e.g., Cairo, Egypt)"
+                    value={formData.location}
+                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    onBlur={() => handleBlur('location')}
+                    disabled={isSubmitting}
+                    className={`w-full px-4 py-3 bg-white border rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none transition-all ${
+                        isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                    } ${
+                        touched.location && errors.location ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-[#5A9B8E]'
+                    }`}
+                />
+                {touched.location && errors.location && (
+                    <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>{errors.location}</span>
                     </div>
                 )}
             </div>

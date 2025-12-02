@@ -34,7 +34,7 @@ export const memberApprovalService = {
    */
   async approveApplication(formData) {
     try {
-      const { email, username, specialty, previousWork, profileImage, password } = formData;
+      const { email, username, specialty, location, previousWork, profileImage, password } = formData;
 
       // Validate required fields
       if (!email || !username) {
@@ -134,9 +134,10 @@ export const memberApprovalService = {
         membershipDate: membershipDate,
         isActive: false, // PENDING until email is confirmed
         activeTill: new Date(currentDate.getFullYear() + 1, currentDate.getMonth(), currentDate.getDate()).getFullYear().toString(),
-        certificates: specialty || [],
+        certificates: [], // Certificates are separate from specialties
+        specialty: specialty || [], // Store specialties from form in specialty field
         phone: '',
-        location: '',
+        location: location || '',
         website: '',
         linkedin: '',
         image: imageUrl,

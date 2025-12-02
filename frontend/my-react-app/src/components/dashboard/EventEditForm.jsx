@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Plus, Trash2, Upload } from 'lucide-react';
+import { X, Save, Plus, Trash2, Upload, Mic, GraduationCap, Briefcase } from 'lucide-react';
 import { eventsService } from '../../services/eventsService';
+import { eventParticipantsService } from '../../services/eventParticipantsService';
+import ImagePlaceholder from '../ui/ImagePlaceholder';
 
 const EventEditForm = ({ event, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -15,6 +17,8 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
     tracksDescription: '3 Parallel Sessions',
     memberFee: 500,
     guestFee: 800,
+    studentFee: 300,
+    bookletUrl: '',
     tracks: ['Track A: Speech & Swallowing', 'Track B: Language Disorders', 'Track C: Audiology'],
     scheduleDay1: [
       { time: '4:00 - 5:00 PM', trackA: 'Opening Ceremony & Welcome Address - Conference Chair', trackB: 'All Attendees', trackC: 'All Attendees' },
@@ -37,6 +41,24 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
   const [imagePreview, setImagePreview] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  
+  // Participants state
+  const [participants, setParticipants] = useState({
+    speakers: [],
+    scientific_committee: [],
+    organizing_committee: []
+  });
+  const [newParticipant, setNewParticipant] = useState({
+    role: 'speaker',
+    name: '',
+    bio: '',
+    linkedinUrl: '',
+    imageFile: null,
+    imagePreview: null
+  });
+  const [editingParticipant, setEditingParticipant] = useState(null);
+  const [isAddingParticipant, setIsAddingParticipant] = useState(false);
+  const [isUploadingParticipantImage, setIsUploadingParticipantImage] = useState(false);
 
   useEffect(() => {
     if (event) {
@@ -65,6 +87,8 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
         tracksDescription: event.tracksDescription || '3 Parallel Sessions',
         memberFee: event.memberFee || 500,
         guestFee: event.guestFee || 800,
+        studentFee: event.studentFee || 300,
+        bookletUrl: event.bookletUrl || '',
         tracks: event.tracks || ['Track A: Speech & Swallowing', 'Track B: Language Disorders', 'Track C: Audiology'],
         scheduleDay1: event.scheduleDay1 || [],
         scheduleDay2: event.scheduleDay2 || [],
@@ -77,14 +101,30 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
       if (event.heroImageUrl) {
         setImagePreview(event.heroImageUrl);
       }
+      
+      // Load participants for this event
+      if (event && event.id) {
+        loadParticipants(event.id);
+      }
     }
   }, [event]);
+
+  const loadParticipants = async (eventId) => {
+    try {
+      const result = await eventParticipantsService.getByEventId(eventId);
+      if (result.data && !result.error) {
+        setParticipants(result.data);
+      }
+    } catch (error) {
+      console.error('Error loading participants:', error);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: name === 'memberFee' || name === 'guestFee' 
+      [name]: name === 'memberFee' || name === 'guestFee' || name === 'studentFee'
         ? parseFloat(value) || 0 
         : value
     }));
@@ -204,6 +244,238 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
       ...prev,
       heroImageUrl: ''
     }));
+  };
+
+  const handleParticipantImageChange = (file) => {
+    if (file) {
+      const isValidImage = file.type.startsWith('image/') || 
+                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(file.name);
+      
+      if (isValidImage) {
+        if (newParticipant.imagePreview && newParticipant.imagePreview.startsWith('blob:')) {
+          URL.revokeObjectURL(newParticipant.imagePreview);
+        }
+        
+        const previewUrl = URL.createObjectURL(file);
+        setNewParticipant(prev => ({
+          ...prev,
+          imageFile: file,
+          imagePreview: previewUrl
+        }));
+      } else {
+        alert('Please upload only image files (JPG, PNG, GIF, etc.)');
+      }
+    }
+  };
+
+  const handleAddParticipant = async () => {
+    if (!newParticipant.name.trim()) {
+      alert('Please enter a name for the participant.');
+      return;
+    }
+
+    if (!event || !event.id) {
+      alert('Please save the event first before adding participants.');
+      return;
+    }
+
+    setIsUploadingParticipantImage(true);
+
+    try {
+      let imageUrl = null;
+      let imagePath = null;
+
+      // Upload image if provided
+      if (newParticipant.imageFile) {
+        const uploadResult = await eventParticipantsService.uploadImage(
+          newParticipant.imageFile,
+          newParticipant.imageFile.name
+        );
+        if (uploadResult.data && !uploadResult.error) {
+          imageUrl = uploadResult.data.url;
+          imagePath = uploadResult.data.path;
+        } else {
+          alert('Failed to upload image. Please try again.');
+          setIsUploadingParticipantImage(false);
+          return;
+        }
+      }
+
+      // Clean up preview URL if it was a blob
+      if (newParticipant.imagePreview && newParticipant.imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(newParticipant.imagePreview);
+      }
+
+      // Add participant
+      const participantData = {
+        eventId: event.id,
+        name: newParticipant.name.trim(),
+        bio: newParticipant.bio.trim() || null,
+        linkedinUrl: newParticipant.linkedinUrl.trim() || null,
+        role: newParticipant.role,
+        imageUrl: imageUrl,
+        imagePath: imagePath
+      };
+
+      const result = await eventParticipantsService.add(participantData);
+      
+      if (result.data && !result.error) {
+        // Reload participants
+        await loadParticipants(event.id);
+        
+        // Reset form but keep the same role and keep form open
+        setNewParticipant({
+          role: newParticipant.role, // Keep the same role
+          name: '',
+          bio: '',
+          linkedinUrl: '',
+          imageFile: null,
+          imagePreview: null
+        });
+        
+        // Keep the form open for adding another participant
+        // No alert - just continue smoothly
+      } else {
+        alert('Failed to add participant. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error adding participant:', error);
+      alert('Failed to add participant. Please try again.');
+    } finally {
+      setIsUploadingParticipantImage(false);
+    }
+  };
+
+  const handleEditParticipant = (participant) => {
+    setEditingParticipant(participant);
+    setNewParticipant({
+      role: participant.role,
+      name: participant.name || '',
+      bio: participant.bio || '',
+      linkedinUrl: participant.linkedinUrl || '',
+      imageFile: null,
+      imagePreview: participant.imageUrl || null
+    });
+    setIsAddingParticipant(true);
+  };
+
+  const handleUpdateParticipant = async () => {
+    if (!newParticipant.name.trim()) {
+      alert('Please enter a name for the participant.');
+      return;
+    }
+
+    if (!editingParticipant) {
+      return;
+    }
+
+    setIsUploadingParticipantImage(true);
+
+    try {
+      let imageUrl = editingParticipant.imageUrl;
+      let imagePath = editingParticipant.imagePath;
+
+      // Upload new image if provided
+      if (newParticipant.imageFile) {
+        // Delete old image if exists
+        if (editingParticipant.imagePath) {
+          await eventParticipantsService.deleteImage(editingParticipant.imagePath);
+        }
+
+        const uploadResult = await eventParticipantsService.uploadImage(
+          newParticipant.imageFile,
+          newParticipant.imageFile.name
+        );
+        if (uploadResult.data && !uploadResult.error) {
+          imageUrl = uploadResult.data.url;
+          imagePath = uploadResult.data.path;
+        } else {
+          alert('Failed to upload image. Please try again.');
+          setIsUploadingParticipantImage(false);
+          return;
+        }
+      }
+
+      // Clean up preview URL if it was a blob
+      if (newParticipant.imagePreview && newParticipant.imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(newParticipant.imagePreview);
+      }
+
+      // Update participant
+      const participantData = {
+        name: newParticipant.name.trim(),
+        bio: newParticipant.bio.trim() || null,
+        linkedinUrl: newParticipant.linkedinUrl.trim() || null,
+        role: newParticipant.role,
+        imageUrl: imageUrl,
+        imagePath: imagePath
+      };
+
+      const result = await eventParticipantsService.update(editingParticipant.id, participantData);
+      
+      if (result.data && !result.error) {
+        // Reload participants
+        await loadParticipants(event.id);
+        
+        // Reset form
+        setEditingParticipant(null);
+        setNewParticipant({
+          role: 'speaker',
+          name: '',
+          bio: '',
+          linkedinUrl: '',
+          imageFile: null,
+          imagePreview: null
+        });
+        setIsAddingParticipant(false);
+      } else {
+        alert('Failed to update participant. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error updating participant:', error);
+      alert('Failed to update participant. Please try again.');
+    } finally {
+      setIsUploadingParticipantImage(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingParticipant(null);
+    setNewParticipant({
+      role: 'speaker',
+      name: '',
+      bio: '',
+      linkedinUrl: '',
+      imageFile: null,
+      imagePreview: null
+    });
+    setIsAddingParticipant(false);
+  };
+
+  const handleDeleteParticipant = async (participantId, imagePath) => {
+    if (!window.confirm('Are you sure you want to delete this participant?')) {
+      return;
+    }
+
+    try {
+      // Delete image if exists
+      if (imagePath) {
+        await eventParticipantsService.deleteImage(imagePath);
+      }
+
+      // Delete participant
+      const result = await eventParticipantsService.delete(participantId);
+      
+      if (!result.error) {
+        // Reload participants
+        await loadParticipants(event.id);
+      } else {
+        alert('Failed to delete participant. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error deleting participant:', error);
+      alert('Failed to delete participant. Please try again.');
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -430,7 +702,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Basic Information</h3>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Member Fee (EGP) *
@@ -439,6 +711,21 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                   type="number"
                   name="memberFee"
                   value={formData.memberFee}
+                  onChange={handleChange}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
+                  required
+                  min="0"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Student Fee (EGP) *
+                </label>
+                <input
+                  type="number"
+                  name="studentFee"
+                  value={formData.studentFee}
                   onChange={handleChange}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
                   required
@@ -460,6 +747,23 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                   min="0"
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Booklet URL (optional)
+              </label>
+              <input
+                type="url"
+                name="bookletUrl"
+                value={formData.bookletUrl}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
+                placeholder="https://example.com/booklet.pdf"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                URL to the event booklet PDF file. This will appear as a "Download Booklet" button on the event page.
+              </p>
             </div>
 
             {/* Hero Image Upload - Drag and Drop */}
@@ -676,6 +980,307 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
               </div>
             ))}
           </div>
+
+          {/* Participants Management */}
+          {event && event.id && (
+            <div className="space-y-6 border-t border-gray-200 pt-6">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-900">Event Participants</h3>
+                {!isAddingParticipant && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEditingParticipant(null);
+                      setNewParticipant({
+                        role: 'speaker',
+                        name: '',
+                        bio: '',
+                        linkedinUrl: '',
+                        imageFile: null,
+                        imagePreview: null
+                      });
+                      setIsAddingParticipant(true);
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors text-sm"
+                  >
+                    <Plus size={16} />
+                    Add Participant
+                  </button>
+                )}
+              </div>
+
+              {/* Add/Edit Participant Form */}
+              {isAddingParticipant && (
+                <div className="bg-gray-50 rounded-lg p-6 space-y-4 border border-gray-200">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-semibold text-gray-900">
+                      {editingParticipant ? 'Edit Participant' : 'Add New Participant'}
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={handleCancelEdit}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Role *
+                    </label>
+                    <select
+                      value={newParticipant.role}
+                      onChange={(e) => setNewParticipant(prev => ({ ...prev, role: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
+                    >
+                      <option value="speaker">Speaker</option>
+                      <option value="scientific_committee">Scientific Committee</option>
+                      <option value="organizing_committee">Organizing Committee</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Name *
+                    </label>
+                    <input
+                      type="text"
+                      value={newParticipant.name}
+                      onChange={(e) => setNewParticipant(prev => ({ ...prev, name: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
+                      placeholder="Participant Name"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Bio/Description
+                    </label>
+                    <textarea
+                      value={newParticipant.bio}
+                      onChange={(e) => setNewParticipant(prev => ({ ...prev, bio: e.target.value }))}
+                      rows={3}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
+                      placeholder="Participant biography or description"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      LinkedIn URL
+                    </label>
+                    <input
+                      type="url"
+                      value={newParticipant.linkedinUrl}
+                      onChange={(e) => setNewParticipant(prev => ({ ...prev, linkedinUrl: e.target.value }))}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
+                      placeholder="https://linkedin.com/in/username"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Image
+                    </label>
+                    {newParticipant.imagePreview ? (
+                      <div className="relative inline-block">
+                        <img
+                          src={newParticipant.imagePreview}
+                          alt="Preview"
+                          className="w-32 h-32 object-cover rounded-lg border border-gray-200"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (newParticipant.imagePreview && newParticipant.imagePreview.startsWith('blob:')) {
+                              URL.revokeObjectURL(newParticipant.imagePreview);
+                            }
+                            setNewParticipant(prev => ({ ...prev, imageFile: null, imagePreview: null }));
+                          }}
+                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ) : (
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            handleParticipantImageChange(e.target.files[0]);
+                          }
+                        }}
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
+                      />
+                    )}
+                  </div>
+
+                  <div className="flex gap-3">
+                    <button
+                      type="button"
+                      onClick={editingParticipant ? handleUpdateParticipant : handleAddParticipant}
+                      disabled={isUploadingParticipantImage}
+                      className="flex-1 px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isUploadingParticipantImage ? 'Saving...' : (editingParticipant ? 'Update Participant' : 'Add Participant')}
+                    </button>
+                    {!editingParticipant && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setNewParticipant({
+                            role: newParticipant.role,
+                            name: '',
+                            bio: '',
+                            linkedinUrl: '',
+                            imageFile: null,
+                            imagePreview: null
+                          });
+                        }}
+                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Display Existing Participants */}
+              <div className="space-y-6">
+                {/* Speakers */}
+                {participants.speakers && participants.speakers.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <Mic className="w-5 h-5 text-[#5A9B8E]" />
+                      <h4 className="font-semibold text-gray-900">Speakers ({participants.speakers.length})</h4>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {participants.speakers.map((speaker) => (
+                        <div key={speaker.id} className="bg-white rounded-lg p-4 border border-gray-200">
+                          <div className="flex items-center gap-3 mb-2">
+                            <ImagePlaceholder
+                              src={speaker.imageUrl}
+                              alt={speaker.name}
+                              name={speaker.name}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 truncate">{speaker.name}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              type="button"
+                              onClick={() => handleEditParticipant(speaker)}
+                              className="flex-1 px-3 py-1.5 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors text-xs"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteParticipant(speaker.id, speaker.imagePath)}
+                              className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Scientific Committee */}
+                {participants.scientific_committee && participants.scientific_committee.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <GraduationCap className="w-5 h-5 text-[#5A9B8E]" />
+                      <h4 className="font-semibold text-gray-900">Scientific Committee ({participants.scientific_committee.length})</h4>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {participants.scientific_committee.map((member) => (
+                        <div key={member.id} className="bg-white rounded-lg p-4 border border-gray-200">
+                          <div className="flex items-center gap-3 mb-2">
+                            <ImagePlaceholder
+                              src={member.imageUrl}
+                              alt={member.name}
+                              name={member.name}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 truncate">{member.name}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              type="button"
+                              onClick={() => handleEditParticipant(member)}
+                              className="flex-1 px-3 py-1.5 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors text-xs"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteParticipant(member.id, member.imagePath)}
+                              className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Organizing Committee */}
+                {participants.organizing_committee && participants.organizing_committee.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 mb-4">
+                      <Briefcase className="w-5 h-5 text-[#5A9B8E]" />
+                      <h4 className="font-semibold text-gray-900">Organizing Committee ({participants.organizing_committee.length})</h4>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {participants.organizing_committee.map((member) => (
+                        <div key={member.id} className="bg-white rounded-lg p-4 border border-gray-200">
+                          <div className="flex items-center gap-3 mb-2">
+                            <ImagePlaceholder
+                              src={member.imageUrl}
+                              alt={member.name}
+                              name={member.name}
+                              className="w-12 h-12 rounded-full object-cover"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-gray-900 truncate">{member.name}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 mt-2">
+                            <button
+                              type="button"
+                              onClick={() => handleEditParticipant(member)}
+                              className="flex-1 px-3 py-1.5 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors text-xs"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteParticipant(member.id, member.imagePath)}
+                              className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Form Actions */}
           <div className="flex items-center justify-end gap-4 pt-6 border-t border-gray-200">

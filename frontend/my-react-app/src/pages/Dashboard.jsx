@@ -528,6 +528,14 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
                         </div>
                     </div>
 
+                    {/* Location */}
+                    {form.location && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-2">Location</h3>
+                            <p className="text-gray-700">{form.location}</p>
+                        </div>
+                    )}
+
                     {/* Previous Work */}
                     <div className="bg-gray-50 rounded-lg p-6">
                         <h3 className="text-lg font-semibold text-gray-900 mb-4">Previous Work Experience</h3>
@@ -2568,7 +2576,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         const matchesSearch = 
             form.username.toLowerCase().includes(formSearchTerm.toLowerCase()) ||
             form.email.toLowerCase().includes(formSearchTerm.toLowerCase()) ||
-            form.specialty.some(s => s.toLowerCase().includes(formSearchTerm.toLowerCase()));
+            form.specialty.some(s => s.toLowerCase().includes(formSearchTerm.toLowerCase())) ||
+            (form.location && form.location.toLowerCase().includes(formSearchTerm.toLowerCase()));
         
         const matchesStatus = statusFilter === 'all' || form.status === statusFilter;
         
@@ -4182,6 +4191,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Applicant</th>
                                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Email</th>
                                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Specialty</th>
+                                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Location</th>
                                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Submitted</th>
                                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
                                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Actions</th>
@@ -4204,6 +4214,9 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                                     </span>
                                                                 ))}
                                                             </div>
+                                                        </td>
+                                                        <td className="px-6 py-4 whitespace-nowrap">
+                                                            <div className="text-sm text-gray-600">{form.location || 'N/A'}</div>
                                                         </td>
                                                         <td className="px-6 py-4 whitespace-nowrap">
                                                             <div className="text-sm text-gray-600">
@@ -4282,6 +4295,12 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                         ))}
                                                     </div>
                                                 </div>
+                                                {form.location && (
+                                                    <div className="mb-3">
+                                                        <p className="text-xs text-gray-500 mb-1.5">Location:</p>
+                                                        <p className="text-sm text-gray-700 font-medium">{form.location}</p>
+                                                    </div>
+                                                )}
                                                 <div className="flex items-center gap-2 pt-2 border-t border-gray-100">
                                                     <button
                                                         onClick={() => setSelectedForm(form)}

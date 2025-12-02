@@ -239,6 +239,7 @@ export const membersService = {
       name: supabaseMember.name,
       email: supabaseMember.email,
       role: supabaseMember.role,
+      displayRole: supabaseMember.display_role || null,
       nationality: supabaseMember.nationality,
       flagCode: supabaseMember.flag_code,
       description: supabaseMember.description,
@@ -247,6 +248,7 @@ export const membersService = {
       isActive: supabaseMember.is_active,
       activeTill: supabaseMember.active_till,
       certificates: supabaseMember.certificates || [],
+      specialty: supabaseMember.specialty || [], // Specialty field (JSONB array from database)
       phone: supabaseMember.phone,
       location: supabaseMember.location,
       website: supabaseMember.website,
@@ -255,8 +257,9 @@ export const membersService = {
       totalMoneySpent: supabaseMember.total_money_spent || "0 EGP",
       coursesEnrolled: supabaseMember.courses_enrolled || 0,
       totalHoursLearned: supabaseMember.total_hours_learned || 0,
-      activeCourses: supabaseMember.active_courses || [],
-      completedCourses: supabaseMember.completed_courses || [],
+      // Ensure activeCourses and completedCourses are always arrays, never null or undefined
+      activeCourses: Array.isArray(supabaseMember.active_courses) ? supabaseMember.active_courses : (supabaseMember.active_courses ? [supabaseMember.active_courses] : []),
+      completedCourses: Array.isArray(supabaseMember.completed_courses) ? supabaseMember.completed_courses : (supabaseMember.completed_courses ? [supabaseMember.completed_courses] : []),
     };
   },
 
@@ -267,6 +270,7 @@ export const membersService = {
       name: localMember.name || "",
       email: localMember.email || "",
       role: localMember.role || "Member",
+      display_role: localMember.displayRole || null, // Public-facing role (can be null)
       nationality: localMember.nationality || "Egyptian",
       flag_code: localMember.flagCode || "eg",
       description: localMember.description || "",
@@ -276,6 +280,7 @@ export const membersService = {
         localMember.isActive !== undefined ? localMember.isActive : true,
       active_till: localMember.activeTill || "",
       certificates: localMember.certificates || [],
+      specialty: localMember.specialty || [], // Specialty field (JSONB array to database)
       phone: localMember.phone || "",
       location: localMember.location || "",
       website: localMember.website || "",
@@ -284,8 +289,9 @@ export const membersService = {
       total_money_spent: localMember.totalMoneySpent || "0 EGP",
       courses_enrolled: localMember.coursesEnrolled || 0,
       total_hours_learned: localMember.totalHoursLearned || 0,
-      active_courses: localMember.activeCourses || [],
-      completed_courses: localMember.completedCourses || [],
+      // Ensure active_courses and completed_courses are always valid JSONB arrays
+      active_courses: Array.isArray(localMember.activeCourses) ? localMember.activeCourses : (localMember.activeCourses ? [localMember.activeCourses] : []),
+      completed_courses: Array.isArray(localMember.completedCourses) ? localMember.completedCourses : (localMember.completedCourses ? [localMember.completedCourses] : []),
     };
   },
 

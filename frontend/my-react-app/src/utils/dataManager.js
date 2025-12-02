@@ -266,6 +266,15 @@ export const coursesManager = {
       const { data, error } = await coursesService.update(id, supabaseCourse);
       
       if (error) {
+        console.error("❌ Supabase update error details:", {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+      }
+      
+      if (error) {
         // If course doesn't exist in Supabase, try to add it
         if (error.code === 'PGRST116' || error.message?.includes('No rows found') || error.message?.includes('not found')) {
           console.log("Course not found in Supabase, attempting to add instead...");
@@ -882,6 +891,9 @@ export const membersManager = {
       role: updatedMember.role !== undefined && updatedMember.role !== null && String(updatedMember.role).trim() !== ""
         ? String(updatedMember.role).trim()
         : (existingMember.role || "Member"),
+      displayRole: updatedMember.displayRole !== undefined
+        ? (updatedMember.displayRole !== null && String(updatedMember.displayRole).trim() !== "" ? String(updatedMember.displayRole).trim() : null)
+        : (existingMember.displayRole || null),
       nationality: updatedMember.nationality !== undefined && updatedMember.nationality !== null && String(updatedMember.nationality).trim() !== ""
         ? String(updatedMember.nationality).trim()
         : (existingMember.nationality || "Egyptian"),
@@ -927,8 +939,13 @@ export const membersManager = {
       totalMoneySpent: updatedMember.totalMoneySpent !== undefined ? updatedMember.totalMoneySpent : (existingMember.totalMoneySpent || '0 EGP'),
       coursesEnrolled: updatedMember.coursesEnrolled !== undefined ? updatedMember.coursesEnrolled : (existingMember.coursesEnrolled || 0),
       totalHoursLearned: updatedMember.totalHoursLearned !== undefined ? updatedMember.totalHoursLearned : (existingMember.totalHoursLearned || 0),
-      activeCourses: updatedMember.activeCourses !== undefined ? updatedMember.activeCourses : (existingMember.activeCourses || []),
-      completedCourses: updatedMember.completedCourses !== undefined ? updatedMember.completedCourses : (existingMember.completedCourses || []),
+      // Always preserve activeCourses and completedCourses - never lose data
+      activeCourses: Array.isArray(updatedMember.activeCourses) && updatedMember.activeCourses.length >= 0
+        ? updatedMember.activeCourses
+        : (Array.isArray(existingMember.activeCourses) ? existingMember.activeCourses : []),
+      completedCourses: Array.isArray(updatedMember.completedCourses) && updatedMember.completedCourses.length >= 0
+        ? updatedMember.completedCourses
+        : (Array.isArray(existingMember.completedCourses) ? existingMember.completedCourses : []),
     };
 
     // Update in Supabase FIRST (source of truth)
