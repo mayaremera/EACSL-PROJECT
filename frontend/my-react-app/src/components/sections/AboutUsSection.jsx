@@ -12,7 +12,7 @@ const AboutUsSection = () => {
           {/* Left Content */}
           <div>
             {/* About Us Label */}
-            <div className="mb-6 sm:mb-3 inline-block pt-2 sm:pt-0">
+            <div className="mb-5 sm:mb-6 inline-block pt-2 sm:pt-0">
               <span className="text-sm font-bold tracking-wider text-black block mb-[-0.1rem]">
                 ABOUT US
               </span>
@@ -20,13 +20,13 @@ const AboutUsSection = () => {
             </div>
 
             {/* Title With Logo */}
-            <div className="flex items-left justify-left lg:justify-start mb-5 lg:mb-9 mt-[0.5rem] lg:mt-0">
+            <div className="flex items-left justify-left lg:justify-start mb-5 lg:mb-3 mt-[0.5rem] lg:mt-0">
               <img
                 src={halfCircle}
                 alt="Logo"
                 className="w-[3.5rem] h-[4.5rem] flex-shrink-0"
               />
-              <h2 className="text-[1.8rem] md:text-5xl lg:text-[2.5rem] font-semibold text-black leading-tight lg:leading-[2.3rem] ml-1 lg:ml-0">
+              <h2 className="text-[1.8rem] md:text-5xl lg:text-[2.5rem] font-semibold text-black leading-tight lg:leading-[2.3rem] ml-3 lg:ml-0 lg:mb-3">
                 <span className="block">Get to know</span>
                 <span className="block">us better</span>
               </h2>

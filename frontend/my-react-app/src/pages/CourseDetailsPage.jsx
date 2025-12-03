@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { BookOpen, Clock, Users, Calendar, Award, CheckCircle, PlayCircle, FileText, Globe, Video, ExternalLink, Download } from 'lucide-react';
+import { BookOpen, Clock, Users, Calendar, Award, CheckCircle, PlayCircle, FileText, Globe, Video, ExternalLink, Download, ChevronDown, ChevronUp } from 'lucide-react';
 import { coursesManager, initializeData } from '../utils/dataManager';
 import { useAuth } from '../contexts/AuthContext';
 import PageHero from '../components/ui/PageHero';
@@ -13,10 +13,25 @@ const CourseDetailPage = () => {
     const { user, loading: authLoading, isRefreshingToken } = useAuth();
     const [activeTab, setActiveTab] = useState('details');
     const [courseData, setCourseData] = useState(null);
+    const [expandedLessons, setExpandedLessons] = useState(new Set());
     const redirectTimeoutRef = useRef(null);
     const lastUserCheckRef = useRef(null);
     const courseRefreshIntervalRef = useRef(null);
     const lastCourseFetchRef = useRef(0);
+
+    // Toggle lesson expansion
+    const toggleLesson = (sectionIndex, lessonIndex) => {
+        const lessonKey = `${sectionIndex}-${lessonIndex}`;
+        setExpandedLessons(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(lessonKey)) {
+                newSet.delete(lessonKey);
+            } else {
+                newSet.add(lessonKey);
+            }
+            return newSet;
+        });
+    };
 
     // Helper function to convert YouTube watch URLs to embed URLs
     const convertToEmbedUrl = (url) => {
@@ -342,15 +357,22 @@ const CourseDetailPage = () => {
                                     <h4 className="font-semibold text-white text-lg">{section.title}</h4>
                                 </div>
                                 {section.lessons && section.lessons.length > 0 && (
-                                    <div className="px-5 py-4 space-y-4">
-                                        {section.lessons.map((lesson, lessonIndex) => (
-                                            <div key={lessonIndex} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
-                                                {/* Lesson Header */}
-                                                <div className="flex items-start gap-3 mb-3">
+                                    <div className="px-5 py-4 space-y-3">
+                                        {section.lessons.map((lesson, lessonIndex) => {
+                                            const lessonKey = `${sectionIndex}-${lessonIndex}`;
+                                            const isExpanded = expandedLessons.has(lessonKey);
+                                            
+                                            return (
+                                                <div key={lessonIndex} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                                                    {/* Lesson Header - Clickable */}
+                                                    <button
+                                                        onClick={() => toggleLesson(sectionIndex, lessonIndex)}
+                                                        className="w-full flex items-start gap-3 p-4 text-left hover:bg-gray-50 transition-colors"
+                                                    >
                                                     {lesson.type === 'video' && <Video className="w-5 h-5 text-[#5A9B8E] flex-shrink-0 mt-0.5" />}
                                                     {lesson.type === 'pdf' && <FileText className="w-5 h-5 text-[#5A9B8E] flex-shrink-0 mt-0.5" />}
                                                     {lesson.type === 'quiz_link' && <Award className="w-5 h-5 text-[#5A9B8E] flex-shrink-0 mt-0.5" />}
-                                                    <div className="flex-1">
+                                                        <div className="flex-1 min-w-0">
                                                         <p className="text-gray-900 font-semibold text-base">{lesson.name}</p>
                                                         {lesson.duration && (
                                                             <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
@@ -359,11 +381,21 @@ const CourseDetailPage = () => {
                                                             </p>
                                                         )}
                                                     </div>
+                                                        <div className="flex-shrink-0 ml-2">
+                                                            {isExpanded ? (
+                                                                <ChevronUp className="w-5 h-5 text-gray-500" />
+                                                            ) : (
+                                                                <ChevronDown className="w-5 h-5 text-gray-500" />
+                                                            )}
                                                 </div>
+                                                    </button>
                                                 
+                                                    {/* Lesson Content - Collapsible */}
+                                                    {isExpanded && (
+                                                        <div className="px-4 pb-4 border-t border-gray-100">
                                                 {/* Video Player */}
                                                 {lesson.type === 'video' && lesson.videoUrl && (
-                                                    <div className="mt-3">
+                                                                <div className="mt-4">
                                                         <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
                                                             <iframe
                                                                 src={convertToEmbedUrl(lesson.videoUrl)}
@@ -379,7 +411,7 @@ const CourseDetailPage = () => {
                                                 
                                                 {/* PDF Viewer/Download */}
                                                 {lesson.type === 'pdf' && lesson.pdfUrl && (
-                                                    <div className="mt-3">
+                                                                <div className="mt-4">
                                                         <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                                                             <div className="flex items-center justify-between">
                                                                 <div className="flex items-center gap-2">
@@ -411,7 +443,7 @@ const CourseDetailPage = () => {
                                                 
                                                 {/* Quiz Link */}
                                                 {lesson.type === 'quiz_link' && lesson.quizUrl && (
-                                                    <div className="mt-3">
+                                                                <div className="mt-4">
                                                         <a
                                                             href={lesson.quizUrl}
                                                             target="_blank"
@@ -429,12 +461,15 @@ const CourseDetailPage = () => {
                                                 {((lesson.type === 'video' && !lesson.videoUrl) || 
                                                   (lesson.type === 'pdf' && !lesson.pdfUrl) || 
                                                   (lesson.type === 'quiz_link' && !lesson.quizUrl)) && (
-                                                    <div className="mt-3 text-sm text-gray-500 italic">
+                                                                <div className="mt-4 text-sm text-gray-500 italic">
                                                         Content URL not provided
                                                     </div>
                                                 )}
                                             </div>
-                                        ))}
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -566,10 +601,12 @@ const CourseDetailPage = () => {
                                 </div>
                             )}
 
-                            {/* Buy Button */}
+                            {/* Buy Button - Only show when price exists */}
+                            {courseData.price && courseData.price !== '0' && String(courseData.price).trim() !== '' && (
                             <button className="w-full bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white py-3 rounded-lg font-semibold transition-colors mb-6">
                                 BUY NOW
                             </button>
+                            )}
 
                             {/* Course Info */}
                             <div className="space-y-4 mb-6">

@@ -3831,10 +3831,10 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                             {article.category}
                                                         </span>
                                                     </div>
-                                                    <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-2">
+                                                    <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-1">
                                                         {article.titleEn}
                                                     </h3>
-                                                    <p className="text-gray-600 text-xs mb-3 line-clamp-2">
+                                                    <p className="text-gray-600 text-xs mb-3 h-10 line-clamp-2 overflow-hidden">
                                                         {article.excerptEn}
                                                     </p>
                                                     <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
@@ -3912,15 +3912,15 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                     />
                                                 </div>
                                                 <div className="p-4">
-                                                    <div className="flex items-center gap-2 mb-2">
+                                                    <div className="flex items-center justify-end gap-2 mb-2">
                                                         <div className="p-2 bg-teal-50 rounded-full">
                                                             <Icon className="w-5 h-5 text-[#5A9B8E]" />
                                                         </div>
                                                     </div>
-                                                    <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2" dir="rtl">
+                                                    <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-1" dir="rtl">
                                                         {program.title}
                                                     </h3>
-                                                    <p className="text-gray-600 text-sm mb-3 line-clamp-3" dir="rtl">
+                                                    <p className="text-gray-600 text-sm mb-3 h-16 line-clamp-3 overflow-hidden" dir="rtl">
                                                         {program.description}
                                                     </p>
                                                     <div className="flex items-center gap-2 pt-3 border-t border-gray-200">
@@ -3985,15 +3985,15 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                 />
                                             </div>
                                             <div className="p-4">
-                                                <div className="flex items-center gap-2 mb-2">
+                                                <div className="flex items-center justify-end gap-2 mb-2">
                                                     <div className="p-2 bg-teal-50 rounded-full">
                                                         <BookOpen className="w-5 h-5 text-[#5A9B8E]" />
                                                     </div>
                                                 </div>
-                                                <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2" dir="rtl">
+                                                <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-1" dir="rtl">
                                                     {article.title}
                                                 </h3>
-                                                <p className="text-gray-600 text-sm mb-3 line-clamp-2" dir="rtl">
+                                                <p className="text-gray-600 text-sm mb-3 h-10 line-clamp-2 overflow-hidden" dir="rtl">
                                                     {article.excerpt}
                                                 </p>
                                                 <div className="flex items-center justify-between text-xs text-gray-500 mb-3">

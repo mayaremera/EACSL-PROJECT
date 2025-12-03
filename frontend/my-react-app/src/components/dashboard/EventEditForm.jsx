@@ -35,7 +35,8 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
     heroImageUrl: '',
     day1Title: 'Day One - Knowledge and Innovation',
     day2Title: 'Day Two - Collaboration and Future Directions',
-    eventDate: ''
+    eventDate: '',
+    heroCardSpeakers: [] // Array of objects with {id, role} to display on hero card
   });
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -95,7 +96,13 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
         heroImageUrl: event.heroImageUrl || '',
         day1Title: event.day1Title || 'Day One - Knowledge and Innovation',
         day2Title: event.day2Title || 'Day Two - Collaboration and Future Directions',
-        eventDate: formattedDate
+        eventDate: formattedDate,
+        heroCardSpeakers: event.heroCardSpeakers || (event.hero_card_speakers ? 
+          (Array.isArray(event.hero_card_speakers) && event.hero_card_speakers.length > 0 && typeof event.hero_card_speakers[0] === 'object' 
+            ? event.hero_card_speakers 
+            : event.hero_card_speakers.map(id => ({ id, role: '' }))
+          ) : []
+        )
       });
       // Set preview if image exists
       if (event.heroImageUrl) {
@@ -581,6 +588,138 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
               <p className="mt-1 text-xs text-gray-500">
                 This date will be displayed in the hero section badge instead of "TBA" and "2025"
               </p>
+            </div>
+          </div>
+
+          {/* Event Card Hero Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Event Card Hero Section</h3>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Event Date (for Card)
+              </label>
+              <input
+                type="date"
+                name="eventDate"
+                value={formData.eventDate}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                The event date displayed on the hero card badge
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Featured Speakers (for Hero Card)
+              </label>
+              <p className="text-xs text-gray-500 mb-3">
+                Select up to 4 speakers and assign a role for each. The role will be displayed on the hero card instead of bio.
+              </p>
+              {participants.speakers && participants.speakers.length > 0 ? (
+                <div className="space-y-3">
+                  {/* Speaker Selection */}
+                  <div className="space-y-2 max-h-60 overflow-y-auto border border-gray-200 rounded-lg p-4">
+                    {participants.speakers.map((speaker) => {
+                      const isSelected = formData.heroCardSpeakers.some(s => s.id === speaker.id);
+                      return (
+                        <label
+                          key={speaker.id}
+                          className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                // Limit to 4 speakers
+                                if (formData.heroCardSpeakers.length < 4) {
+                                  setFormData({
+                                    ...formData,
+                                    heroCardSpeakers: [...formData.heroCardSpeakers, { id: speaker.id, role: '' }]
+                                  });
+                                } else {
+                                  alert('You can only select up to 4 speakers for the hero card.');
+                                }
+                              } else {
+                                setFormData({
+                                  ...formData,
+                                  heroCardSpeakers: formData.heroCardSpeakers.filter(s => s.id !== speaker.id)
+                                });
+                              }
+                            }}
+                            className="w-4 h-4 text-[#5A9B8E] border-gray-300 rounded focus:ring-[#5A9B8E]"
+                          />
+                          <ImagePlaceholder
+                            src={speaker.imageUrl}
+                            alt={speaker.name}
+                            name={speaker.name}
+                            className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900">{speaker.name}</p>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+
+                  {/* Selected Speakers with Role Input */}
+                  {formData.heroCardSpeakers.length > 0 && (
+                    <div className="space-y-3 border border-gray-200 rounded-lg p-4 bg-gray-50">
+                      <p className="text-xs font-medium text-gray-700 mb-2">Assign roles for selected speakers:</p>
+                      {formData.heroCardSpeakers.map((selectedSpeaker, index) => {
+                        const speaker = participants.speakers.find(s => s.id === selectedSpeaker.id);
+                        return (
+                          <div key={selectedSpeaker.id} className="flex items-center gap-3">
+                            <ImagePlaceholder
+                              src={speaker?.imageUrl}
+                              alt={speaker?.name}
+                              name={speaker?.name}
+                              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+                            />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-gray-700 mb-1">{speaker?.name}</p>
+                              <input
+                                type="text"
+                                placeholder="e.g., Keynote Speaker, Program Director"
+                                value={selectedSpeaker.role || ''}
+                                onChange={(e) => {
+                                  const updated = [...formData.heroCardSpeakers];
+                                  updated[index].role = e.target.value;
+                                  setFormData({
+                                    ...formData,
+                                    heroCardSpeakers: updated
+                                  });
+                                }}
+                                className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="border border-gray-200 rounded-lg p-4 text-center text-sm text-gray-500">
+                  No speakers added yet. Add speakers in the "Event Participants" section first.
+                </div>
+              )}
+              <div className="mt-2 flex items-center justify-between">
+                {formData.heroCardSpeakers.length > 0 && (
+                  <p className="text-xs text-green-600 font-medium">
+                    {formData.heroCardSpeakers.length} speaker{formData.heroCardSpeakers.length !== 1 ? 's' : ''} selected
+                  </p>
+                )}
+                {formData.heroCardSpeakers.length === 4 && (
+                  <p className="text-xs text-amber-600 font-medium">
+                    Maximum reached (4/4)
+                  </p>
+                )}
+              </div>
             </div>
           </div>
 

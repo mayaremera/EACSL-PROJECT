@@ -7,7 +7,6 @@ import {
     Globe,
     Linkedin,
     Award,
-    Briefcase,
     FileText,
     Calendar,
     BookOpen,
@@ -108,18 +107,40 @@ function MemberProfile() {
         linkedin: member.linkedin || '',
         activeTill: member.activeTill || '',
         about: member.fullDescription || member.description || '',
-        specializations: member.certificates || []
+        specializations: Array.isArray(member.specialty) ? member.specialty : []
     };
 
-    const certificates = (member.certificates || []).map(cert => ({
-        name: cert,
-        issuer: "EACSL",
-        date: member.membershipDate || '',
-        verified: true
-    }));
+    // Handle certificates: support both old string format and new object format
+    const certificates = (member.certificates || []).map(cert => {
+        // If it's already an object with title/image, use it
+        if (typeof cert === 'object' && cert !== null && cert.title) {
+            return {
+                name: cert.title,
+                image: cert.image || '',
+                date: member.membershipDate || '',
+                verified: true
+            };
+        }
+        // If it's a string (old format), convert to object
+        if (typeof cert === 'string') {
+            return {
+                name: cert,
+                image: '',
+                date: member.membershipDate || '',
+                verified: true
+            };
+        }
+        // Fallback
+        return {
+            name: String(cert),
+            image: '',
+            date: member.membershipDate || '',
+            verified: true
+        };
+    });
 
-    const experience = member.experience || [];
     const courses = member.courses || [];
+    const customCourses = member.customCourses || [];
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -234,7 +255,6 @@ function MemberProfile() {
                     <div className="flex border-b border-gray-200 min-w-max">
                         {[
                             { id: 'about', label: 'About', icon: FileText },
-                            { id: 'experience', label: 'Experience', icon: Briefcase },
                             { id: 'certificates', label: 'Certificates', icon: Award },
                             { id: 'courses', label: 'Courses', icon: BookOpen }
                         ].map((tab) => {
@@ -278,45 +298,6 @@ function MemberProfile() {
                         </div>
                     )}
 
-                    {/* Experience Section */}
-                    {activeTab === 'experience' && (
-                        <div className="bg-white rounded-xl shadow-sm p-6 md:p-8">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-6">Professional Experience</h2>
-                            {experience.length === 0 ? (
-                                <div className="text-center py-12">
-                                    <Briefcase className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                    <p className="text-gray-500">No experience information available</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-6">
-                                    {experience.map((job, index) => (
-                                        <div key={index} className="relative pl-8 pb-6 border-l-2 border-gray-200 last:border-0 last:pb-0">
-                                            <div className="absolute left-0 top-0 w-4 h-4 rounded-full bg-[#5A9B8E] -ml-[9px] border-4 border-white"></div>
-                                            <div className="bg-gray-50 rounded-lg p-5">
-                                                <h3 className="text-xl font-bold text-gray-900 mb-1">{job.title}</h3>
-                                                <div className="flex items-center gap-2 text-[#5A9B8E] font-semibold mb-2">
-                                                    <Briefcase className="w-4 h-4" />
-                                                    <span>{job.company}</span>
-                                                </div>
-                                                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 mb-3">
-                                                    <div className="flex items-center gap-1">
-                                                        <MapPin className="w-4 h-4" />
-                                                        <span>{job.location}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1">
-                                                        <Calendar className="w-4 h-4" />
-                                                        <span>{job.period}</span>
-                                                    </div>
-                                                </div>
-                                                <p className="text-gray-700 leading-relaxed">{job.description}</p>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
                     {/* Certificates Section */}
                     {activeTab === 'certificates' && (
                         <div className="bg-white rounded-xl shadow-sm p-6 md:p-8">
@@ -327,9 +308,19 @@ function MemberProfile() {
                                     <p className="text-gray-500">No certificates available</p>
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     {certificates.map((cert, index) => (
-                                        <div key={index} className="bg-gradient-to-br from-gray-50 to-white rounded-lg p-6 border border-gray-200 hover:shadow-md transition-shadow duration-200">
+                                        <div key={index} className="bg-gradient-to-br from-gray-50 to-white rounded-lg p-5 border border-gray-200 hover:shadow-md transition-shadow duration-200 flex flex-col">
+                                            {cert.image && (
+                                                <div className="mb-4 rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center p-2" style={{ minHeight: '200px', maxHeight: '320px' }}>
+                                                    <ImagePlaceholder
+                                                        src={cert.image}
+                                                        alt={cert.name}
+                                                        name={cert.name}
+                                                        className="max-w-full max-h-full w-auto h-auto object-contain"
+                                                    />
+                                                </div>
+                                            )}
                                             <div className="flex items-start justify-between mb-3">
                                                 <Award className="w-8 h-8 text-[#5A9B8E] flex-shrink-0" />
                                                 {cert.verified && (
@@ -352,43 +343,97 @@ function MemberProfile() {
                     {/* Courses Section */}
                     {activeTab === 'courses' && (
                         <div className="bg-white rounded-xl shadow-sm p-6 md:p-8">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-6">EACSL Courses & Training</h2>
-                            {courses.length === 0 ? (
+                            <h2 className="text-2xl font-bold text-gray-900 mb-6">Courses & Training</h2>
+                            
+                            {/* Regular Courses */}
+                            {courses.length > 0 && (
+                                <div className="mb-8">
+                                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Website Courses</h3>
+                                    <div className="space-y-4">
+                                        {courses.map((course, index) => (
+                                            <div key={index} className="bg-gray-50 rounded-lg p-5 border border-gray-200 hover:border-[#5A9B8E] transition-colors duration-200">
+                                                <div className="flex items-start justify-between gap-4 mb-3">
+                                                    <div className="flex-1">
+                                                        <h3 className="text-lg font-bold text-gray-900 mb-1">{course.title}</h3>
+                                                        <div className="flex items-center gap-2 text-sm text-gray-600">
+                                                            <BookOpen className="w-4 h-4 text-[#5A9B8E]" />
+                                                            <span>{course.provider}</span>
+                                                        </div>
+                                                    </div>
+                                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${course.status === 'Completed'
+                                                        ? 'bg-green-100 text-green-700'
+                                                        : 'bg-blue-100 text-blue-700'
+                                                        }`}>
+                                                        {course.status}
+                                                    </span>
+                                                </div>
+                                                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
+                                                    <div className="flex items-center gap-1">
+                                                        <Calendar className="w-4 h-4" />
+                                                        <span>{course.date}</span>
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <Award className="w-4 h-4" />
+                                                        <span>{course.hours}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Custom Courses */}
+                            {customCourses.length > 0 && (
+                                <div className={courses.length > 0 ? "mt-8" : ""}>
+                                    {courses.length > 0 && <h3 className="text-lg font-semibold text-gray-800 mb-4">Custom Courses</h3>}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {customCourses.map((course, index) => (
+                                            <div 
+                                                key={index} 
+                                                className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 group cursor-pointer"
+                                            >
+                                                {/* Image Section */}
+                                                <div className="relative h-56 overflow-hidden bg-gradient-to-br from-[#5A9B8E]/10 to-[#5A9B8E]/5">
+                                                    {course.image ? (
+                                                        <ImagePlaceholder
+                                                            src={course.image}
+                                                            alt={course.title}
+                                                            name={course.title}
+                                                            className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                                                        />
+                                                    ) : (
+                                                        <div className="w-full h-full flex items-center justify-center">
+                                                            <BookOpen className="w-16 h-16 text-[#5A9B8E]/30" />
+                                                        </div>
+                                                    )}
+                                                    {/* Overlay gradient on hover */}
+                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                                    {/* Course icon badge */}
+                                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm p-2.5 rounded-lg shadow-md">
+                                                        <BookOpen className="w-5 h-5 text-[#5A9B8E]" />
+                                                    </div>
+                                                </div>
+                                                
+                                                {/* Content Section */}
+                                                <div className="p-5">
+                                                    <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-[#5A9B8E] transition-colors duration-200 leading-tight">
+                                                        {course.title}
+                                                    </h3>
+                                                    <div className="flex items-center gap-2 text-sm text-gray-600 mt-3">
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* No Courses Message */}
+                            {courses.length === 0 && customCourses.length === 0 && (
                                 <div className="text-center py-12">
                                     <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
                                     <p className="text-gray-500">No courses information available</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    {courses.map((course, index) => (
-                                        <div key={index} className="bg-gray-50 rounded-lg p-5 border border-gray-200 hover:border-[#5A9B8E] transition-colors duration-200">
-                                            <div className="flex items-start justify-between gap-4 mb-3">
-                                                <div className="flex-1">
-                                                    <h3 className="text-lg font-bold text-gray-900 mb-1">{course.title}</h3>
-                                                    <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                        <BookOpen className="w-4 h-4 text-[#5A9B8E]" />
-                                                        <span>{course.provider}</span>
-                                                    </div>
-                                                </div>
-                                                <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${course.status === 'Completed'
-                                                    ? 'bg-green-100 text-green-700'
-                                                    : 'bg-blue-100 text-blue-700'
-                                                    }`}>
-                                                    {course.status}
-                                                </span>
-                                            </div>
-                                            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                                                <div className="flex items-center gap-1">
-                                                    <Calendar className="w-4 h-4" />
-                                                    <span>{course.date}</span>
-                                                </div>
-                                                <div className="flex items-center gap-1">
-                                                    <Award className="w-4 h-4" />
-                                                    <span>{course.hours}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ))}
                                 </div>
                             )}
                         </div>

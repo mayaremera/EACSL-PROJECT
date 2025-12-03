@@ -1,24 +1,74 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import WaelAlDakroury from "../../assets/waelaldakroury.png";
-import OsamaElsayed from "../../assets/osamaelsayed.png";
-import SaharAAlsamahi from "../../assets/saharalsamahi.png";
-import MohamedGweda from "../../assets/mohamedgwida.png";
-import Booklet from "../../assets/booklet.png";
 import { eventsManager } from "../../utils/dataManager";
+import { eventParticipantsService } from "../../services/eventParticipantsService";
+import ImagePlaceholder from "../ui/ImagePlaceholder";
 
 // ----------------------------
 // Event Card (unchanged)
 // ----------------------------
 const EventCard = () => {
   const [eventData, setEventData] = useState(null);
+  const [heroCardSpeakers, setHeroCardSpeakers] = useState([]);
 
   useEffect(() => {
+    const loadHeroCardSpeakers = async (event) => {
+      if (!event || !event.id || !event.heroCardSpeakers || event.heroCardSpeakers.length === 0) {
+        setHeroCardSpeakers([]);
+        return;
+      }
+
+      try {
+        // Get all participants for this event
+        const participantsResult = await eventParticipantsService.getByEventId(event.id);
+        if (participantsResult.data && !participantsResult.error) {
+          const allSpeakers = participantsResult.data.speakers || [];
+          
+          // Handle both old format (array of IDs) and new format (array of objects with id and role)
+          const heroCardSpeakersData = event.heroCardSpeakers.map(item => {
+            if (typeof item === 'object' && item.id) {
+              return item; // New format: {id, role}
+            } else {
+              return { id: item, role: '' }; // Old format: just ID
+            }
+          });
+          
+          // Filter to only include speakers in heroCardSpeakers array
+          const featuredSpeakers = heroCardSpeakersData
+            .map(heroSpeaker => {
+              const speaker = allSpeakers.find(s => s.id === heroSpeaker.id);
+              if (speaker) {
+                return {
+                  ...speaker,
+                  role: heroSpeaker.role || ''
+                };
+              }
+              return null;
+            })
+            .filter(Boolean)
+            .slice(0, 4); // Limit to 4 speakers
+          
+          setHeroCardSpeakers(featuredSpeakers);
+        }
+      } catch (error) {
+        console.error('Error loading hero card speakers:', error);
+        setHeroCardSpeakers([]);
+      }
+    };
+
     const loadEvent = async () => {
       // First, load from cache for immediate display
-      const cachedEvents = eventsManager.getUpcomingSync();
-      if (cachedEvents && cachedEvents.length > 0) {
-        setEventData(cachedEvents[0]);
+      const cachedUpcoming = eventsManager.getUpcomingSync();
+      if (cachedUpcoming && cachedUpcoming.length > 0) {
+        setEventData(cachedUpcoming[0]);
+        await loadHeroCardSpeakers(cachedUpcoming[0]);
+      } else {
+        // If no upcoming events, try to get the most recent past event
+        const cachedPast = eventsManager.getPastSync();
+        if (cachedPast && cachedPast.length > 0) {
+          setEventData(cachedPast[0]);
+          await loadHeroCardSpeakers(cachedPast[0]);
+        }
       }
       
       // Then refresh from Supabase in the background
@@ -26,9 +76,17 @@ const EventCard = () => {
         const upcomingEvents = await eventsManager.getUpcoming();
         if (upcomingEvents && upcomingEvents.length > 0) {
           setEventData(upcomingEvents[0]);
+          await loadHeroCardSpeakers(upcomingEvents[0]);
+        } else {
+          // If no upcoming events, get the most recent past event
+          const pastEvents = await eventsManager.getPast();
+          if (pastEvents && pastEvents.length > 0) {
+            setEventData(pastEvents[0]);
+            await loadHeroCardSpeakers(pastEvents[0]);
+          }
         }
       } catch (error) {
-        console.error('Error loading upcoming events:', error);
+        console.error('Error loading events:', error);
       }
     };
 
@@ -40,9 +98,17 @@ const EventCard = () => {
         const upcomingEvents = await eventsManager.getUpcoming();
         if (upcomingEvents && upcomingEvents.length > 0) {
           setEventData(upcomingEvents[0]);
+          await loadHeroCardSpeakers(upcomingEvents[0]);
+        } else {
+          // If no upcoming events, get the most recent past event
+          const pastEvents = await eventsManager.getPast();
+          if (pastEvents && pastEvents.length > 0) {
+            setEventData(pastEvents[0]);
+            await loadHeroCardSpeakers(pastEvents[0]);
+          }
         }
       } catch (error) {
-        console.error('Error loading upcoming events:', error);
+        console.error('Error loading events:', error);
       }
     };
 
@@ -134,76 +200,34 @@ const EventCard = () => {
           {eventSubtitle}
         </p>
 
-        {/* Team Grid - Single row, no text overflow */}
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-4 md:gap-x-10 md:gap-y-4">
-          {/* Person 1 */}
-          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-            <img
-              src={WaelAlDakroury}
-              alt="Wael AlDakroury"
+        {/* Speakers Section */}
+        {heroCardSpeakers && heroCardSpeakers.length > 0 && (
+          <div className="mt-4 flex justify-center">
+            {/* Speakers Grid - 2 columns, 2 rows - Perfectly centered */}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-4 md:gap-x-10 md:gap-y-4 place-items-center">
+              {heroCardSpeakers.slice(0, 4).map((speaker) => (
+                <div key={speaker.id} className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+                  <ImagePlaceholder
+                    src={speaker.imageUrl}
+                    alt={speaker.name}
+                    name={speaker.name}
               className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover object-top flex-shrink-0"
             />
-            <div className="min-w-0 max-w-[120px] md:max-w-[140px]">
-              <div className="text-[0.7rem] md:text-sm font-bold text-black truncate" title="Wael AlDakroury">
-                Wael AlDakroury
-              </div>
-              <div className="text-[0.55rem] md:text-[0.7rem] text-gray-600 truncate" title="Program Director">
-                Program Director
-              </div>
+                  <div className="min-w-0 max-w-[120px] md:max-w-[140px]">
+                    <div className="text-[0.7rem] md:text-sm font-bold text-black truncate" title={speaker.name}>
+                      {speaker.name}
+                    </div>
+                    {speaker.role && (
+                      <div className="text-[0.55rem] md:text-[0.7rem] text-gray-600 truncate" title={speaker.role}>
+                        {speaker.role}
+                      </div>
+                    )}
+                  </div>
+          </div>
+              ))}
             </div>
           </div>
-
-          {/* Person 2 */}
-          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-            <img
-              src={OsamaElsayed}
-              alt="Osama Elsayed"
-              className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover object-top flex-shrink-0"
-            />
-            <div className="min-w-0 max-w-[120px] md:max-w-[140px]">
-              <div className="text-[0.7rem] md:text-sm font-bold text-black truncate" title="Osama Elsayed">
-                Osama Elsayed
-              </div>
-              <div className="text-[0.55rem] md:text-[0.7rem] text-gray-600 truncate" title="General Coordination">
-                General Coordination
-              </div>
-            </div>
-          </div>
-
-          {/* Person 3 */}
-          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-            <img
-              src={SaharAAlsamahi}
-              alt="Sahar A.Alsamahi"
-              className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover object-top flex-shrink-0"
-            />
-            <div className="min-w-0 max-w-[120px] md:max-w-[140px]">
-              <div className="text-[0.7rem] md:text-sm font-bold text-black truncate" title="Sahar A.Alsamahi">
-                Sahar A.Alsamahi
-              </div>
-              <div className="text-[0.55rem] md:text-[0.7rem] text-gray-600 truncate" title="General Coordination">
-                General Coordination
-              </div>
-            </div>
-          </div>
-
-          {/* Person 4 */}
-          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-            <img
-              src={MohamedGweda}
-              alt="Mohamed Gwida"
-              className="w-8 h-8 md:w-9 md:h-9 rounded-full object-cover object-top flex-shrink-0"
-            />
-            <div className="min-w-0 max-w-[120px] md:max-w-[140px]">
-              <div className="text-[0.7rem] md:text-sm font-bold text-black truncate" title="Mohamed Gwida">
-                Mohamed Gwida
-              </div>
-              <div className="text-[0.55rem] md:text-[0.7rem] text-gray-600 truncate" title="Kuwait Committee">
-                Kuwait Committee
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
@@ -218,9 +242,15 @@ const HeroSection = () => {
   React.useEffect(() => {
     const loadEvent = async () => {
       // First, load from cache for immediate display
-      const cachedEvents = eventsManager.getUpcomingSync();
-      if (cachedEvents && cachedEvents.length > 0) {
-        setCurrentEvent(cachedEvents[0]);
+      const cachedUpcoming = eventsManager.getUpcomingSync();
+      if (cachedUpcoming && cachedUpcoming.length > 0) {
+        setCurrentEvent(cachedUpcoming[0]);
+      } else {
+        // If no upcoming events, try to get the most recent past event
+        const cachedPast = eventsManager.getPastSync();
+        if (cachedPast && cachedPast.length > 0) {
+          setCurrentEvent(cachedPast[0]);
+        }
       }
       
       // Then refresh from Supabase in the background
@@ -228,9 +258,15 @@ const HeroSection = () => {
         const upcomingEvents = await eventsManager.getUpcoming();
         if (upcomingEvents && upcomingEvents.length > 0) {
           setCurrentEvent(upcomingEvents[0]);
+        } else {
+          // If no upcoming events, get the most recent past event
+          const pastEvents = await eventsManager.getPast();
+          if (pastEvents && pastEvents.length > 0) {
+            setCurrentEvent(pastEvents[0]);
+          }
         }
       } catch (error) {
-        console.error('Error loading upcoming events:', error);
+        console.error('Error loading events:', error);
       }
     };
 
@@ -242,9 +278,15 @@ const HeroSection = () => {
         const upcomingEvents = await eventsManager.getUpcoming();
         if (upcomingEvents && upcomingEvents.length > 0) {
           setCurrentEvent(upcomingEvents[0]);
+        } else {
+          // If no upcoming events, get the most recent past event
+          const pastEvents = await eventsManager.getPast();
+          if (pastEvents && pastEvents.length > 0) {
+            setCurrentEvent(pastEvents[0]);
+          }
         }
       } catch (error) {
-        console.error('Error loading upcoming events:', error);
+        console.error('Error loading events:', error);
       }
     };
 
@@ -256,6 +298,10 @@ const HeroSection = () => {
 
   const getEnrollUrl = () => {
     if (currentEvent && currentEvent.id) {
+      // If it's a past event, link to past events page, otherwise upcoming events
+      if (currentEvent.status === 'past') {
+        return '/past-events';
+      }
       return `/upcoming-events/${currentEvent.id}`;
     }
     return '/upcoming-events';
@@ -288,7 +334,7 @@ const HeroSection = () => {
             to={getEnrollUrl()}
             className="text-sm md:text-base px-8 py-3 border-2 border-[#5A9B8E] text-[#5A9B8E] font-semibold rounded-md hover:bg-[#5A9B8E] hover:text-white transition-all duration-300 w-fit text-center lg:text-left"
           >
-            Enroll Now
+            {currentEvent?.status === 'past' ? 'View Event' : 'Enroll Now'}
           </Link>
         </div>
 

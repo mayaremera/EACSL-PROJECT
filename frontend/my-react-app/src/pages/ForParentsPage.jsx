@@ -136,10 +136,10 @@ const ForParentsPage = () => {
 
                       {/* Content */}
                       <div className="p-5" dir="rtl" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
-                        <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 hover:text-[#5A9B8E] transition-colors" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '18px' }}>
+                        <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-1 hover:text-[#5A9B8E] transition-colors" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '18px' }}>
                           {article.title}
                         </h3>
-                        <p className="text-sm text-gray-600 mb-4 line-clamp-2" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}>
+                        <p className="text-sm text-gray-600 mb-4 h-10 line-clamp-2 overflow-hidden" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}>
                           {article.excerpt}
                         </p>
 
@@ -186,10 +186,10 @@ const ForParentsPage = () => {
 
                   {/* Content */}
                   <div className="p-5" dir="rtl" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif" }}>
-                    <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 hover:text-[#5A9B8E] transition-colors" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '18px' }}>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-1 hover:text-[#5A9B8E] transition-colors" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '18px' }}>
                       {article.title}
                     </h3>
-                    <p className="text-sm text-gray-600 mb-4 line-clamp-2" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}>
+                    <p className="text-sm text-gray-600 mb-4 h-10 line-clamp-2 overflow-hidden" style={{ fontFamily: "'Cairo', 'Tajawal', 'Almarai', 'Segoe UI', 'Arial', sans-serif", fontSize: '16px' }}>
                       {article.excerpt}
                     </p>
 

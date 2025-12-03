@@ -919,6 +919,9 @@ export const membersManager = {
       certificates: Array.isArray(updatedMember.certificates) && updatedMember.certificates.length > 0
         ? updatedMember.certificates
         : (Array.isArray(existingMember.certificates) ? existingMember.certificates : []),
+      specialty: Array.isArray(updatedMember.specialty) && updatedMember.specialty.length >= 0
+        ? updatedMember.specialty
+        : (Array.isArray(existingMember.specialty) ? existingMember.specialty : []),
       phone: updatedMember.phone !== undefined && updatedMember.phone !== null && String(updatedMember.phone).trim() !== ""
         ? String(updatedMember.phone).trim()
         : (existingMember.phone || ""),
@@ -946,7 +949,15 @@ export const membersManager = {
       completedCourses: Array.isArray(updatedMember.completedCourses) && updatedMember.completedCourses.length >= 0
         ? updatedMember.completedCourses
         : (Array.isArray(existingMember.completedCourses) ? existingMember.completedCourses : []),
+      // Always preserve customCourses - never lose data
+      customCourses: Array.isArray(updatedMember.customCourses) && updatedMember.customCourses.length >= 0
+        ? updatedMember.customCourses
+        : (Array.isArray(existingMember.customCourses) ? existingMember.customCourses : []),
     };
+
+    console.log("📋 Complete member object to save:", completeMember);
+    console.log("📋 Specialty in completeMember:", completeMember.specialty);
+    console.log("📋 Custom courses in completeMember:", completeMember.customCourses);
 
     // Update in Supabase FIRST (source of truth)
     try {

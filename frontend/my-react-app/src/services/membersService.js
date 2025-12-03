@@ -133,6 +133,10 @@ export const membersService = {
     try {
       // Map local member structure to Supabase structure
       const supabaseMember = this.mapLocalToSupabase(member);
+      console.log("📤 Supabase member data to save:", supabaseMember);
+      console.log("📤 Certificates in supabaseMember:", supabaseMember.certificates);
+      console.log("📤 Specialty in supabaseMember:", supabaseMember.specialty);
+      console.log("📤 Custom courses in supabaseMember:", supabaseMember.custom_courses);
 
       const { data, error } = await supabase
         .from("members")
@@ -167,6 +171,10 @@ export const membersService = {
 
       // Map back to local structure
       const localMember = this.mapSupabaseToLocal(data);
+      console.log("📥 Mapped member from Supabase:", localMember);
+      console.log("📥 Certificates in mapped member:", localMember.certificates);
+      console.log("📥 Specialty in mapped member:", localMember.specialty);
+      console.log("📥 Custom courses in mapped member:", localMember.customCourses);
       return { data: localMember, error: null };
     } catch (err) {
       console.error("Exception updating member:", err);
@@ -248,7 +256,7 @@ export const membersService = {
       isActive: supabaseMember.is_active,
       activeTill: supabaseMember.active_till,
       certificates: supabaseMember.certificates || [],
-      specialty: supabaseMember.specialty || [], // Specialty field (JSONB array from database)
+      specialty: Array.isArray(supabaseMember.specialty) ? supabaseMember.specialty : (supabaseMember.specialty ? [supabaseMember.specialty] : []), // Specialty field (JSONB array from database)
       phone: supabaseMember.phone,
       location: supabaseMember.location,
       website: supabaseMember.website,
@@ -260,6 +268,7 @@ export const membersService = {
       // Ensure activeCourses and completedCourses are always arrays, never null or undefined
       activeCourses: Array.isArray(supabaseMember.active_courses) ? supabaseMember.active_courses : (supabaseMember.active_courses ? [supabaseMember.active_courses] : []),
       completedCourses: Array.isArray(supabaseMember.completed_courses) ? supabaseMember.completed_courses : (supabaseMember.completed_courses ? [supabaseMember.completed_courses] : []),
+      customCourses: Array.isArray(supabaseMember.custom_courses) ? supabaseMember.custom_courses : [],
     };
   },
 
@@ -279,8 +288,8 @@ export const membersService = {
       is_active:
         localMember.isActive !== undefined ? localMember.isActive : true,
       active_till: localMember.activeTill || "",
-      certificates: localMember.certificates || [],
-      specialty: localMember.specialty || [], // Specialty field (JSONB array to database)
+      certificates: Array.isArray(localMember.certificates) ? localMember.certificates : (localMember.certificates ? [localMember.certificates] : []),
+      specialty: Array.isArray(localMember.specialty) ? localMember.specialty : (localMember.specialty ? [localMember.specialty] : []), // Specialty field (JSONB array to database)
       phone: localMember.phone || "",
       location: localMember.location || "",
       website: localMember.website || "",
@@ -292,6 +301,7 @@ export const membersService = {
       // Ensure active_courses and completed_courses are always valid JSONB arrays
       active_courses: Array.isArray(localMember.activeCourses) ? localMember.activeCourses : (localMember.activeCourses ? [localMember.activeCourses] : []),
       completed_courses: Array.isArray(localMember.completedCourses) ? localMember.completedCourses : (localMember.completedCourses ? [localMember.completedCourses] : []),
+      custom_courses: Array.isArray(localMember.customCourses) ? localMember.customCourses : [],
     };
   },
 

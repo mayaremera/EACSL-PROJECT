@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Calendar, MapPin, Clock, Users, DollarSign, CheckCircle, User, Mail, Phone, Building2, Mic, GraduationCap, Briefcase, Download, FileText } from 'lucide-react';
+import { Calendar, MapPin, Clock, Users, DollarSign, CheckCircle, User, Mail, Phone, Building2, Mic, GraduationCap, Briefcase, FileText } from 'lucide-react';
 import { eventsManager } from '../utils/dataManager';
 import { eventRegistrationsService } from '../services/eventRegistrationsService';
 import { eventParticipantsService } from '../services/eventParticipantsService';
@@ -496,7 +496,7 @@ const UpcomingEventsPage = () => {
             <p className="text-xl md:text-2xl text-teal-50 max-w-3xl mx-auto mb-6">
               {eventData.subtitle || 'Advancing Practice and Research in Speech-Language Pathology: Bridging Science and Clinical Impact'}
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-4 text-teal-100">
+            <div className="flex flex-wrap items-center justify-center gap-4 text-teal-100 mb-6">
               {eventData.headerInfo1 && (
                 <div className="flex items-center gap-2">
                   <Calendar className="w-5 h-5" />
@@ -510,6 +510,17 @@ const UpcomingEventsPage = () => {
                 </div>
               )}
             </div>
+            {eventData.bookletUrl && (
+              <a
+                href={eventData.bookletUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-6 py-3 text-white border border-1 border-white rounded-lg hover:text-[#5A9B8E] hover:bg-white transition-colors font-semibold shadow-lg"
+              >
+                <FileText className="w-5 h-5" />
+                Download Booklet
+              </a>
+            )}
           </div>
         </div>
       </div>
@@ -523,20 +534,7 @@ const UpcomingEventsPage = () => {
           <div className="lg:col-span-2">
             {/* Event Overview */}
             <div className="bg-white rounded-xl shadow-md p-8 mb-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Event Overview</h2>
-                {eventData.bookletUrl && (
-                  <a
-                    href={eventData.bookletUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors font-semibold"
-                  >
-                    <Download className="w-5 h-5" />
-                    Download Booklet
-                  </a>
-                )}
-              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Event Overview</h2>
               {eventData.overviewDescription && (
                 <p className="text-gray-700 mb-6">{eventData.overviewDescription}</p>
               )}
@@ -566,9 +564,84 @@ const UpcomingEventsPage = () => {
               </div>
             </div>
 
+            {/* Tracks */}
+            <div className="bg-white rounded-xl shadow-md p-8 mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Conference Tracks</h2>
+              <div className="space-y-3">
+                {tracks.map((track, index) => (
+                  <div key={index} className="flex items-center gap-3 p-3 bg-teal-50 rounded-lg">
+                    <div className="w-8 h-8 bg-[#5A9B8E] text-white rounded-full flex items-center justify-center font-bold text-sm">
+                      {String.fromCharCode(65 + index)}
+                    </div>
+                    <span className="font-medium text-gray-900">{track}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Schedule Day 1 */}
+            <div className="bg-white rounded-xl shadow-md p-8 mb-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">{eventData.day1Title || 'Day One - Knowledge and Innovation'}</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-gray-100">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-900">Time</th>
+                      {tracks.map((track, index) => (
+                        <th key={index} className="text-left py-3 px-2 font-semibold text-gray-900">{track}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {scheduleDay1.map((slot, index) => (
+                      <tr key={index} className="border-b border-gray-100">
+                        <td className="py-3 px-2 font-medium text-[#5A9B8E]">{slot.time}</td>
+                        {tracks.map((track, trackIndex) => {
+                          const trackKey = `track${String.fromCharCode(65 + trackIndex)}`;
+                          return (
+                            <td key={trackIndex} className="py-3 px-2 text-gray-700">{slot[trackKey] || ''}</td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Schedule Day 2 */}
+            <div className="bg-white rounded-xl shadow-md p-8">
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">{eventData.day2Title || 'Day Two - Collaboration and Future Directions'}</h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-gray-100">
+                      <th className="text-left py-3 px-2 font-semibold text-gray-900">Time</th>
+                      {tracks.map((track, index) => (
+                        <th key={index} className="text-left py-3 px-2 font-semibold text-gray-900">{track}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {scheduleDay2.map((slot, index) => (
+                      <tr key={index} className="border-b border-gray-100">
+                        <td className="py-3 px-2 font-medium text-[#5A9B8E]">{slot.time}</td>
+                        {tracks.map((track, trackIndex) => {
+                          const trackKey = `track${String.fromCharCode(65 + trackIndex)}`;
+                          return (
+                            <td key={trackIndex} className="py-3 px-2 text-gray-700">{slot[trackKey] || ''}</td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
             {/* Speakers Section */}
             {participants.speakers && participants.speakers.length > 0 && (
-              <div className="bg-white rounded-xl shadow-md p-8 mb-8">
+              <div className="bg-white rounded-xl shadow-md p-8 mb-8 mt-8">
                 <div className="flex items-center gap-3 mb-6">
                   <Mic className="w-6 h-6 text-[#5A9B8E]" />
                   <h2 className="text-2xl font-bold text-gray-900">Speakers</h2>
@@ -652,81 +725,6 @@ const UpcomingEventsPage = () => {
                 </div>
               </div>
             )}
-
-            {/* Tracks */}
-            <div className="bg-white rounded-xl shadow-md p-8 mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Conference Tracks</h2>
-              <div className="space-y-3">
-                {tracks.map((track, index) => (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-teal-50 rounded-lg">
-                    <div className="w-8 h-8 bg-[#5A9B8E] text-white rounded-full flex items-center justify-center font-bold text-sm">
-                      {String.fromCharCode(65 + index)}
-                    </div>
-                    <span className="font-medium text-gray-900">{track}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Schedule Day 1 */}
-            <div className="bg-white rounded-xl shadow-md p-8 mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">{eventData.day1Title || 'Day One - Knowledge and Innovation'}</h2>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b-2 border-gray-100">
-                      <th className="text-left py-3 px-2 font-semibold text-gray-900">Time</th>
-                      {tracks.map((track, index) => (
-                        <th key={index} className="text-left py-3 px-2 font-semibold text-gray-900">{track}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {scheduleDay1.map((slot, index) => (
-                      <tr key={index} className="border-b border-gray-100">
-                        <td className="py-3 px-2 font-medium text-[#5A9B8E]">{slot.time}</td>
-                        {tracks.map((track, trackIndex) => {
-                          const trackKey = `track${String.fromCharCode(65 + trackIndex)}`;
-                          return (
-                            <td key={trackIndex} className="py-3 px-2 text-gray-700">{slot[trackKey] || ''}</td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Schedule Day 2 */}
-            <div className="bg-white rounded-xl shadow-md p-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">{eventData.day2Title || 'Day Two - Collaboration and Future Directions'}</h2>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b-2 border-gray-100">
-                      <th className="text-left py-3 px-2 font-semibold text-gray-900">Time</th>
-                      {tracks.map((track, index) => (
-                        <th key={index} className="text-left py-3 px-2 font-semibold text-gray-900">{track}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {scheduleDay2.map((slot, index) => (
-                      <tr key={index} className="border-b border-gray-100">
-                        <td className="py-3 px-2 font-medium text-[#5A9B8E]">{slot.time}</td>
-                        {tracks.map((track, trackIndex) => {
-                          const trackKey = `track${String.fromCharCode(65 + trackIndex)}`;
-                          return (
-                            <td key={trackIndex} className="py-3 px-2 text-gray-700">{slot[trackKey] || ''}</td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
           </div>
 
           {/* Sidebar - Registration Form */}

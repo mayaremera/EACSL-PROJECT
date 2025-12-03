@@ -165,6 +165,9 @@ export const eventsService = {
         if ('booklet_url' in sampleEvent) {
           supabaseEvent.booklet_url = event.bookletUrl || null;
         }
+        if ('hero_card_speakers' in sampleEvent) {
+          supabaseEvent.hero_card_speakers = event.heroCardSpeakers || [];
+        }
       }
       // If table is empty, just use basic fields
 
@@ -245,6 +248,9 @@ export const eventsService = {
         }
         if ('booklet_url' in sampleEvent) {
           supabaseEvent.booklet_url = event.bookletUrl || null;
+        }
+        if ('hero_card_speakers' in sampleEvent) {
+          supabaseEvent.hero_card_speakers = event.heroCardSpeakers || [];
         }
       }
       // If table is empty, just use basic fields
@@ -419,6 +425,11 @@ export const eventsService = {
       heroImagePath: supabaseEvent.hero_image_path,
       status: supabaseEvent.status || 'upcoming',
       eventDate: supabaseEvent.event_date,
+      heroCardSpeakers: supabaseEvent.hero_card_speakers ? 
+        (Array.isArray(supabaseEvent.hero_card_speakers) && supabaseEvent.hero_card_speakers.length > 0 && typeof supabaseEvent.hero_card_speakers[0] === 'object'
+          ? supabaseEvent.hero_card_speakers
+          : supabaseEvent.hero_card_speakers.map(id => ({ id, role: '' }))
+        ) : [],
       createdAt: supabaseEvent.created_at,
       updatedAt: supabaseEvent.updated_at,
     };
@@ -449,6 +460,7 @@ export const eventsService = {
       hero_image_path: localEvent.heroImagePath || null,
       status: localEvent.status || 'upcoming',
       event_date: localEvent.eventDate || null,
+      hero_card_speakers: localEvent.heroCardSpeakers || [],
     };
   },
 };

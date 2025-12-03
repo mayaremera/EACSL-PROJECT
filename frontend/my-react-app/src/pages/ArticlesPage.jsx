@@ -230,10 +230,10 @@ const ArticlesPage = () => {
                             {article.category}
                           </span>
                         </div>
-                        <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
+                        <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">
                           {article.titleEn}
                         </h3>
-                        <p className="text-sm text-gray-600 mb-3 line-clamp-3">
+                        <p className="text-sm text-gray-600 mb-3 h-16 line-clamp-3 overflow-hidden">
                           {article.excerptEn}
                         </p>
                         <div className="flex items-center justify-between pt-3 border-t border-gray-200">
@@ -272,10 +272,10 @@ const ArticlesPage = () => {
                         {article.category}
                       </span>
                     </div>
-                    <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-2">
+                    <h3 className="text-xl font-bold text-gray-900 mb-2 line-clamp-1">
                       {article.titleEn}
                     </h3>
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-3">
+                    <p className="text-sm text-gray-600 mb-3 h-16 line-clamp-3 overflow-hidden">
                       {article.excerptEn}
                     </p>
                     <div className="flex items-center justify-between pt-3 border-t border-gray-200">

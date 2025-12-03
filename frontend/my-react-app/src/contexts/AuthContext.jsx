@@ -582,10 +582,24 @@ export const AuthProvider = ({ children }) => {
       if (error) {
         console.error('Supabase resetPasswordForEmail error:', error);
         console.error('Error details:', JSON.stringify(error, null, 2));
+        
+        // Provide more helpful error messages
+        let helpfulError = { ...error };
+        
+        // Check if error is related to redirect URL
+        if (error.message?.includes('redirect') || error.message?.includes('URL') || error.status === 400) {
+          helpfulError.message = `Redirect URL not configured. Please add "${redirectUrl}" to Supabase Dashboard → Authentication → URL Configuration → Redirect URLs. ${error.message || ''}`;
+        }
+        
+        return { data, error: helpfulError };
       } else {
         console.log('Password reset email sent successfully');
         console.log('Email will redirect to:', redirectUrl);
         console.log('⚠️ If clicking the link opens the wrong URL, check Supabase Dashboard → Authentication → URL Configuration → Redirect URLs');
+        console.log('⚠️ If email doesn\'t arrive or takes too long (>5 minutes), check SMTP configuration:');
+        console.log('   → Go to Supabase Dashboard → Project Settings → Auth → SMTP Settings');
+        console.log('   → Enable Custom SMTP for faster email delivery (recommended for production)');
+        console.log('   → Without custom SMTP, emails may take 5-10 minutes to arrive');
       }
       
       return { data, error };

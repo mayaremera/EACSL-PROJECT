@@ -215,7 +215,7 @@ function MembersOverviewPage() {
             </div>
 
             {/* Tablet & Desktop Grid - Hidden on mobile */}
-            <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
+            <div className="hidden md:grid md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5 gap-3">
               {filteredMembers.map((member) => (
                 <MemberCard key={member.id} {...member} compact={true} />
               ))}

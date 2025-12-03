@@ -98,7 +98,7 @@ const ServicesSection = () => {
                       <img
                         src={service.image}
                         alt={service.alt}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover object-top"
                       />
                       <Link to={service.link} className="absolute inset-0 flex items-center justify-center bg-transparent transition-all duration-300">
                         <h3 className="text-white text-2xl sm:text-3xl font-bold drop-shadow-lg">
@@ -121,7 +121,7 @@ const ServicesSection = () => {
                   <img
                     src={ServiceCard3}
                     alt="إعادة تأهيل"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover object-top"
                   />
                   <Link to="/therapy-programs" className="absolute inset-0 flex items-center justify-center bg-transparent transition-all duration-300">
                     <h3 className="text-white text-3xl font-bold drop-shadow-lg">
@@ -137,7 +137,7 @@ const ServicesSection = () => {
                   <img
                     src={ServiceCard2}
                     alt="احجز الآن"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover object-top"
                   />
                   <Link to="/reservation" className="absolute inset-0 flex items-center justify-center bg-transparent transition-all duration-300">
                     <h3 className="text-white text-3xl font-bold drop-shadow-lg">
@@ -153,7 +153,7 @@ const ServicesSection = () => {
                   <img
                     src={ServiceCard1}
                     alt="للآباء"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover object-top"
                   />
                   <Link to="/for-parents" className="absolute inset-0 flex items-center justify-center bg-transparent transition-all duration-300">
                     <h3 className="text-white text-3xl font-bold drop-shadow-lg">

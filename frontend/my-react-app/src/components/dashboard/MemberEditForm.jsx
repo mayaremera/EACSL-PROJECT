@@ -14,7 +14,8 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
     email: '',
     isActive: true,
     activeTill: '',
-    certificates: [],
+    certificates: [], // Array of {title, image, imagePath}
+    specialty: [], // Array of specialty strings
     phone: '',
     location: '',
     website: '',
@@ -24,9 +25,12 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
     coursesEnrolled: 0,
     totalHoursLearned: 0,
     activeCourses: [],
-    completedCourses: []
+    completedCourses: [],
+    customCourses: [] // Array of {title, image, imagePath}
   });
-  const [certificateInput, setCertificateInput] = useState('');
+  const [newCertificate, setNewCertificate] = useState({ title: '', imageFile: null, imagePreview: null });
+  const [editingCertificate, setEditingCertificate] = useState(null);
+  const [isUploadingCertificateImage, setIsUploadingCertificateImage] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [dragActive, setDragActive] = useState({});
   const [imagePreview, setImagePreview] = useState(null);
@@ -35,6 +39,22 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
   const [availableCourses, setAvailableCourses] = useState([]);
   const [selectedActiveCourse, setSelectedActiveCourse] = useState('');
   const [selectedCompletedCourse, setSelectedCompletedCourse] = useState('');
+  const [newCustomCourse, setNewCustomCourse] = useState({ title: '', imageFile: null, imagePreview: null });
+  const [editingCustomCourse, setEditingCustomCourse] = useState(null);
+  const [isUploadingCustomCourseImage, setIsUploadingCustomCourseImage] = useState(false);
+  
+  // Available specialties (matching BecomeMemberForm)
+  const availableSpecialties = [
+    'Phonetics and linguistics',
+    'Speech and language therapy department',
+    'Speech sound disorder (children)',
+    'Language disorder (children)',
+    'Neurogenic communication disorders',
+    'Voice and upper respiratory disorders',
+    'Fluency disorders',
+    'Craniofacial and velopharyngeal disorders',
+    'Hearing and balance sciences disorders'
+  ];
 
   // Cleanup object URLs on unmount
   useEffect(() => {
@@ -42,8 +62,24 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
       if (imagePreview) {
         URL.revokeObjectURL(imagePreview);
       }
+      // Cleanup custom course preview URLs
+      if (newCustomCourse.imagePreview && newCustomCourse.imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(newCustomCourse.imagePreview);
+      }
+      // Cleanup certificate preview URLs
+      if (newCertificate.imagePreview && newCertificate.imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(newCertificate.imagePreview);
+      }
+      // Cleanup any custom courses with blob previews
+      if (formData.customCourses) {
+        formData.customCourses.forEach(course => {
+          if (course.imagePreview && course.imagePreview.startsWith('blob:')) {
+            URL.revokeObjectURL(course.imagePreview);
+          }
+        });
+      }
     };
-  }, [imagePreview]);
+  }, [imagePreview, newCustomCourse.imagePreview, newCertificate.imagePreview, formData.customCourses]);
 
   useEffect(() => {
     if (member) {
@@ -68,6 +104,31 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         ? String(member.displayRole).trim() 
         : (member.role || 'Member');
       
+      // Handle certificates: convert old string format to object format if needed
+      let certificates = [];
+      if (member.certificates && Array.isArray(member.certificates)) {
+        certificates = member.certificates.map(cert => {
+          // If it's already an object with title/image, use it
+          if (typeof cert === 'object' && cert !== null && cert.title) {
+            return cert;
+          }
+          // If it's a string (old format), convert to object
+          if (typeof cert === 'string') {
+            return { title: cert, image: '', imagePath: '' };
+          }
+          return cert;
+        });
+      }
+      
+      // Debug logging for specialty
+      console.log('🔍 Loading member data:', {
+        memberId: member.id,
+        memberName: member.name,
+        specialtyFromMember: member.specialty,
+        specialtyType: typeof member.specialty,
+        isArray: Array.isArray(member.specialty)
+      });
+      
       setFormData({
         name: member.name || '',
         role: member.role || 'Member',
@@ -77,7 +138,8 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         email: member.email || '',
         isActive: memberIsActive, // Use the preserved value
         activeTill: member.activeTill || '',
-        certificates: member.certificates || [],
+        certificates: certificates,
+        specialty: Array.isArray(member.specialty) ? member.specialty : [],
         phone: member.phone || '',
         location: member.location || '',
         website: member.website || '',
@@ -88,7 +150,8 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         totalHoursLearned: member.totalHoursLearned || 0,
         // Ensure activeCourses and completedCourses are always arrays
         activeCourses: Array.isArray(member.activeCourses) ? member.activeCourses : [],
-        completedCourses: Array.isArray(member.completedCourses) ? member.completedCourses : []
+        completedCourses: Array.isArray(member.completedCourses) ? member.completedCourses : [],
+        customCourses: Array.isArray(member.customCourses) ? member.customCourses : []
       });
       setEmailExistsError(null); // Reset error when editing existing member
     } else {
@@ -104,6 +167,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         isActive: true,
         activeTill: '',
         certificates: [],
+        specialty: [],
         phone: '',
         location: '',
         website: '',
@@ -113,7 +177,8 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         coursesEnrolled: 0,
         totalHoursLearned: 0,
         activeCourses: [],
-        completedCourses: []
+        completedCourses: [],
+        customCourses: []
       });
       setEmailExistsError(null); // Reset error when adding new member
     }
@@ -138,6 +203,29 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
             }
           }
           
+          // Handle certificates: convert old string format to object format if needed
+          let updatedCertificates = [];
+          if (updatedMember.certificates && Array.isArray(updatedMember.certificates)) {
+            updatedCertificates = updatedMember.certificates.map(cert => {
+              if (typeof cert === 'object' && cert !== null && cert.title) {
+                return cert;
+              }
+              if (typeof cert === 'string') {
+                return { title: cert, image: '', imagePath: '' };
+              }
+              return cert;
+            });
+          }
+          
+          // Debug logging for specialty update
+          console.log('🔍 Updating member data:', {
+            memberId: updatedMember.id,
+            memberName: updatedMember.name,
+            specialtyFromUpdated: updatedMember.specialty,
+            specialtyType: typeof updatedMember.specialty,
+            isArray: Array.isArray(updatedMember.specialty)
+          });
+          
           setFormData({
             name: updatedMember.name || '',
             role: updatedMember.role || 'Member',
@@ -146,7 +234,8 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
             email: updatedMember.email || '',
             isActive: memberIsActive,
             activeTill: updatedMember.activeTill || '',
-            certificates: updatedMember.certificates || [],
+            certificates: updatedCertificates,
+            specialty: Array.isArray(updatedMember.specialty) ? updatedMember.specialty : [],
             phone: updatedMember.phone || '',
             location: updatedMember.location || '',
             website: updatedMember.website || '',
@@ -157,7 +246,8 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
             totalHoursLearned: updatedMember.totalHoursLearned || 0,
             // Ensure activeCourses and completedCourses are always arrays
             activeCourses: Array.isArray(updatedMember.activeCourses) ? updatedMember.activeCourses : [],
-            completedCourses: Array.isArray(updatedMember.completedCourses) ? updatedMember.completedCourses : []
+            completedCourses: Array.isArray(updatedMember.completedCourses) ? updatedMember.completedCourses : [],
+            customCourses: Array.isArray(updatedMember.customCourses) ? updatedMember.customCourses : []
           });
         }
       }
@@ -207,20 +297,199 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
     }
   };
 
-  const handleAddCertificate = () => {
-    if (certificateInput.trim()) {
-      setFormData(prev => ({
-        ...prev,
-        certificates: [...prev.certificates, certificateInput.trim()]
-      }));
-      setCertificateInput('');
+  const handleCertificateImageChange = (file) => {
+    if (file) {
+      const isValidImage = file.type.startsWith('image/') || 
+                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(file.name);
+      
+      if (isValidImage) {
+        if (editingCertificate !== null) {
+          // Editing existing certificate
+          const previewUrl = URL.createObjectURL(file);
+          setFormData(prev => {
+            const updated = [...(prev.certificates || [])];
+            updated[editingCertificate] = {
+              ...updated[editingCertificate],
+              imageFile: file,
+              imagePreview: previewUrl
+            };
+            return { ...prev, certificates: updated };
+          });
+        } else {
+          // Adding new certificate
+          const previewUrl = URL.createObjectURL(file);
+          setNewCertificate(prev => ({
+            ...prev,
+            imageFile: file,
+            imagePreview: previewUrl
+          }));
+        }
+      } else {
+        alert('Please upload only image files (JPG, PNG, GIF, etc.)');
+      }
     }
   };
 
-  const handleRemoveCertificate = (index) => {
+  const handleAddCertificate = async () => {
+    if (!newCertificate.title.trim()) {
+      alert('Please enter a certificate title');
+      return;
+    }
+
+    setIsUploadingCertificateImage(true);
+    try {
+      let imageUrl = '';
+      let imagePath = '';
+
+      if (newCertificate.imageFile) {
+        const uploadResult = await membersService.uploadImage(
+          newCertificate.imageFile,
+          `certificate-${Date.now()}-${newCertificate.imageFile.name}`
+        );
+        if (uploadResult.data && !uploadResult.error) {
+          imageUrl = uploadResult.data.url;
+          imagePath = uploadResult.data.path;
+        }
+      }
+
+      const certificateToAdd = {
+        title: newCertificate.title.trim(),
+        image: imageUrl,
+        imagePath: imagePath
+      };
+
+      setFormData(prev => ({
+        ...prev,
+        certificates: [...(prev.certificates || []), certificateToAdd]
+      }));
+
+      // Clean up preview URL
+      if (newCertificate.imagePreview) {
+        URL.revokeObjectURL(newCertificate.imagePreview);
+      }
+
+      // Reset form
+      setNewCertificate({ title: '', imageFile: null, imagePreview: null });
+    } catch (error) {
+      console.error('Error uploading certificate image:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setIsUploadingCertificateImage(false);
+    }
+  };
+
+  const handleEditCertificate = (index) => {
+    const certificate = formData.certificates[index];
+    setEditingCertificate(index);
+    setNewCertificate({
+      title: certificate.title || '',
+      imageFile: null,
+      imagePreview: certificate.image || null
+    });
+  };
+
+  const handleUpdateCertificate = async () => {
+    if (!newCertificate.title.trim()) {
+      alert('Please enter a certificate title');
+      return;
+    }
+
+    if (editingCertificate === null) return;
+
+    setIsUploadingCertificateImage(true);
+    try {
+      const certificate = formData.certificates[editingCertificate];
+      let imageUrl = certificate.image || '';
+      let imagePath = certificate.imagePath || '';
+
+      // If new image file is uploaded
+      if (newCertificate.imageFile) {
+        // Delete old image if exists
+        if (certificate.imagePath) {
+          try {
+            await membersService.deleteImage(certificate.imagePath);
+          } catch (err) {
+            console.warn('Could not delete old image:', err);
+          }
+        }
+
+        const uploadResult = await membersService.uploadImage(
+          newCertificate.imageFile,
+          `certificate-${Date.now()}-${newCertificate.imageFile.name}`
+        );
+        if (uploadResult.data && !uploadResult.error) {
+          imageUrl = uploadResult.data.url;
+          imagePath = uploadResult.data.path;
+        }
+      }
+
+      const updated = [...(formData.certificates || [])];
+      updated[editingCertificate] = {
+        title: newCertificate.title.trim(),
+        image: imageUrl,
+        imagePath: imagePath
+      };
+
     setFormData(prev => ({
       ...prev,
-      certificates: prev.certificates.filter((_, i) => i !== index)
+        certificates: updated
+      }));
+
+      // Clean up preview URL if it was a blob
+      if (newCertificate.imagePreview && newCertificate.imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(newCertificate.imagePreview);
+      }
+
+      // Reset
+      setEditingCertificate(null);
+      setNewCertificate({ title: '', imageFile: null, imagePreview: null });
+    } catch (error) {
+      console.error('Error updating certificate:', error);
+      alert('Failed to update certificate. Please try again.');
+    } finally {
+      setIsUploadingCertificateImage(false);
+    }
+  };
+
+  const handleDeleteCertificate = async (index) => {
+    if (!window.confirm('Are you sure you want to delete this certificate?')) {
+      return;
+    }
+
+    const certificate = formData.certificates[index];
+    
+    // Delete image from storage if exists
+    if (certificate.imagePath) {
+      try {
+        await membersService.deleteImage(certificate.imagePath);
+      } catch (err) {
+        console.warn('Could not delete certificate image:', err);
+      }
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      certificates: (prev.certificates || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleCancelEditCertificate = () => {
+    // Clean up preview URL if it was a blob
+    if (newCertificate.imagePreview && newCertificate.imagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(newCertificate.imagePreview);
+    }
+    setEditingCertificate(null);
+    setNewCertificate({ title: '', imageFile: null, imagePreview: null });
+  };
+
+  const handleSpecialtyChange = (specialty) => {
+    const newSpecialty = formData.specialty.includes(specialty)
+      ? formData.specialty.filter(s => s !== specialty)
+      : [...formData.specialty, specialty];
+    
+    setFormData(prev => ({
+      ...prev,
+      specialty: newSpecialty
     }));
   };
 
@@ -262,6 +531,191 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
       ...prev,
       completedCourses: (prev.completedCourses || []).filter(cc => cc.id !== courseId)
     }));
+  };
+
+  const handleCustomCourseImageChange = (file) => {
+    if (file) {
+      const isValidImage = file.type.startsWith('image/') || 
+                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(file.name);
+      
+      if (isValidImage) {
+        if (editingCustomCourse !== null) {
+          // Editing existing course
+          const previewUrl = URL.createObjectURL(file);
+          setFormData(prev => {
+            const updated = [...(prev.customCourses || [])];
+            updated[editingCustomCourse] = {
+              ...updated[editingCustomCourse],
+              imageFile: file,
+              imagePreview: previewUrl
+            };
+            return { ...prev, customCourses: updated };
+          });
+        } else {
+          // Adding new course
+          const previewUrl = URL.createObjectURL(file);
+          setNewCustomCourse(prev => ({
+            ...prev,
+            imageFile: file,
+            imagePreview: previewUrl
+          }));
+        }
+      } else {
+        alert('Please upload only image files (JPG, PNG, GIF, etc.)');
+      }
+    }
+  };
+
+  const handleAddCustomCourse = async () => {
+    if (!newCustomCourse.title.trim()) {
+      alert('Please enter a course title');
+      return;
+    }
+
+    setIsUploadingCustomCourseImage(true);
+    try {
+      let imageUrl = '';
+      let imagePath = '';
+
+      if (newCustomCourse.imageFile) {
+        const uploadResult = await membersService.uploadImage(
+          newCustomCourse.imageFile,
+          `custom-course-${Date.now()}-${newCustomCourse.imageFile.name}`
+        );
+        if (uploadResult.data && !uploadResult.error) {
+          imageUrl = uploadResult.data.url;
+          imagePath = uploadResult.data.path;
+        }
+      }
+
+      const courseToAdd = {
+        title: newCustomCourse.title.trim(),
+        image: imageUrl,
+        imagePath: imagePath
+      };
+
+      setFormData(prev => ({
+        ...prev,
+        customCourses: [...(prev.customCourses || []), courseToAdd]
+      }));
+
+      // Clean up preview URL
+      if (newCustomCourse.imagePreview) {
+        URL.revokeObjectURL(newCustomCourse.imagePreview);
+      }
+
+      // Reset form
+      setNewCustomCourse({ title: '', imageFile: null, imagePreview: null });
+    } catch (error) {
+      console.error('Error uploading custom course image:', error);
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setIsUploadingCustomCourseImage(false);
+    }
+  };
+
+  const handleEditCustomCourse = (index) => {
+    const course = formData.customCourses[index];
+    setEditingCustomCourse(index);
+    setNewCustomCourse({
+      title: course.title || '',
+      imageFile: null,
+      imagePreview: course.image || null
+    });
+  };
+
+  const handleUpdateCustomCourse = async () => {
+    if (!newCustomCourse.title.trim()) {
+      alert('Please enter a course title');
+      return;
+    }
+
+    if (editingCustomCourse === null) return;
+
+    setIsUploadingCustomCourseImage(true);
+    try {
+      const course = formData.customCourses[editingCustomCourse];
+      let imageUrl = course.image || '';
+      let imagePath = course.imagePath || '';
+
+      // If new image file is uploaded
+      if (newCustomCourse.imageFile) {
+        // Delete old image if exists
+        if (course.imagePath) {
+          try {
+            await membersService.deleteImage(course.imagePath);
+          } catch (err) {
+            console.warn('Could not delete old image:', err);
+          }
+        }
+
+        const uploadResult = await membersService.uploadImage(
+          newCustomCourse.imageFile,
+          `custom-course-${Date.now()}-${newCustomCourse.imageFile.name}`
+        );
+        if (uploadResult.data && !uploadResult.error) {
+          imageUrl = uploadResult.data.url;
+          imagePath = uploadResult.data.path;
+        }
+      }
+
+      const updated = [...(formData.customCourses || [])];
+      updated[editingCustomCourse] = {
+        title: newCustomCourse.title.trim(),
+        image: imageUrl,
+        imagePath: imagePath
+      };
+
+      setFormData(prev => ({
+        ...prev,
+        customCourses: updated
+      }));
+
+      // Clean up preview URL if it was a blob
+      if (newCustomCourse.imagePreview && newCustomCourse.imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(newCustomCourse.imagePreview);
+      }
+
+      // Reset
+      setEditingCustomCourse(null);
+      setNewCustomCourse({ title: '', imageFile: null, imagePreview: null });
+    } catch (error) {
+      console.error('Error updating custom course:', error);
+      alert('Failed to update course. Please try again.');
+    } finally {
+      setIsUploadingCustomCourseImage(false);
+    }
+  };
+
+  const handleDeleteCustomCourse = async (index) => {
+    if (!window.confirm('Are you sure you want to delete this custom course?')) {
+      return;
+    }
+
+    const course = formData.customCourses[index];
+    
+    // Delete image from storage if exists
+    if (course.imagePath) {
+      try {
+        await membersService.deleteImage(course.imagePath);
+      } catch (err) {
+        console.warn('Could not delete course image:', err);
+      }
+    }
+
+    setFormData(prev => ({
+      ...prev,
+      customCourses: (prev.customCourses || []).filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleCancelEditCustomCourse = () => {
+    // Clean up preview URL if it was a blob
+    if (newCustomCourse.imagePreview && newCustomCourse.imagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(newCustomCourse.imagePreview);
+    }
+    setEditingCustomCourse(null);
+    setNewCustomCourse({ title: '', imageFile: null, imagePreview: null });
   };
 
   const handleFileChange = (field, file) => {
@@ -503,7 +957,8 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         email: formData.email || '',
         isActive: Boolean(formData.isActive), // Always convert to boolean
         activeTill: formData.activeTill || '',
-        certificates: formData.certificates || [],
+        certificates: Array.isArray(formData.certificates) ? formData.certificates : [],
+        specialty: Array.isArray(formData.specialty) ? formData.specialty : [],
         phone: formData.phone || '',
         location: formData.location || '',
         website: formData.website || '',
@@ -515,10 +970,15 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         // Ensure activeCourses and completedCourses are always arrays when saving
         activeCourses: Array.isArray(formData.activeCourses) ? formData.activeCourses : [],
         completedCourses: Array.isArray(formData.completedCourses) ? formData.completedCourses : [],
+        customCourses: Array.isArray(formData.customCourses) ? formData.customCourses : [],
         createAuthAccount: !member && createAuthAccount // Only for new members
       };
       
       console.log('Data to save:', dataToSave);
+      console.log('Certificates being saved:', dataToSave.certificates);
+      console.log('Number of certificates:', dataToSave.certificates.length);
+      console.log('Specialty being saved:', dataToSave.specialty);
+      console.log('Number of specialties:', dataToSave.specialty.length);
       await onSave(dataToSave);
       console.log('Save completed');
     } finally {
@@ -880,41 +1340,179 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               />
             </div>
 
-            {/* Certificates */}
+            {/* Specializations */}
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Specializations
+              </label>
+              <p className="text-xs text-gray-500 mb-3">
+                Select the member's specializations. These are also collected from the "Become a Member" form.
+              </p>
+              <div className="bg-gray-50 border border-gray-300 rounded-lg p-4">
+                {availableSpecialties.map((specialty, index) => (
+                  <label key={index} className="flex items-center mb-3 last:mb-0 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={formData.specialty.includes(specialty)}
+                      onChange={() => handleSpecialtyChange(specialty)}
+                      className="hidden"
+                    />
+                    <div className={`w-5 h-5 rounded border-2 flex items-center justify-center mr-3 transition-all ${
+                      formData.specialty.includes(specialty)
+                        ? 'border-[#5A9B8E] bg-[#5A9B8E]'
+                        : 'border-gray-400 group-hover:border-[#5A9B8E]'
+                    }`}>
+                      {formData.specialty.includes(specialty) && (
+                        <Check className="w-3 h-3 text-white" />
+                      )}
+                    </div>
+                    <span className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">
+                      {specialty}
+                    </span>
+                  </label>
+                ))}
+              </div>
+              {formData.specialty.length > 0 && (
+                <p className="text-xs text-gray-600 mt-2">
+                  {formData.specialty.length} specialization{formData.specialty.length !== 1 ? 's' : ''} selected
+                </p>
+              )}
+            </div>
+
+            {/* Certificates & Qualifications */}
             <div className="md:col-span-2">
               <label className="block text-sm font-semibold text-gray-700 mb-2">
                 Certificates & Qualifications
               </label>
-              <div className="flex gap-2 mb-2">
+              <p className="text-xs text-gray-500 mb-3">
+                Add certificates with title and image. These are separate from specializations.
+              </p>
+              
+              {/* Add/Edit Certificate Form */}
+              <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Certificate Title *
+                    </label>
                 <input
                   type="text"
-                  value={certificateInput}
-                  onChange={(e) => setCertificateInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddCertificate())}
-                  placeholder="Add a certificate..."
-                  className="flex-1 px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
-                />
+                      value={newCertificate.title}
+                      onChange={(e) => setNewCertificate(prev => ({ ...prev, title: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
+                      placeholder="e.g., Advanced Speech Therapy Certification"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Certificate Image
+                    </label>
+                    {newCertificate.imagePreview ? (
+                      <div className="relative">
+                        <img
+                          src={newCertificate.imagePreview}
+                          alt="Certificate preview"
+                          className="w-full h-48 object-cover object-top rounded-lg border border-gray-300"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (newCertificate.imagePreview && newCertificate.imagePreview.startsWith('blob:')) {
+                              URL.revokeObjectURL(newCertificate.imagePreview);
+                            }
+                            setNewCertificate(prev => ({ ...prev, imageFile: null, imagePreview: null }));
+                          }}
+                          className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files[0]) {
+                            handleCertificateImageChange(e.target.files[0]);
+                          }
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
+                      />
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    {editingCertificate !== null ? (
+                      <>
+                        <button
+                          type="button"
+                          onClick={handleUpdateCertificate}
+                          disabled={isUploadingCertificateImage}
+                          className="flex-1 px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isUploadingCertificateImage ? 'Uploading...' : 'Update Certificate'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleCancelEditCertificate}
+                          className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
                 <button
                   type="button"
                   onClick={handleAddCertificate}
-                  className="px-3 md:px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm md:text-base"
+                        disabled={isUploadingCertificateImage}
+                        className="flex-1 px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Add
+                        {isUploadingCertificateImage ? 'Uploading...' : 'Add Certificate'}
                 </button>
+                    )}
               </div>
-              <div className="space-y-2">
-                {formData.certificates.map((cert, index) => (
-                  <div key={index} className="flex items-center justify-between bg-gray-50 p-2 rounded">
-                    <span className="text-sm text-gray-700">{cert}</span>
+                </div>
+              </div>
+
+              {/* Display Certificates */}
+              <div className="space-y-3">
+                {(formData.certificates || []).map((certificate, index) => (
+                  <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 flex items-center gap-4">
+                    {certificate.image && (
+                      <ImagePlaceholder
+                        src={certificate.image}
+                        alt={certificate.title}
+                        name={certificate.title}
+                        className="w-20 h-20 rounded-lg object-cover object-top flex-shrink-0"
+                      />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h4 className="font-semibold text-gray-900 truncate">{certificate.title}</h4>
+                    </div>
+                    <div className="flex gap-2">
                     <button
                       type="button"
-                      onClick={() => handleRemoveCertificate(index)}
-                      className="text-red-500 hover:text-red-700 text-sm"
+                        onClick={() => handleEditCertificate(index)}
+                        className="px-3 py-1.5 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors text-xs"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteCertificate(index)}
+                        className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs"
                     >
-                      Remove
+                        <Trash2 className="w-4 h-4" />
                     </button>
+                    </div>
                   </div>
                 ))}
+                {(!formData.certificates || formData.certificates.length === 0) && (
+                  <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
+                    No certificates added yet. Add certificates using the form above.
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -1090,6 +1688,144 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                   </p>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* Custom Courses Section */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <BookOpen className="w-5 h-5 text-[#5A9B8E]" />
+              <h3 className="text-lg font-semibold text-gray-900">Custom Courses</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Add custom courses with title and image to showcase on the member profile. These are separate from the website's courses.
+            </p>
+
+            {/* Add/Edit Custom Course Form */}
+            <div className="bg-gray-50 rounded-lg p-4 mb-4">
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Course Title *
+                  </label>
+                  <input
+                    type="text"
+                    value={newCustomCourse.title}
+                    onChange={(e) => setNewCustomCourse(prev => ({ ...prev, title: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
+                    placeholder="e.g., Advanced Speech Therapy Techniques"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Course Image
+                  </label>
+                  {newCustomCourse.imagePreview ? (
+                    <div className="relative">
+                      <img
+                        src={newCustomCourse.imagePreview}
+                        alt="Course preview"
+                        className="w-full h-48 object-cover object-top rounded-lg border border-gray-300"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (newCustomCourse.imagePreview && newCustomCourse.imagePreview.startsWith('blob:')) {
+                            URL.revokeObjectURL(newCustomCourse.imagePreview);
+                          }
+                          setNewCustomCourse(prev => ({ ...prev, imageFile: null, imagePreview: null }));
+                        }}
+                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          handleCustomCourseImageChange(e.target.files[0]);
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
+                    />
+                  )}
+                </div>
+
+                <div className="flex gap-2">
+                  {editingCustomCourse !== null ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={handleUpdateCustomCourse}
+                        disabled={isUploadingCustomCourseImage}
+                        className="flex-1 px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {isUploadingCustomCourseImage ? 'Uploading...' : 'Update Course'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelEditCustomCourse}
+                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleAddCustomCourse}
+                      disabled={isUploadingCustomCourseImage}
+                      className="flex-1 px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isUploadingCustomCourseImage ? 'Uploading...' : 'Add Course'}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Display Custom Courses */}
+            <div className="space-y-3">
+              {(formData.customCourses || []).map((course, index) => (
+                <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 flex items-center gap-4">
+                  {course.image && (
+                    <ImagePlaceholder
+                      src={course.image}
+                      alt={course.title}
+                      name={course.title}
+                      className="w-20 h-20 rounded-lg object-cover object-top flex-shrink-0"
+                    />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-gray-900 truncate">{course.title}</h4>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleEditCustomCourse(index)}
+                      className="px-3 py-1.5 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors text-xs"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteCustomCourse(index)}
+                      className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {(!formData.customCourses || formData.customCourses.length === 0) && (
+                <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
+                  No custom courses added yet. Add courses using the form above.
+                </p>
+              )}
             </div>
           </div>
 

@@ -64,7 +64,14 @@ const AuthModal = ({ isOpen, onClose }) => {
     }
 
     try {
-      const { data, error } = await resetPassword(forgotPasswordEmail.trim());
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Request timeout. Please try again.')), 30000); // 30 second timeout
+      });
+
+      const resetPromise = resetPassword(forgotPasswordEmail.trim());
+      
+      const { data, error } = await Promise.race([resetPromise, timeoutPromise]);
       
       // Log for debugging
       console.log('Password reset response:', { data, error });
@@ -74,28 +81,36 @@ const AuthModal = ({ isOpen, onClose }) => {
         let errorMessage = error.message || 'Failed to send password reset email.';
         
         // Handle specific error cases
-        if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
+        if (error.message?.includes('timeout')) {
+          errorMessage = 'Request timed out. The email may still be processing. Please check your inbox in a few minutes.';
+        } else if (error.message?.includes('rate limit') || error.message?.includes('too many')) {
           errorMessage = 'Too many requests. Please wait a few minutes before trying again.';
         } else if (error.message?.includes('not found') || error.message?.includes('user')) {
           errorMessage = 'No account found with this email address. Please check your email or sign up.';
-        } else if (error.message?.includes('email')) {
-          errorMessage = 'Email error: ' + error.message;
+        } else if (error.message?.includes('redirect') || error.message?.includes('URL')) {
+          errorMessage = 'Configuration error: Redirect URL not set up. Please contact support or check Supabase configuration.';
+        } else if (error.message?.includes('email') || error.status === 400) {
+          errorMessage = 'Email configuration error: ' + (error.message || 'Please check SMTP settings in Supabase.');
         }
         
         setError(errorMessage);
         console.error('Password reset error:', error);
       } else {
         // Success - Supabase always returns success even if email fails to send
-        // So we show success message but also warn about checking spam
-        setSuccessMessage('Password reset email sent! Please check your inbox (and spam folder) and follow the instructions to reset your password.');
+        // So we show success message but also warn about delays and checking spam
+        setSuccessMessage('Password reset request received! The email may take a few minutes to arrive. Please check your inbox (and spam folder). If you don\'t receive it within 10 minutes, please contact support.');
         setTimeout(() => {
           setShowForgotPassword(false);
           setForgotPasswordEmail('');
-        }, 5000);
+        }, 8000); // Give more time to read the message
       }
     } catch (err) {
       console.error('Password reset exception:', err);
-      setError('An unexpected error occurred: ' + (err.message || 'Please try again.'));
+      if (err.message?.includes('timeout')) {
+        setError('Request timed out. The email may still be processing. Please check your inbox in a few minutes, or contact support if the issue persists.');
+      } else {
+        setError('An unexpected error occurred: ' + (err.message || 'Please try again.'));
+      }
     } finally {
       setLoading(false);
     }
