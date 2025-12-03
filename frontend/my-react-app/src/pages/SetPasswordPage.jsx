@@ -12,9 +12,55 @@ const SetPasswordPage = () => {
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [session, setSession] = useState(null);
+  const [isVerifying, setIsVerifying] = useState(true);
 
   useEffect(() => {
-    // Check if we have a session from the email link
+    let mounted = true;
+    let authStateSubscription = null;
+
+    // Listen for auth state changes (Supabase automatically handles recovery links)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
+      if (!mounted) return;
+
+      console.log('SetPasswordPage: Auth state change:', event);
+      console.log('Session exists:', !!currentSession);
+      
+      // Handle password recovery and sign in events
+      if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || (event === 'TOKEN_REFRESHED' && currentSession)) {
+        console.log('Auth event detected:', event);
+        if (currentSession && mounted) {
+          console.log('Session set from auth state change');
+          console.log('User email:', currentSession.user?.email);
+          setSession(currentSession);
+          setIsVerifying(false);
+          
+          // Clean up the URL hash for security
+          if (window.location.hash) {
+            window.history.replaceState(null, '', window.location.pathname);
+          }
+          return;
+        }
+      }
+      
+      // Also check if we have a session on any auth event (fallback)
+      // This catches cases where Supabase sets the session but doesn't fire PASSWORD_RECOVERY event
+      if (currentSession && mounted) {
+        console.log('Session found on auth state change (fallback)');
+        setSession(currentSession);
+        setIsVerifying(false);
+        
+        // Clean up the URL hash for security
+        if (window.location.hash) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+      }
+    });
+
+    authStateSubscription = subscription;
+
+    // Also check for hash parameters directly (fallback)
     const checkSession = async () => {
       try {
         console.log('SetPasswordPage: Checking session...');
@@ -41,14 +87,17 @@ const SetPasswordPage = () => {
           
           if (sessionError) {
             console.error('Error setting session from hash:', sessionError);
-            setError('Invalid or expired link. Please request a new password reset email.');
+            if (mounted) {
+              setError('Invalid or expired link. Please request a new password reset email.');
+            }
             return;
           }
           
-          if (newSession) {
+          if (newSession && mounted) {
             console.log('Session set successfully from recovery link');
             console.log('User email:', newSession.user?.email);
             setSession(newSession);
+            setIsVerifying(false);
             
             // Clean up the URL hash for security
             window.history.replaceState(null, '', window.location.pathname);
@@ -61,26 +110,50 @@ const SetPasswordPage = () => {
         
         if (getSessionError) {
           console.error('Error getting session:', getSessionError);
-          setError('An error occurred. Please try again.');
+          if (mounted) {
+            setError('An error occurred. Please try again.');
+          }
           return;
         }
         
-        if (session) {
+        if (session && mounted) {
           console.log('Found existing session');
           console.log('User email:', session.user?.email);
           setSession(session);
-        } else {
-          // No session and no hash tokens - invalid link
-          console.error('No session found and no recovery tokens in URL');
-          setError('Invalid or expired link. Please request a new password reset email.');
+          setIsVerifying(false);
+        } else if (mounted && !accessToken) {
+          // Only show error if we don't have hash tokens (might be processing)
+          // Give it a moment for onAuthStateChange to fire
+          setTimeout(() => {
+            if (mounted && !session) {
+              console.error('No session found and no recovery tokens in URL');
+              setError('Invalid or expired link. Please request a new password reset email.');
+              setIsVerifying(false);
+            }
+          }, 3000);
+        }
+        
+        // Mark verification as complete
+        if (mounted) {
+          setIsVerifying(false);
         }
       } catch (err) {
         console.error('Error checking session:', err);
-        setError('An error occurred. Please try again.');
+        if (mounted) {
+          setError('An error occurred. Please try again.');
+        }
       }
     };
 
     checkSession();
+
+    // Cleanup
+    return () => {
+      mounted = false;
+      if (authStateSubscription) {
+        authStateSubscription.unsubscribe();
+      }
+    };
   }, []);
 
   const handleSubmit = async (e) => {
@@ -168,13 +241,16 @@ const SetPasswordPage = () => {
     }
   };
 
-  if (!session && !error) {
+  if ((!session && !error && isVerifying) || (!session && !error)) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
           <div className="text-center">
             <Loader className="w-12 h-12 animate-spin text-[#5A9B8E] mx-auto mb-4" />
             <p className="text-gray-600">Verifying your link...</p>
+            {!isVerifying && !session && !error && (
+              <p className="text-sm text-gray-500 mt-2">This may take a moment...</p>
+            )}
           </div>
         </div>
       </div>

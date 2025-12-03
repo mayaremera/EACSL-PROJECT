@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Plus, Trash2, Upload, Mic, GraduationCap, Briefcase } from 'lucide-react';
+import { X, Save, Plus, Trash2, Upload, Mic, GraduationCap, Briefcase, FileText } from 'lucide-react';
 import { eventsService } from '../../services/eventsService';
 import { eventParticipantsService } from '../../services/eventParticipantsService';
 import ImagePlaceholder from '../ui/ImagePlaceholder';
@@ -41,6 +41,9 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [dragActive, setDragActive] = useState(false);
+  const [bookletFile, setBookletFile] = useState(null);
+  const [bookletPreview, setBookletPreview] = useState(null);
+  const [bookletDragActive, setBookletDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   
   // Participants state
@@ -109,12 +112,30 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
         setImagePreview(event.heroImageUrl);
       }
       
+      // Set booklet preview if exists
+      if (event.bookletUrl) {
+        setBookletPreview(event.bookletUrl);
+      }
+      
       // Load participants for this event
       if (event && event.id) {
         loadParticipants(event.id);
       }
     }
-  }, [event]);
+
+    // Cleanup function to revoke blob URLs on unmount
+    return () => {
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
+      if (bookletPreview && bookletPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(bookletPreview);
+      }
+      if (newParticipant.imagePreview && newParticipant.imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(newParticipant.imagePreview);
+      }
+    };
+  }, [event, imagePreview, bookletPreview, newParticipant.imagePreview]);
 
   const loadParticipants = async (eventId) => {
     try {
@@ -250,6 +271,66 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
     setFormData(prev => ({
       ...prev,
       heroImageUrl: ''
+    }));
+  };
+
+  const handleBookletFileChange = (file) => {
+    if (file) {
+      const isValidPDF = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+      
+      if (isValidPDF) {
+        // Clean up old preview URL if it exists
+        if (bookletPreview && bookletPreview.startsWith('blob:')) {
+          URL.revokeObjectURL(bookletPreview);
+        }
+        
+        // Create preview URL for the uploaded file
+        const previewUrl = URL.createObjectURL(file);
+        setBookletPreview(previewUrl);
+        setBookletFile(file);
+      } else {
+        alert('Please upload only PDF files.');
+      }
+    }
+  };
+
+  const handleBookletDrag = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setBookletDragActive(true);
+    } else if (e.type === "dragleave") {
+      setBookletDragActive(false);
+    }
+  };
+
+  const handleBookletDrop = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setBookletDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      handleBookletFileChange(file);
+    }
+  };
+
+  const handleBookletFileInput = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleBookletFileChange(e.target.files[0]);
+    }
+  };
+
+  const removeBooklet = () => {
+    // Clean up preview URL
+    if (bookletPreview && bookletPreview.startsWith('blob:')) {
+      URL.revokeObjectURL(bookletPreview);
+    }
+    setBookletPreview(null);
+    setBookletFile(null);
+    setFormData(prev => ({
+      ...prev,
+      bookletUrl: ''
     }));
   };
 
@@ -504,15 +585,32 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
         }
       }
 
-      // Clean up preview URL if it was a blob
+      // Upload booklet PDF if a new file was uploaded
+      let finalBookletUrl = formData.bookletUrl;
+      if (bookletFile) {
+        const uploadResult = await eventsService.uploadImage(bookletFile, bookletFile.name);
+        if (uploadResult.data && !uploadResult.error) {
+          finalBookletUrl = uploadResult.data.url;
+        } else {
+          alert('Failed to upload booklet PDF. Please try again.');
+          setIsUploading(false);
+          return;
+        }
+      }
+
+      // Clean up preview URLs if they were blobs
       if (imagePreview && imagePreview.startsWith('blob:')) {
         URL.revokeObjectURL(imagePreview);
+      }
+      if (bookletPreview && bookletPreview.startsWith('blob:')) {
+        URL.revokeObjectURL(bookletPreview);
       }
 
       // Prepare data to save
       const dataToSave = {
         ...formData,
-        heroImageUrl: finalImageUrl
+        heroImageUrl: finalImageUrl,
+        bookletUrl: finalBookletUrl
       };
 
       await onSave(dataToSave);
@@ -888,20 +986,72 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
               </div>
             </div>
 
+            {/* Event Booklet PDF Upload - Drag and Drop */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Booklet URL (optional)
+                Event Booklet PDF (optional)
               </label>
-              <input
-                type="url"
-                name="bookletUrl"
-                value={formData.bookletUrl}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
-                placeholder="https://example.com/booklet.pdf"
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                URL to the event booklet PDF file. This will appear as a "Download Booklet" button on the event page.
+              
+              {/* Drag and Drop Area */}
+              <div
+                className={`relative border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                  bookletDragActive
+                    ? 'border-[#5A9B8E] bg-[#5A9B8E]/5'
+                    : 'border-gray-300 hover:border-gray-400'
+                }`}
+                onDragEnter={handleBookletDrag}
+                onDragLeave={handleBookletDrag}
+                onDragOver={handleBookletDrag}
+                onDrop={handleBookletDrop}
+              >
+                {bookletPreview ? (
+                  <div className="relative">
+                    <div className="flex items-center justify-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <FileText className="w-8 h-8 text-[#5A9B8E] flex-shrink-0" />
+                      <div className="flex-1 text-left">
+                        <p className="text-sm font-semibold text-gray-900">
+                          {bookletFile ? bookletFile.name : 'Booklet PDF'}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {bookletFile ? `${(bookletFile.size / 1024).toFixed(2)} KB` : 'PDF file uploaded'}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={removeBooklet}
+                        className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors flex-shrink-0"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <Upload className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-gray-600 mb-2">
+                      Drag and drop a PDF here, or click to select
+                    </p>
+                    <p className="text-sm text-gray-400 mb-4">
+                      Supports: PDF files only
+                    </p>
+                    <input
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      onChange={handleBookletFileInput}
+                      className="hidden"
+                      id="booklet-pdf-upload"
+                    />
+                    <label
+                      htmlFor="booklet-pdf-upload"
+                      className="inline-block px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors cursor-pointer"
+                    >
+                      Select PDF
+                    </label>
+                  </>
+                )}
+              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                Upload the event booklet PDF file. This will appear as a "Download Booklet" button on the event page.
               </p>
             </div>
 
