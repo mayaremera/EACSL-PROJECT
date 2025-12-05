@@ -317,8 +317,8 @@ export const membershipFormsService = {
       id_image_path: localForm.idImage?.storagePath || null,
       id_image_url: localForm.idImage?.url || null,
       
-      graduation_cert_path: localForm.graduationCert?.storagePath || null,
-      graduation_cert_url: localForm.graduationCert?.url || null,
+      certificate_name: localForm.certificateName || null,
+      certificate_date: localForm.certificateDate || null,
       
       cv_path: localForm.cv?.storagePath || null,
       cv_url: localForm.cv?.url || null,
@@ -368,14 +368,8 @@ export const membershipFormsService = {
           }
         : null,
       
-      graduationCert: supabaseForm.graduation_cert_path
-        ? {
-            name: supabaseForm.graduation_cert_path.split("/").pop(),
-            storagePath: supabaseForm.graduation_cert_path,
-            url: supabaseForm.graduation_cert_url,
-            uploaded: true,
-          }
-        : null,
+      certificateName: supabaseForm.certificate_name || null,
+      certificateDate: supabaseForm.certificate_date || null,
       
       cv: supabaseForm.cv_path
         ? {

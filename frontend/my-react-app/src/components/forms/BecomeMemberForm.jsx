@@ -630,7 +630,8 @@ const BecomeMemberForm = ({ onSubmit }) => {
         specialty: [],
         location: '',
         previousWork: '',
-        graduationCert: null,
+        certificateName: '',
+        certificateDate: '',
         cv: null
     });
 
@@ -650,7 +651,6 @@ const BecomeMemberForm = ({ onSubmit }) => {
         switch (name) {
             case 'profileImage':
             case 'idImage':
-            case 'graduationCert':
             case 'cv':
                 return value ? '' : 'This file is required';
             case 'username':
@@ -668,6 +668,10 @@ const BecomeMemberForm = ({ onSubmit }) => {
                 return value.trim() ? '' : 'Location is required';
             case 'previousWork':
                 return value.trim() ? '' : 'Previous work description is required';
+            case 'certificateName':
+                return value.trim() ? '' : 'Certificate name is required';
+            case 'certificateDate':
+                return value.trim() ? '' : 'Certificate date is required';
             default:
                 return '';
         }
@@ -1259,11 +1263,56 @@ const BecomeMemberForm = ({ onSubmit }) => {
                 )}
             </div>
 
-            {/* Graduation Certificate */}
-            <FileUploadBox 
-                field="graduationCert" 
-                label="Upload your graduation certificate"
-            />
+            {/* Certificate Name */}
+            <div className="mb-6">
+                <label className="block text-gray-800 text-sm font-semibold mb-2">
+                    Certificate Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                    type="text"
+                    placeholder="Enter your graduation certificate name"
+                    value={formData.certificateName}
+                    onChange={(e) => setFormData({ ...formData, certificateName: e.target.value })}
+                    onBlur={() => handleBlur('certificateName')}
+                    disabled={isSubmitting}
+                    className={`w-full px-4 py-3 bg-white border rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none transition-all ${
+                        isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                    } ${
+                        touched.certificateName && errors.certificateName ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-[#5A9B8E]'
+                    }`}
+                />
+                {touched.certificateName && errors.certificateName && (
+                    <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>{errors.certificateName}</span>
+                    </div>
+                )}
+            </div>
+
+            {/* Certificate Date */}
+            <div className="mb-6">
+                <label className="block text-gray-800 text-sm font-semibold mb-2">
+                    Certificate Date <span className="text-red-500">*</span>
+                </label>
+                <input
+                    type="date"
+                    value={formData.certificateDate}
+                    onChange={(e) => setFormData({ ...formData, certificateDate: e.target.value })}
+                    onBlur={() => handleBlur('certificateDate')}
+                    disabled={isSubmitting}
+                    className={`w-full px-4 py-3 bg-white border rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none transition-all ${
+                        isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
+                    } ${
+                        touched.certificateDate && errors.certificateDate ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-[#5A9B8E]'
+                    }`}
+                />
+                {touched.certificateDate && errors.certificateDate && (
+                    <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
+                        <AlertCircle className="w-4 h-4" />
+                        <span>{errors.certificateDate}</span>
+                    </div>
+                )}
+            </div>
 
             {/* CV Upload */}
             <FileUploadBox 

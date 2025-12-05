@@ -550,7 +550,6 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
                                 const documents = [
                                     { label: 'Profile Image', file: form.profileImage },
                                     { label: 'ID Card', file: form.idImage },
-                                    { label: 'Graduation Certificate', file: form.graduationCert },
                                     { label: 'CV', file: form.cv }
                                 ];
                                 const uploadedDocs = documents.filter(item => item.file);
@@ -588,6 +587,29 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
                             })()}
                         </div>
                     </div>
+
+                    {/* Certificate Information */}
+                    {(form.certificateName || form.certificateDate) && (
+                        <div className="bg-gray-50 rounded-lg p-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Graduation Certificate Information</h3>
+                            <div className="bg-white p-4 rounded-lg border border-gray-200">
+                                {form.certificateName && (
+                                    <div className="mb-3">
+                                        <p className="text-xs text-gray-500 mb-1">Certificate Name</p>
+                                        <p className="text-sm font-medium text-gray-900">{form.certificateName}</p>
+                                    </div>
+                                )}
+                                {form.certificateDate && (
+                                    <div>
+                                        <p className="text-xs text-gray-500 mb-1">Certificate Date</p>
+                                        <p className="text-sm font-medium text-gray-900">
+                                            {new Date(form.certificateDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
 
                     {/* Review Notes */}
                     {form.status !== 'pending' && form.reviewNotes && (

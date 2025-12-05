@@ -8,7 +8,6 @@ import {
   TrendingUp, 
   CheckCircle,
   PlayCircle,
-  Download,
   Calendar,
   Target,
   BarChart3,
@@ -636,11 +635,6 @@ function ContinuingEducationMember() {
                         <span className="font-semibold text-gray-900">{course.price}</span>
                       )}
                     </div>
-
-                    <button className="w-full bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white py-2.5 rounded-lg text-sm font-semibold transition-colors flex items-center justify-center gap-2">
-                      <Download className="w-4 h-4" />
-                      Download Certificate
-                    </button>
                   </div>
                 </div>
               ))}

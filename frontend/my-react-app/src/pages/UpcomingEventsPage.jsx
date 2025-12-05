@@ -33,6 +33,13 @@ const UpcomingEventsPage = () => {
   });
   const [selectedParticipant, setSelectedParticipant] = useState(null);
   const [errors, setErrors] = useState({});
+  const [countdown, setCountdown] = useState({
+    months: 3,
+    days: 6,
+    hours: 21,
+    minutes: 0,
+    seconds: 0
+  });
 
   useEffect(() => {
     const loadEvent = async () => {
@@ -164,6 +171,59 @@ const UpcomingEventsPage = () => {
       window.removeEventListener('eventsUpdated', handleEventsUpdate);
     };
   }, [eventId, navigate]);
+
+  // Countdown timer effect
+  useEffect(() => {
+    // Calculate target date: 3 months, 6 days, and 21 hours from now
+    const now = new Date();
+    const targetDate = new Date(now);
+    targetDate.setMonth(targetDate.getMonth() + 3);
+    targetDate.setDate(targetDate.getDate() + 6);
+    targetDate.setHours(targetDate.getHours() + 21);
+
+    const updateCountdown = () => {
+      const now = new Date();
+      const difference = targetDate - now;
+
+      if (difference <= 0) {
+        setCountdown({ months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 });
+        return;
+      }
+
+      // Calculate months by comparing dates
+      let months = 0;
+      let days = 0;
+      let tempDate = new Date(now);
+      
+      // Calculate months
+      while (tempDate.getMonth() !== targetDate.getMonth() || tempDate.getFullYear() !== targetDate.getFullYear()) {
+        tempDate.setMonth(tempDate.getMonth() + 1);
+        if (tempDate <= targetDate) {
+          months++;
+        } else {
+          tempDate.setMonth(tempDate.getMonth() - 1);
+          break;
+        }
+      }
+      
+      // Calculate remaining days, hours, minutes, seconds
+      const remaining = targetDate - tempDate;
+      days = Math.floor(remaining / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
+
+      setCountdown({ months, days, hours, minutes, seconds });
+    };
+
+    // Update immediately
+    updateCountdown();
+
+    // Update every second
+    const interval = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const validateField = (name, value) => {
     let error = '';
@@ -489,6 +549,36 @@ const UpcomingEventsPage = () => {
         )}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center">
+            {/* Countdown Timer */}
+            <div className="mb-8">
+              <div className="inline-flex items-center gap-4 bg-white/10 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/20">
+                {countdown.months > 0 && (
+                  <div className="flex flex-col items-center">
+                    <div className="text-3xl md:text-4xl font-bold text-white">{String(countdown.months).padStart(2, '0')}</div>
+                    <div className="text-xs md:text-sm text-teal-200 uppercase tracking-wide mt-1">Months</div>
+                  </div>
+                )}
+                <div className="flex flex-col items-center">
+                  <div className="text-3xl md:text-4xl font-bold text-white">{String(countdown.days).padStart(2, '0')}</div>
+                  <div className="text-xs md:text-sm text-teal-200 uppercase tracking-wide mt-1">Days</div>
+                </div>
+                <div className="text-2xl md:text-3xl font-bold text-white/50">:</div>
+                <div className="flex flex-col items-center">
+                  <div className="text-3xl md:text-4xl font-bold text-white">{String(countdown.hours).padStart(2, '0')}</div>
+                  <div className="text-xs md:text-sm text-teal-200 uppercase tracking-wide mt-1">Hours</div>
+                </div>
+                <div className="text-2xl md:text-3xl font-bold text-white/50">:</div>
+                <div className="flex flex-col items-center">
+                  <div className="text-2xl md:text-3xl font-bold text-white">{String(countdown.minutes).padStart(2, '0')}</div>
+                  <div className="text-xs md:text-sm text-teal-200 uppercase tracking-wide mt-1">Minutes</div>
+                </div>
+                <div className="text-2xl md:text-3xl font-bold text-white/50">:</div>
+                <div className="flex flex-col items-center">
+                  <div className="text-2xl md:text-3xl font-bold text-white">{String(countdown.seconds).padStart(2, '0')}</div>
+                  <div className="text-xs md:text-sm text-teal-200 uppercase tracking-wide mt-1">Seconds</div>
+                </div>
+              </div>
+            </div>
             <div className="inline-block bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-4">
               <span className="text-sm font-semibold">LIVE EVENT</span>
             </div>
@@ -639,38 +729,9 @@ const UpcomingEventsPage = () => {
               </div>
             </div>
 
-            {/* Speakers Section */}
-            {participants.speakers && participants.speakers.length > 0 && (
-              <div className="bg-white rounded-xl shadow-md p-8 mb-8 mt-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <Mic className="w-6 h-6 text-[#5A9B8E]" />
-                  <h2 className="text-2xl font-bold text-gray-900">Speakers</h2>
-                </div>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                  {participants.speakers.map((speaker) => (
-                    <div
-                      key={speaker.id}
-                      onClick={() => setSelectedParticipant(speaker)}
-                      className="flex flex-col items-center cursor-pointer hover:scale-105 transition-transform"
-                    >
-                      <div className="mb-3">
-                        <ImagePlaceholder
-                          src={speaker.imageUrl}
-                          alt={speaker.name}
-                          name={speaker.name}
-                          className="w-24 h-24 rounded-full object-cover border-2 border-gray-100 hover:border-gray-200 transition-colors"
-                        />
-                      </div>
-                      <h3 className="text-sm font-semibold text-gray-900 text-center">{speaker.name}</h3>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {/* Scientific Committee Section */}
             {participants.scientific_committee && participants.scientific_committee.length > 0 && (
-              <div className="bg-white rounded-xl shadow-md p-8 mb-8">
+              <div className="bg-white rounded-xl shadow-md p-8 mb-8 mt-8">
                 <div className="flex items-center gap-3 mb-6">
                   <GraduationCap className="w-6 h-6 text-[#5A9B8E]" />
                   <h2 className="text-2xl font-bold text-gray-900">Scientific Committee</h2>
@@ -720,6 +781,35 @@ const UpcomingEventsPage = () => {
                         />
                       </div>
                       <h3 className="text-sm font-semibold text-gray-900 text-center">{member.name}</h3>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Speakers Section */}
+            {participants.speakers && participants.speakers.length > 0 && (
+              <div className="bg-white rounded-xl shadow-md p-8 mb-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <Mic className="w-6 h-6 text-[#5A9B8E]" />
+                  <h2 className="text-2xl font-bold text-gray-900">Speakers</h2>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  {participants.speakers.map((speaker) => (
+                    <div
+                      key={speaker.id}
+                      onClick={() => setSelectedParticipant(speaker)}
+                      className="flex flex-col items-center cursor-pointer hover:scale-105 transition-transform"
+                    >
+                      <div className="mb-3">
+                        <ImagePlaceholder
+                          src={speaker.imageUrl}
+                          alt={speaker.name}
+                          name={speaker.name}
+                          className="w-24 h-24 rounded-full object-cover border-2 border-gray-100 hover:border-gray-200 transition-colors"
+                        />
+                      </div>
+                      <h3 className="text-sm font-semibold text-gray-900 text-center">{speaker.name}</h3>
                     </div>
                   ))}
                 </div>

@@ -61,22 +61,21 @@ const ApplyMembershipPage = () => {
       
       // PRIORITY: Upload files to Supabase Storage first
       // This avoids localStorage size limits
-      let profileImage, idImage, graduationCert, cv;
+      let profileImage, idImage, cv;
       let storageUploadFailed = false;
       
       try {
         const uploadPromises = [
           uploadFileToStorage(data.profileImage, 'profile-images', 'profile'),
           uploadFileToStorage(data.idImage, 'id-cards', 'id'),
-          uploadFileToStorage(data.graduationCert, 'certificates', 'cert'),
           uploadFileToStorage(data.cv, 'cvs', 'cv')
         ];
         
-        [profileImage, idImage, graduationCert, cv] = await Promise.all(uploadPromises);
+        [profileImage, idImage, cv] = await Promise.all(uploadPromises);
         
         // Check if any uploads failed
-        const files = [data.profileImage, data.idImage, data.graduationCert, data.cv];
-        const uploads = [profileImage, idImage, graduationCert, cv];
+        const files = [data.profileImage, data.idImage, data.cv];
+        const uploads = [profileImage, idImage, cv];
         storageUploadFailed = files.some((file, index) => file && !uploads[index]);
         
       } catch (storageError) {
@@ -85,7 +84,7 @@ const ApplyMembershipPage = () => {
       }
 
       // Check if we have bucket not found errors
-      const hasBucketError = [profileImage, idImage, graduationCert, cv].some(
+      const hasBucketError = [profileImage, idImage, cv].some(
         file => file?.error === 'BUCKET_NOT_FOUND'
       );
       
@@ -103,7 +102,7 @@ const ApplyMembershipPage = () => {
       }
 
       // Check if we have RLS policy errors
-      const hasRLSError = [profileImage, idImage, graduationCert, cv].some(
+      const hasRLSError = [profileImage, idImage, cv].some(
         file => file?.error === 'RLS_POLICY_REQUIRED'
       );
 
@@ -130,7 +129,6 @@ const ApplyMembershipPage = () => {
       const requiredFiles = [
         { file: data.profileImage, upload: profileImage, name: 'Profile Image' },
         { file: data.idImage, upload: idImage, name: 'ID Card' },
-        { file: data.graduationCert, upload: graduationCert, name: 'Graduation Certificate' },
         { file: data.cv, upload: cv, name: 'CV' }
       ];
 
@@ -159,11 +157,12 @@ const ApplyMembershipPage = () => {
         specialty: data.specialty,
         location: data.location,
         previousWork: data.previousWork,
+        certificateName: data.certificateName,
+        certificateDate: data.certificateDate,
         submittedAt: new Date().toISOString(),
         status: 'pending', // All new submissions start as pending
         profileImage,
         idImage,
-        graduationCert,
         cv
       };
 
