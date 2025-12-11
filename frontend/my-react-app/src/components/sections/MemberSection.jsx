@@ -1,9 +1,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useActiveMembersCount } from '../../hooks/useActiveMembersCount';
+import { useAuth } from '../../contexts/AuthContext';
 
 const MemberSection = () => {
     const { count } = useActiveMembersCount();
+    const { user } = useAuth();
+
+    // Hide section if user is signed in
+    if (user) {
+        return null;
+    }
 
     return (
         <section className="relative h-[500px] flex items-center justify-center overflow-hidden">

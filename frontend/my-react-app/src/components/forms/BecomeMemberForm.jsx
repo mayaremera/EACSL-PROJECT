@@ -606,9 +606,10 @@
 
 // export default BecomeMemberForm;
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Upload, Eye, EyeOff, Mail, Lock, AlertCircle, X, Check, CheckCircle, Loader2 } from 'lucide-react';
 import { membersManager } from '../../utils/dataManager';
+import LocationAutocomplete from '../ui/LocationAutocomplete';
 
 const BecomeMemberForm = ({ onSubmit }) => {
     const [showPassword, setShowPassword] = useState(false);
@@ -636,8 +637,6 @@ const BecomeMemberForm = ({ onSubmit }) => {
     });
 
     const specialties = [
-        'Phonetics and linguistics',
-        'Speech and language therapy department',
         'Speech sound disorder (children)',
         'Language disorder (children)',
         'Neurogenic communication disorders',
@@ -720,6 +719,22 @@ const BecomeMemberForm = ({ onSubmit }) => {
         }
     };
 
+    // Prevent default dragover behavior globally to allow drops
+    useEffect(() => {
+        const handleGlobalDragOver = (e) => {
+            // Always prevent default on dragover - this is required to allow drops
+            e.preventDefault();
+            e.stopPropagation();
+        };
+
+        // Only prevent dragover globally - drop zones handle their own drop events
+        document.addEventListener('dragover', handleGlobalDragOver, false);
+
+        return () => {
+            document.removeEventListener('dragover', handleGlobalDragOver, false);
+        };
+    }, []);
+
     const handleDrag = (e, field) => {
         e.preventDefault();
         e.stopPropagation();
@@ -731,12 +746,17 @@ const BecomeMemberForm = ({ onSubmit }) => {
     };
 
     const handleDrop = (e, field) => {
+        // CRITICAL: preventDefault must be called to stop browser from opening file
         e.preventDefault();
         e.stopPropagation();
+        e.stopImmediatePropagation();
         setDragActive(prev => ({ ...prev, [field]: false }));
         
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            const file = e.dataTransfer.files[0];
+        // Get the file from dataTransfer
+        const files = e.dataTransfer?.files;
+        if (files && files.length > 0) {
+            const file = files[0];
+            // Process the file
             handleFileChange(field, file);
         }
     };
@@ -851,6 +871,85 @@ const BecomeMemberForm = ({ onSubmit }) => {
     const FileUploadBox = ({ field, label, acceptTypes = "image/*" }) => {
         const hasError = touched[field] && errors[field];
         const hasFile = formData[field];
+        const dropZoneRef = useRef(null);
+
+        // Attach native event listeners for more reliable drop handling
+        useEffect(() => {
+            const dropZone = dropZoneRef.current;
+            if (!dropZone) return;
+
+            const handleNativeDragOver = (e) => {
+                if (!isSubmitting) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.dataTransfer.dropEffect = 'copy';
+                    setDragActive(prev => ({ ...prev, [field]: true }));
+                }
+            };
+
+            const handleNativeDrop = (e) => {
+                // CRITICAL: preventDefault MUST be called first to stop browser from opening file
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                
+                console.log('✅ Drop handler called for field:', field);
+                console.log('Files in dataTransfer:', e.dataTransfer?.files?.length);
+                
+                if (!isSubmitting) {
+                    setDragActive(prev => ({ ...prev, [field]: false }));
+                    
+                    const files = e.dataTransfer?.files;
+                    if (files && files.length > 0) {
+                        const file = files[0];
+                        console.log('✅ Processing file:', file.name, file.type, file.size);
+                        handleFileChange(field, file);
+                    } else {
+                        console.warn('⚠️ No files found in dataTransfer');
+                    }
+                } else {
+                    console.log('⚠️ Form is submitting, ignoring drop');
+                }
+            };
+
+            const handleNativeDragEnter = (e) => {
+                if (!isSubmitting) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setDragActive(prev => ({ ...prev, [field]: true }));
+                }
+            };
+
+            const handleNativeDragLeave = (e) => {
+                if (!isSubmitting) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    // Only set false if actually leaving the drop zone
+                    const rect = dropZone.getBoundingClientRect();
+                    const x = e.clientX;
+                    const y = e.clientY;
+                    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+                        setDragActive(prev => ({ ...prev, [field]: false }));
+                    }
+                }
+            };
+
+            // Use capture phase to ensure our handlers run first and prevent browser default
+            dropZone.addEventListener('dragover', handleNativeDragOver, true);
+            dropZone.addEventListener('drop', handleNativeDrop, true);
+            dropZone.addEventListener('dragenter', handleNativeDragEnter, true);
+            dropZone.addEventListener('dragleave', handleNativeDragLeave, true);
+            
+            // Also add in bubble phase as backup
+            dropZone.addEventListener('drop', handleNativeDrop, false);
+
+            return () => {
+                dropZone.removeEventListener('dragover', handleNativeDragOver, true);
+                dropZone.removeEventListener('drop', handleNativeDrop, true);
+                dropZone.removeEventListener('dragenter', handleNativeDragEnter, true);
+                dropZone.removeEventListener('dragleave', handleNativeDragLeave, true);
+            };
+        }, [field, isSubmitting, handleFileChange]);
 
         return (
             <div className="mb-6">
@@ -858,10 +957,8 @@ const BecomeMemberForm = ({ onSubmit }) => {
                     {label} <span className="text-red-500">*</span>
                 </label>
                 <div
-                    onDragEnter={(e) => !isSubmitting && handleDrag(e, field)}
-                    onDragLeave={(e) => !isSubmitting && handleDrag(e, field)}
-                    onDragOver={(e) => !isSubmitting && handleDrag(e, field)}
-                    onDrop={(e) => !isSubmitting && handleDrop(e, field)}
+                    ref={dropZoneRef}
+                    data-drop-zone={field}
                     className={`border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300 ${
                         isSubmitting 
                             ? 'cursor-not-allowed opacity-50'
@@ -1216,25 +1313,15 @@ const BecomeMemberForm = ({ onSubmit }) => {
                 <label className="block text-gray-800 text-sm font-semibold mb-2">
                     Location <span className="text-red-500">*</span>
                 </label>
-                <input
-                    type="text"
-                    placeholder="Enter your location (e.g., Cairo, Egypt)"
+                <LocationAutocomplete
                     value={formData.location}
-                    onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                    onChange={(value) => setFormData({ ...formData, location: value })}
                     onBlur={() => handleBlur('location')}
+                    placeholder="Enter your location (e.g., Cairo, Egypt)"
                     disabled={isSubmitting}
-                    className={`w-full px-4 py-3 bg-white border rounded-lg text-gray-800 placeholder-gray-400 focus:outline-none transition-all ${
-                        isSubmitting ? 'opacity-50 cursor-not-allowed' : ''
-                    } ${
-                        touched.location && errors.location ? 'border-red-500 focus:border-red-500' : 'border-gray-300 focus:border-[#5A9B8E]'
-                    }`}
+                    error={touched.location ? errors.location : null}
+                    touched={touched.location}
                 />
-                {touched.location && errors.location && (
-                    <div className="flex items-center gap-2 mt-2 text-red-600 text-sm">
-                        <AlertCircle className="w-4 h-4" />
-                        <span>{errors.location}</span>
-                    </div>
-                )}
             </div>
 
             {/* Previous Work */}

@@ -6,8 +6,10 @@ import Breadcrumbs from '../components/ui/Breadcrumbs';
 import { useNavigate, Link } from 'react-router-dom';
 import ImagePlaceholder from '../components/ui/ImagePlaceholder';
 import { eventsManager } from '../utils/dataManager';
+import { useAuth } from '../contexts/AuthContext';
 
 const TherapyPrograms = () => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [programs, setPrograms] = useState([]);
   const [currentEvent, setCurrentEvent] = useState(null);
@@ -245,25 +247,27 @@ const TherapyPrograms = () => {
         </div>
       </div>
 
-      {/* Footer CTA Section */}
-      <div className="bg-white border-t border-gray-200 py-12 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-[#5A9B8E] rounded-2xl p-8 md:p-12 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
-              Join Our Community
-            </h2>
-            <p className="text-teal-50 mb-6 max-w-2xl mx-auto">
-              Become a member and be part of our growing professional community
-            </p>
-            <a 
-              href="/apply-membership"
-              className="inline-block bg-white text-[#5A9B8E] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
-            >
-              Become a Member
-            </a>
+      {/* Footer CTA Section - Only show for non-signed-in users */}
+      {!user && (
+        <div className="bg-white border-t border-gray-200 py-12 mt-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-[#5A9B8E] rounded-2xl p-8 md:p-12 text-center">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+                Join Our Community
+              </h2>
+              <p className="text-teal-50 mb-6 max-w-2xl mx-auto">
+                Become a member and be part of our growing professional community
+              </p>
+              <a 
+                href="/apply-membership"
+                className="inline-block bg-white text-[#5A9B8E] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
+              >
+                Become a Member
+              </a>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, ZoomIn, Images } from 'lucide-react';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
+import { useAuth } from '../contexts/AuthContext';
 
 // ✅ Import all your local images properly
 import gallery1 from '../../src/assets/GalleryImages/gallery1.jpg';
@@ -24,6 +25,7 @@ import gallery16 from '../../src/assets/GalleryImages/gallery16.jpg';
 // import gallery18 from '../../src/assets/GalleryImages/gallery18.jpg';
 
 const GalleryPage = () => {
+  const { user } = useAuth();
   const [selectedImage, setSelectedImage] = useState(null);
 
   // ✅ Now using imported local images
@@ -118,25 +120,27 @@ const GalleryPage = () => {
         </div>
       )}
 
-      {/* Footer CTA Section */}
-      <div className="bg-white border-t border-gray-200 py-8 sm:py-12 mt-8 sm:mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-[#5A9B8E] rounded-2xl p-6 sm:p-8 md:p-12 text-center">
-            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-3 sm:mb-4">
-              Join Our Community
-            </h2>
-            <p className="text-teal-50 mb-4 sm:mb-6 max-w-2xl mx-auto text-sm sm:text-base px-4">
-              Become a member and be part of our growing professional community
-            </p>
-            <a 
-              href="/apply-membership"
-              className="inline-block bg-white text-[#5A9B8E] hover:bg-gray-50 px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg text-sm sm:text-base"
-            >
-              Become a Member
-            </a>
+      {/* Footer CTA Section - Only show for non-signed-in users */}
+      {!user && (
+        <div className="bg-white border-t border-gray-200 py-8 sm:py-12 mt-8 sm:mt-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-[#5A9B8E] rounded-2xl p-6 sm:p-8 md:p-12 text-center">
+              <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-white mb-3 sm:mb-4">
+                Join Our Community
+              </h2>
+              <p className="text-teal-50 mb-4 sm:mb-6 max-w-2xl mx-auto text-sm sm:text-base px-4">
+                Become a member and be part of our growing professional community
+              </p>
+              <a 
+                href="/apply-membership"
+                className="inline-block bg-white text-[#5A9B8E] hover:bg-gray-50 px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg text-sm sm:text-base"
+              >
+                Become a Member
+              </a>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

@@ -281,7 +281,7 @@ const Header = () => {
         name: 'Members',
         dropdown: [
           { name: 'Our Members', href: '/members-overview' },
-          { name: 'Become a Member', href: '/apply-membership' },
+          ...(user ? [] : [{ name: 'Become a Member', href: '/apply-membership' }]),
         ],
       },
       {

@@ -239,8 +239,6 @@ export const getLocations = (membersList = null) => {
 
 // All available specialties (matching BecomeMemberForm)
 export const allSpecialties = [
-  'Phonetics and linguistics',
-  'Speech and language therapy department',
   'Speech sound disorder (children)',
   'Language disorder (children)',
   'Neurogenic communication disorders',

@@ -45,8 +45,6 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
   
   // Available specialties (matching BecomeMemberForm)
   const availableSpecialties = [
-    'Phonetics and linguistics',
-    'Speech and language therapy department',
     'Speech sound disorder (children)',
     'Language disorder (children)',
     'Neurogenic communication disorders',

@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BookOpen, X, Tag, ExternalLink, Search, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { BookOpen, X, Tag, ExternalLink, Search, Filter, ChevronLeft, ChevronRight, Facebook, Instagram, Share2 } from 'lucide-react';
 import { articlesManager } from '../utils/dataManager';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import ImagePlaceholder from '../components/ui/ImagePlaceholder';
+import { useAuth } from '../contexts/AuthContext';
 
 const ArticlesPage = () => {
+  const { user } = useAuth();
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -84,6 +86,44 @@ const ArticlesPage = () => {
     if (scrollContainerRef.current) {
       const cardWidth = scrollContainerRef.current.querySelector('.article-card')?.offsetWidth || 320;
       scrollContainerRef.current.scrollBy({ left: cardWidth + 24, behavior: 'smooth' });
+    }
+  };
+
+  // Share functions
+  const shareOnFacebook = (e) => {
+    e.stopPropagation();
+    if (selectedArticle?.url) {
+      const shareUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(selectedArticle.url)}`;
+      window.open(shareUrl, '_blank', 'width=600,height=400');
+    }
+  };
+
+  const shareOnTwitter = (e) => {
+    e.stopPropagation();
+    if (selectedArticle) {
+      const text = selectedArticle.titleEn || 'Check out this article';
+      const shareUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(selectedArticle.url || window.location.href)}&text=${encodeURIComponent(text)}`;
+      window.open(shareUrl, '_blank', 'width=600,height=400');
+    }
+  };
+
+  const shareOnInstagram = async (e) => {
+    e.stopPropagation();
+    if (selectedArticle?.url) {
+      try {
+        await navigator.clipboard.writeText(selectedArticle.url);
+        // Show a temporary notification (you could enhance this with a toast library)
+        alert('Article link copied to clipboard! You can now paste it in Instagram.');
+      } catch (err) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = selectedArticle.url;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        alert('Article link copied to clipboard! You can now paste it in Instagram.');
+      }
     }
   };
 
@@ -379,31 +419,64 @@ const ArticlesPage = () => {
                     This will open the original article in a new tab
                   </p>
                 </div>
+                
+                {/* Share Buttons */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  <span className="text-sm text-gray-600 font-medium hidden sm:inline">Share:</span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={shareOnFacebook}
+                      className="w-10 h-10 bg-[#1877F2] hover:bg-[#166FE5] text-white rounded-lg flex items-center justify-center transition-colors shadow-md hover:shadow-lg"
+                      aria-label="Share on Facebook"
+                      title="Share on Facebook"
+                    >
+                      <Facebook className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={shareOnTwitter}
+                      className="w-10 h-10 bg-black hover:bg-gray-800 text-white rounded-lg flex items-center justify-center transition-colors shadow-md hover:shadow-lg"
+                      aria-label="Share on X (Twitter)"
+                      title="Share on X (Twitter)"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={shareOnInstagram}
+                      className="w-10 h-10 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 hover:from-purple-600 hover:via-pink-600 hover:to-orange-600 text-white rounded-lg flex items-center justify-center transition-colors shadow-md hover:shadow-lg"
+                      aria-label="Copy link for Instagram"
+                      title="Copy link for Instagram"
+                    >
+                      <Instagram className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Footer CTA Section */}
-      <div className="bg-white border-t border-gray-200 py-12 mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="bg-[#5A9B8E] rounded-2xl p-8 md:p-12 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
-              Join Our Community
-            </h2>
-            <p className="text-teal-50 mb-6 max-w-2xl mx-auto">
-              Become a member and be part of our growing professional community
-            </p>
-            <a 
-              href="/apply-membership"
-              className="inline-block bg-white text-[#5A9B8E] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
-            >
-              Become a Member
-            </a>
+      {/* Footer CTA Section - Only show for non-signed-in users */}
+      {!user && (
+        <div className="bg-white border-t border-gray-200 py-12 mt-12">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-[#5A9B8E] rounded-2xl p-8 md:p-12 text-center">
+              <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+                Join Our Community
+              </h2>
+              <p className="text-teal-50 mb-6 max-w-2xl mx-auto">
+                Become a member and be part of our growing professional community
+              </p>
+              <a 
+                href="/apply-membership"
+                className="inline-block bg-white text-[#5A9B8E] hover:bg-gray-50 px-8 py-3 rounded-lg font-semibold transition-colors duration-200 shadow-lg"
+              >
+                Become a Member
+              </a>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };
