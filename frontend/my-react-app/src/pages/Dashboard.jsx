@@ -30,9 +30,9 @@ import { membershipFormsService } from '../services/membershipFormsService';
 import { contactFormsService } from '../services/contactFormsService';
 import { reservationsService } from '../services/reservationsService';
 import { useToast } from '../contexts/ToastContext';
-import CourseCard from '../components/cards/CourseCard';
+// import CourseCard from '../components/cards/CourseCard';
 import MemberCard from '../components/cards/MemberCard';
-import CourseEditForm from '../components/dashboard/CourseEditForm';
+// import CourseEditForm from '../components/dashboard/CourseEditForm';
 import MemberEditForm from '../components/dashboard/MemberEditForm';
 import EventEditForm from '../components/dashboard/EventEditForm';
 import ArticleEditForm from '../components/dashboard/ArticleEditForm';
@@ -1108,11 +1108,11 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const location = useLocation();
     const toast = useToast();
     
-    // Get tab from URL, default to "courses"
+    // Get tab from URL, default to "members"
     const getTabFromURL = () => {
         const tab = searchParams.get('tab');
-        const validTabs = ['courses', 'members', 'events', 'articles', 'therapy-programs', 'for-parents', 'applications', 'settings'];
-        return tab && validTabs.includes(tab) ? tab : 'courses';
+        const validTabs = ['members', 'events', 'articles', 'therapy-programs', 'for-parents', 'applications', 'settings'];
+        return tab && validTabs.includes(tab) ? tab : 'members';
     };
     
     const [activeTab, setActiveTab] = useState(getTabFromURL());
@@ -2906,7 +2906,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     };
 
     const menuItems = [
-        { icon: BookOpen, label: "Courses", tab: "courses" },
+        // { icon: BookOpen, label: "Courses", tab: "courses" },
         { icon: Users, label: "Members", tab: "members" },
         { icon: Calendar, label: "Events", tab: "events" },
         { icon: FileText, label: "Articles", tab: "articles" },
@@ -2991,8 +2991,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 </button>
                                 <div className="flex-1">
                                 <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">
-                                    {activeTab === 'courses' ? 'Courses Management' :
-                                        activeTab === 'members' ? 'Members Management' :
+                                    {activeTab === 'members' ? 'Members Management' :
                                         activeTab === 'events' ? 'Events Management' :
                                         activeTab === 'articles' ? 'Articles Management' :
                                         activeTab === 'therapy-programs' ? 'Therapy Programs Management' :
@@ -3001,8 +3000,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                         'Settings'}
                                 </h1>
                                 <p className="text-gray-600 text-sm md:text-base">
-                                    {activeTab === 'courses' ? 'Manage all courses on the website' :
-                                        activeTab === 'members' ? 'Manage all members on the website' :
+                                    {activeTab === 'members' ? 'Manage all members on the website' :
                                         activeTab === 'events' ? 'Manage upcoming and past events' :
                                         activeTab === 'articles' ? 'Manage articles and resources' :
                                         activeTab === 'therapy-programs' ? 'Manage therapy programs and services' :
@@ -3012,71 +3010,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 </p>
                                 </div>
                             </div>
-                            {/* Desktop buttons on the right */}
-                            {activeTab === 'courses' && (
-                                <div className="hidden md:flex items-center gap-2 md:gap-3">
-                                    <button
-                                        onClick={loadCourses}
-                                        className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-                                        title="Refresh Courses"
-                                    >
-                                        <RefreshCw size={18} />
-                                    </button>
-                                    <button
-                                        onClick={handleSyncCourses}
-                                        className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors"
-                                        title="Sync from Supabase"
-                                    >
-                                        <RefreshCw size={18} />
-                                        Sync
-                                    </button>
-                                    <button
-                                        onClick={async () => {
-                                            const localCourses = coursesManager._getAllFromLocalStorage();
-                                            if (localCourses.length === 0) {
-                                                alert('No courses in localStorage to sync.');
-                                                return;
-                                            }
-                                            const confirmed = window.confirm(
-                                                `Sync ${localCourses.length} course(s) from localStorage to Supabase?\n\n` +
-                                                `This will upload any courses that don't already exist in Supabase, or update existing ones.`
-                                            );
-                                            if (!confirmed) return;
-
-                                            try {
-                                                const result = await coursesManager.syncToSupabase();
-                                                if (result.synced) {
-                                                    await loadCourses();
-                                                    let message = `✅ Sync Complete!\n\n`;
-                                                    message += `📤 Synced: ${result.syncedCount} course(s)\n`;
-                                                    message += `📊 Total: ${result.total} course(s)\n`;
-                                                    if (result.errorCount > 0) {
-                                                        message += `❌ Errors: ${result.errorCount} course(s)\n`;
-                                                    }
-                                                    alert(message);
-                                                } else {
-                                                    alert(`❌ Failed to sync: ${result.error?.message || 'Unknown error'}`);
-                                                }
-                                            } catch (error) {
-                                                console.error('Error syncing courses to Supabase:', error);
-                                                alert(`❌ Error: ${error.message || 'Unknown error'}`);
-                                            }
-                                        }}
-                                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-                                        title="Sync to Supabase (Upload from localStorage)"
-                                    >
-                                        <RefreshCw size={18} className="rotate-180" />
-                                        Sync to Supabase
-                                    </button>
-                                    <button
-                                        onClick={() => setIsAddingCourse(true)}
-                                        className="flex items-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md"
-                                    >
-                                        <Plus size={20} />
-                                        Add Course
-                                    </button>
-                                </div>
-                            )}
+                            {/* Desktop buttons on the right - courses disabled */}
+                            {/* {activeTab === 'courses' && ( ... )} */}
                             {activeTab === 'members' && (
                                 <div className="hidden md:flex items-center gap-2 md:gap-3">
                                     <button
@@ -3255,74 +3190,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 </div>
                             )}
                         </div>
-                        {activeTab === 'courses' && (
-                            <>
-                            <div className="md:hidden flex items-center gap-2 mb-3 flex-wrap">
-                                <button
-                                    onClick={loadCourses}
-                                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
-                                    title="Refresh Courses"
-                                >
-                                    <RefreshCw size={18} />
-                                </button>
-                                <button
-                                    onClick={handleSyncCourses}
-                                    className="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
-                                    title="Sync from Supabase"
-                                >
-                                    <RefreshCw size={18} />
-                                    Sync
-                                </button>
-                                <button
-                                    onClick={async () => {
-                                        const localCourses = coursesManager._getAllFromLocalStorage();
-                                        if (localCourses.length === 0) {
-                                            alert('No courses in localStorage to sync.');
-                                            return;
-                                        }
-                                        const confirmed = window.confirm(
-                                            `Sync ${localCourses.length} course(s) from localStorage to Supabase?\n\n` +
-                                            `This will upload any courses that don't already exist in Supabase, or update existing ones.`
-                                        );
-                                        if (!confirmed) return;
-
-                                        try {
-                                            const result = await coursesManager.syncToSupabase();
-                                            if (result.synced) {
-                                                await loadCourses();
-                                                let message = `✅ Sync Complete!\n\n`;
-                                                message += `📤 Synced: ${result.syncedCount} course(s)\n`;
-                                                message += `📊 Total: ${result.total} course(s)\n`;
-                                                if (result.errorCount > 0) {
-                                                    message += `❌ Errors: ${result.errorCount} course(s)\n`;
-                                                }
-                                                alert(message);
-                                            } else {
-                                                alert(`❌ Failed to sync: ${result.error?.message || 'Unknown error'}`);
-                                            }
-                                        } catch (error) {
-                                            console.error('Error syncing courses to Supabase:', error);
-                                            alert(`❌ Error: ${error.message || 'Unknown error'}`);
-                                        }
-                                    }}
-                                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-sm"
-                                    title="Sync to Supabase (Upload from localStorage)"
-                                >
-                                    <RefreshCw size={18} className="rotate-180" />
-                                    Sync to Supabase
-                                </button>
-                            </div>
-                            <div className="md:hidden w-full">
-                                <button
-                                    onClick={() => setIsAddingCourse(true)}
-                                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md"
-                                >
-                                    <Plus size={20} />
-                                    Add Course
-                                </button>
-                            </div>
-                            </>
-                        )}
+                        {/* Mobile courses buttons - disabled */}
+                        {/* {activeTab === 'courses' && ( ... )} */}
                         {activeTab === 'members' && (
                             <>
                             <div className="md:hidden flex items-center gap-2 mb-3 flex-wrap">
@@ -3522,55 +3391,8 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                         )}
                     </div>
 
-                    {/* Courses Tab */}
-                    {activeTab === 'courses' && (
-                        <div>
-                            {/* Search Bar */}
-                            <div className="mb-6">
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                                    <input
-                                        type="text"
-                                        placeholder="Search courses..."
-                                        value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none"
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Stats */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                                <div className="bg-white p-4 rounded-lg shadow-sm">
-                                    <p className="text-sm text-gray-600">Total Courses</p>
-                                    <p className="text-2xl font-bold text-gray-900">{courses.length}</p>
-                                </div>
-                                <div className="bg-white p-4 rounded-lg shadow-sm">
-                                    <p className="text-sm text-gray-600">Filtered Results</p>
-                                    <p className="text-2xl font-bold text-gray-900">{filteredCourses.length}</p>
-                                </div>
-                            </div>
-
-                            {/* Courses Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {filteredCourses.map((course) => (
-                                    <CourseCard
-                                        key={course.id}
-                                        course={course}
-                                        isDashboard={true}
-                                        onEdit={setEditingCourse}
-                                        onDelete={handleDeleteCourse}
-                                    />
-                                ))}
-                            </div>
-
-                            {filteredCourses.length === 0 && (
-                                <div className="text-center py-12 bg-white rounded-lg">
-                                    <p className="text-gray-500">No courses found</p>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                    {/* Courses Tab - disabled */}
+                    {/* {activeTab === 'courses' && ( ... )} */}
 
                     {/* Members Tab */}
                     {activeTab === 'members' && (
@@ -5174,21 +4996,9 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             </div>
 
             {/* Edit Forms */}
-            {editingCourse && (
-                <CourseEditForm
-                    course={editingCourse}
-                    onSave={handleSaveCourse}
-                    onCancel={() => setEditingCourse(null)}
-                />
-            )}
-
-            {isAddingCourse && (
-                <CourseEditForm
-                    course={null}
-                    onSave={handleSaveCourse}
-                    onCancel={() => setIsAddingCourse(false)}
-                />
-            )}
+            {/* Course edit forms - disabled */}
+            {/* {editingCourse && <CourseEditForm ... />} */}
+            {/* {isAddingCourse && <CourseEditForm ... />} */}
 
             {editingMember && (
                 <MemberEditForm

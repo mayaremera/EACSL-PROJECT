@@ -256,7 +256,7 @@ function MemberProfile() {
                         {[
                             { id: 'about', label: 'About', icon: FileText },
                             { id: 'certificates', label: 'Certificates', icon: Award },
-                            { id: 'courses', label: 'Courses', icon: BookOpen }
+                            // { id: 'courses', label: 'Courses', icon: BookOpen }
                         ].map((tab) => {
                             const Icon = tab.icon;
                             return (
@@ -340,104 +340,12 @@ function MemberProfile() {
                         </div>
                     )}
 
-                    {/* Courses Section */}
-                    {activeTab === 'courses' && (
+                    {/* Courses Section - disabled */}
+                    {/* {activeTab === 'courses' && (
                         <div className="bg-white rounded-xl shadow-sm p-6 md:p-8">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-6">Courses & Training</h2>
-                            
-                            {/* Regular Courses */}
-                            {courses.length > 0 && (
-                                <div className="mb-8">
-                                    <h3 className="text-lg font-semibold text-gray-800 mb-4">Website Courses</h3>
-                                    <div className="space-y-4">
-                                        {courses.map((course, index) => (
-                                            <div key={index} className="bg-gray-50 rounded-lg p-5 border border-gray-200 hover:border-[#5A9B8E] transition-colors duration-200">
-                                                <div className="flex items-start justify-between gap-4 mb-3">
-                                                    <div className="flex-1">
-                                                        <h3 className="text-lg font-bold text-gray-900 mb-1">{course.title}</h3>
-                                                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                                                            <BookOpen className="w-4 h-4 text-[#5A9B8E]" />
-                                                            <span>{course.provider}</span>
-                                                        </div>
-                                                    </div>
-                                                    <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${course.status === 'Completed'
-                                                        ? 'bg-green-100 text-green-700'
-                                                        : 'bg-blue-100 text-blue-700'
-                                                        }`}>
-                                                        {course.status}
-                                                    </span>
-                                                </div>
-                                                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                                                    <div className="flex items-center gap-1">
-                                                        <Calendar className="w-4 h-4" />
-                                                        <span>{course.date}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1">
-                                                        <Award className="w-4 h-4" />
-                                                        <span>{course.hours}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Custom Courses */}
-                            {customCourses.length > 0 && (
-                                <div className={courses.length > 0 ? "mt-8" : ""}>
-                                    {courses.length > 0 && <h3 className="text-lg font-semibold text-gray-800 mb-4">Custom Courses</h3>}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {customCourses.map((course, index) => (
-                                            <div 
-                                                key={index} 
-                                                className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 overflow-hidden border border-gray-100 group cursor-pointer"
-                                            >
-                                                {/* Image Section */}
-                                                <div className="relative h-56 overflow-hidden bg-gradient-to-br from-[#5A9B8E]/10 to-[#5A9B8E]/5">
-                                                    {course.image ? (
-                                                        <ImagePlaceholder
-                                                            src={course.image}
-                                                            alt={course.title}
-                                                            name={course.title}
-                                                            className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
-                                                        />
-                                                    ) : (
-                                                        <div className="w-full h-full flex items-center justify-center">
-                                                            <BookOpen className="w-16 h-16 text-[#5A9B8E]/30" />
-                                                        </div>
-                                                    )}
-                                                    {/* Overlay gradient on hover */}
-                                                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                                    {/* Course icon badge */}
-                                                    <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm p-2.5 rounded-lg shadow-md">
-                                                        <BookOpen className="w-5 h-5 text-[#5A9B8E]" />
-                                                    </div>
-                                                </div>
-                                                
-                                                {/* Content Section */}
-                                                <div className="p-5">
-                                                    <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 group-hover:text-[#5A9B8E] transition-colors duration-200 leading-tight">
-                                                        {course.title}
-                                                    </h3>
-                                                    <div className="flex items-center gap-2 text-sm text-gray-600 mt-3">
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* No Courses Message */}
-                            {courses.length === 0 && customCourses.length === 0 && (
-                                <div className="text-center py-12">
-                                    <BookOpen className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                                    <p className="text-gray-500">No courses information available</p>
-                                </div>
-                            )}
+                            ...
                         </div>
-                    )}
+                    )} */}
                 </div>
             </div>
         </div>

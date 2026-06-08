@@ -256,17 +256,17 @@ const Header = () => {
   // Build navigation links based on user login status
   const navLinks = useMemo(() => {
     const educationDropdown = [
-      { name: 'Online Courses', href: '/online-courses' },
+      // { name: 'Online Courses', href: '/online-courses' },
       { name: 'Articles', href: '/articles' },
     ];
     
     // Only show Continuing Education for logged-in users
-    if (user && memberData) {
-      educationDropdown.unshift({
-        name: 'Continuing Education',
-        href: `/continuing-education/${memberData.id}`,
-      });
-    }
+    // if (user && memberData) {
+    //   educationDropdown.unshift({
+    //     name: 'Continuing Education',
+    //     href: `/continuing-education/${memberData.id}`,
+    //   });
+    // }
 
     return [
       { name: 'Home', href: '/' },
@@ -517,8 +517,8 @@ const Header = () => {
                         </div>
                       )}
 
-                      {/* Courses */}
-                      {searchResults.courses.length > 0 && (
+                      {/* Courses - disabled */}
+                      {/* {searchResults.courses.length > 0 && (
                         <div className="mb-2">
                           <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
                             <GraduationCap size={14} className="text-orange-600" />
@@ -549,7 +549,7 @@ const Header = () => {
                             </button>
                           ))}
                         </div>
-                      )}
+                      )} */}
 
                       {/* Therapy Programs */}
                       {searchResults.therapyPrograms.length > 0 && (
@@ -666,14 +666,14 @@ const Header = () => {
                           <UserCircle size={16} />
                           <span>Profile</span>
                         </Link>
-                        <Link
+                        {/* <Link
                           to={`/continuing-education/${memberData.id}`}
                           onClick={() => setUserDropdownOpen(false)}
                           className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-700 hover:bg-teal-50 hover:text-[#5A9B8E] transition-all duration-200"
                         >
                           <BookOpen size={16} />
                           <span>Continuing Education</span>
-                        </Link>
+                        </Link> */}
                         {memberData.activeTill && (
                           <div className="flex items-center space-x-2 px-4 py-2 text-sm text-gray-600">
                             <Calendar size={16} />
@@ -889,8 +889,8 @@ const Header = () => {
                               ))}
                             </div>
                           )}
-                          {/* Courses */}
-                          {searchResults.courses.length > 0 && (
+                          {/* Courses - disabled */}
+                          {/* {searchResults.courses.length > 0 && (
                             <div className="mb-2">
                               <div className="px-4 py-2 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
                                 <GraduationCap size={14} className="text-orange-600" />
@@ -921,7 +921,7 @@ const Header = () => {
                                 </button>
                               ))}
                             </div>
-                          )}
+                          )} */}
                           {/* Therapy Programs */}
                           {searchResults.therapyPrograms.length > 0 && (
                             <div className="mb-2">
@@ -1019,14 +1019,14 @@ const Header = () => {
                           <UserCircle size={18} />
                           <span>Profile</span>
                         </Link>
-                        <Link
+                        {/* <Link
                           to={`/continuing-education/${memberData.id}`}
                           onClick={() => setIsMenuOpen(false)}
                           className="w-full flex items-center justify-center space-x-2 px-6 py-2.5 rounded-xl font-medium bg-teal-50 hover:bg-teal-100 text-[#5A9B8E] transition-all duration-300 hover:scale-105 active:scale-95"
                         >
                           <BookOpen size={18} />
                           <span>Continuing Education</span>
-                        </Link>
+                        </Link> */}
                         {memberData.activeTill && (
                           <div className="px-4 py-2 bg-gray-50 rounded-lg">
                             <div className="flex items-center space-x-2 text-sm text-gray-600">

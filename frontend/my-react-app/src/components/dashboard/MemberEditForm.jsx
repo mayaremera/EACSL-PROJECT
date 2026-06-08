@@ -257,24 +257,20 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
     };
   }, [member]);
 
-  // Load available courses
-  useEffect(() => {
-    const loadCourses = async () => {
-      // First, load from cache for immediate display
-      const cachedCourses = coursesManager._getAllFromLocalStorage();
-      setAvailableCourses(cachedCourses);
-      
-      // Then refresh from Supabase in the background
-      try {
-        const courses = await coursesManager.getAll();
-        setAvailableCourses(courses);
-      } catch (error) {
-        console.error('Error loading courses:', error);
-      }
-    };
-    
-    loadCourses();
-  }, []);
+  // Load available courses - disabled
+  // useEffect(() => {
+  //   const loadCourses = async () => {
+  //     const cachedCourses = coursesManager._getAllFromLocalStorage();
+  //     setAvailableCourses(cachedCourses);
+  //     try {
+  //       const courses = await coursesManager.getAll();
+  //       setAvailableCourses(courses);
+  //     } catch (error) {
+  //       console.error('Error loading courses:', error);
+  //     }
+  //   };
+  //   loadCourses();
+  // }, []);
 
   // Roles available in the system (Admin is NOT in this list - it's set directly in Supabase)
   // Admin role is for authentication only and should not be selectable in the dropdown
@@ -1515,7 +1511,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
             </div>
           </div>
 
-          {/* Continuing Education Section */}
+          {/* Continuing Education Section - course fields disabled */}
           <div className="border-t border-gray-200 pt-6">
             <div className="flex items-center gap-2 mb-6">
               <BookOpen className="w-5 h-5 text-[#5A9B8E]" />
@@ -1523,21 +1519,6 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-4 md:mb-6">
-              {/* Courses Enrolled */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Courses Enrolled
-                </label>
-                <input
-                  type="number"
-                  name="coursesEnrolled"
-                  value={formData.coursesEnrolled ?? 0}
-                  onChange={handleChange}
-                  min="0"
-                  className="w-full px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
-                />
-              </div>
-
               {/* Hours Learned */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -1554,278 +1535,11 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
               </div>
             </div>
 
-            {/* Active Courses */}
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Active Courses
-              </label>
-              <div className="flex gap-2 mb-3">
-                <select
-                  value={selectedActiveCourse}
-                  onChange={(e) => setSelectedActiveCourse(e.target.value)}
-                  className="flex-1 min-w-0 px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
-                >
-                  <option value="">Select a course to add...</option>
-                  {availableCourses
-                    .filter(course => !(formData.activeCourses || []).some(ac => ac.id === course.id))
-                    .map(course => (
-                      <option key={course.id} value={course.id}>
-                        {course.title}
-                      </option>
-                    ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={handleAddActiveCourse}
-                  disabled={!selectedActiveCourse}
-                  className="flex-shrink-0 px-3 md:px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm md:text-base whitespace-nowrap"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add
-                </button>
-              </div>
-              <div className="space-y-2">
-                {(formData.activeCourses || []).map((course) => (
-                  <div key={course.id} className="flex items-center justify-between bg-blue-50 p-3 rounded-lg border border-blue-200 min-w-0">
-                    <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-                      {course.image && (
-                        <img 
-                          src={course.image} 
-                          alt={course.title}
-                          className="w-10 h-10 md:w-12 md:h-12 object-cover rounded flex-shrink-0"
-                        />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{course.title}</p>
-                        <p className="text-xs text-gray-600 truncate">
-                          {course.category} • {course.level}
-                          {course.price && course.price !== '0' && String(course.price).trim() !== '' && ` • ${course.price}`}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveActiveCourse(course.id)}
-                      className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded transition-colors"
-                      title="Remove course"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-                {(!formData.activeCourses || formData.activeCourses.length === 0) && (
-                  <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
-                    No active courses. Add courses from the dropdown above.
-                  </p>
-                )}
-              </div>
-            </div>
-
-            {/* Completed Courses */}
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">
-                Completed Courses
-              </label>
-              <div className="flex gap-2 mb-3">
-                <select
-                  value={selectedCompletedCourse}
-                  onChange={(e) => setSelectedCompletedCourse(e.target.value)}
-                  className="flex-1 min-w-0 px-3 md:px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#5A9B8E] focus:border-transparent outline-none text-sm md:text-base"
-                >
-                  <option value="">Select a course to add...</option>
-                  {availableCourses
-                    .filter(course => !(formData.completedCourses || []).some(cc => cc.id === course.id))
-                    .map(course => (
-                      <option key={course.id} value={course.id}>
-                        {course.title}
-                      </option>
-                    ))}
-                </select>
-                <button
-                  type="button"
-                  onClick={handleAddCompletedCourse}
-                  disabled={!selectedCompletedCourse}
-                  className="flex-shrink-0 px-3 md:px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm md:text-base whitespace-nowrap"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add
-                </button>
-              </div>
-              <div className="space-y-2">
-                {(formData.completedCourses || []).map((course) => (
-                  <div key={course.id} className="flex items-center justify-between bg-green-50 p-3 rounded-lg border border-green-200 min-w-0">
-                    <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-                      {course.image && (
-                        <img 
-                          src={course.image} 
-                          alt={course.title}
-                          className="w-10 h-10 md:w-12 md:h-12 object-cover rounded flex-shrink-0"
-                        />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900 truncate">{course.title}</p>
-                        <p className="text-xs text-gray-600 truncate">
-                          {course.category} • {course.level}
-                          {course.price && course.price !== '0' && String(course.price).trim() !== '' && ` • ${course.price}`}
-                        </p>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveCompletedCourse(course.id)}
-                      className="text-red-500 hover:text-red-700 p-2 hover:bg-red-50 rounded transition-colors"
-                      title="Remove course"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-                {(!formData.completedCourses || formData.completedCourses.length === 0) && (
-                  <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
-                    No completed courses. Add courses from the dropdown above.
-                  </p>
-                )}
-              </div>
-            </div>
+            {/* Course management UI disabled */}
           </div>
 
-          {/* Custom Courses Section */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <BookOpen className="w-5 h-5 text-[#5A9B8E]" />
-              <h3 className="text-lg font-semibold text-gray-900">Custom Courses</h3>
-            </div>
-            <p className="text-sm text-gray-600 mb-4">
-              Add custom courses with title and image to showcase on the member profile. These are separate from the website's courses.
-            </p>
-
-            {/* Add/Edit Custom Course Form */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-4">
-              <div className="space-y-3">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Course Title *
-                  </label>
-                  <input
-                    type="text"
-                    value={newCustomCourse.title}
-                    onChange={(e) => setNewCustomCourse(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
-                    placeholder="e.g., Advanced Speech Therapy Techniques"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Course Image
-                  </label>
-                  {newCustomCourse.imagePreview ? (
-                    <div className="relative">
-                      <img
-                        src={newCustomCourse.imagePreview}
-                        alt="Course preview"
-                        className="w-full h-48 object-cover object-top rounded-lg border border-gray-300"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (newCustomCourse.imagePreview && newCustomCourse.imagePreview.startsWith('blob:')) {
-                            URL.revokeObjectURL(newCustomCourse.imagePreview);
-                          }
-                          setNewCustomCourse(prev => ({ ...prev, imageFile: null, imagePreview: null }));
-                        }}
-                        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => {
-                        if (e.target.files && e.target.files[0]) {
-                          handleCustomCourseImageChange(e.target.files[0]);
-                        }
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
-                    />
-                  )}
-                </div>
-
-                <div className="flex gap-2">
-                  {editingCustomCourse !== null ? (
-                    <>
-                      <button
-                        type="button"
-                        onClick={handleUpdateCustomCourse}
-                        disabled={isUploadingCustomCourseImage}
-                        className="flex-1 px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isUploadingCustomCourseImage ? 'Uploading...' : 'Update Course'}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleCancelEditCustomCourse}
-                        className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-                      >
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={handleAddCustomCourse}
-                      disabled={isUploadingCustomCourseImage}
-                      className="flex-1 px-4 py-2 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isUploadingCustomCourseImage ? 'Uploading...' : 'Add Course'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Display Custom Courses */}
-            <div className="space-y-3">
-              {(formData.customCourses || []).map((course, index) => (
-                <div key={index} className="bg-white border border-gray-200 rounded-lg p-4 flex items-center gap-4">
-                  {course.image && (
-                    <ImagePlaceholder
-                      src={course.image}
-                      alt={course.title}
-                      name={course.title}
-                      className="w-20 h-20 rounded-lg object-cover object-top flex-shrink-0"
-                    />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-semibold text-gray-900 truncate">{course.title}</h4>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleEditCustomCourse(index)}
-                      className="px-3 py-1.5 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors text-xs"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteCustomCourse(index)}
-                      className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-xs"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {(!formData.customCourses || formData.customCourses.length === 0) && (
-                <p className="text-sm text-gray-500 text-center py-4 bg-gray-50 rounded-lg">
-                  No custom courses added yet. Add courses using the form above.
-                </p>
-              )}
-            </div>
-          </div>
+          {/* Custom Courses Section - disabled */}
+          {/* <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6"> ... </div> */}
 
           {/* Create Authentication Account Checkbox (only for new members) */}
           {!member && (

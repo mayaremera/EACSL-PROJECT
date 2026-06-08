@@ -11,7 +11,7 @@ import OrganizingCommitteePage from "../pages/OrganizingCommitteePage";
 import SeminarsPage from "../pages/SeminarsPage";
 import RegistrationPage from "../pages/RegistrationPage";
 import GalleryPage from "../pages/GalleryPage";
-import OnlineCoursesPage from "../pages/OnlineCoursesPage";
+// import OnlineCoursesPage from "../pages/OnlineCoursesPage";
 import ArticlesPage from "../pages/ArticlesPage";
 import MembersOverviewPage from "../pages/MembersOverviewPage";
 import ApplyMembershipPage from "../pages/ApplyMembershipPage";
@@ -25,11 +25,11 @@ import NotFoundPage from "../pages/NotFoundPage";
 import Dashboard from "../pages/Dashboard";
 import MemberProfile from "../pages/MemberProfile";
 import LiveEventsPage from './../pages/LiveEventsPage';
-import ContinuingEducationMember from "../pages/ContinuingEducationMember";
+// import ContinuingEducationMember from "../pages/ContinuingEducationMember";
 import UpcomingEventsPage from "./../pages/UpcomingEventsPage";
 import PastEventsPage from "./../pages/PastEventsPage";
-import CourseDetailsPage from './../pages/CourseDetailsPage';
-import DashboardCourseEditorPage from './../pages/DashboardCourseEditorPage';
+// import CourseDetailsPage from './../pages/CourseDetailsPage';
+// import DashboardCourseEditorPage from './../pages/DashboardCourseEditorPage';
 import SetPasswordPage from './../pages/SetPasswordPage';
 import LoginPage from './../pages/LoginPage';
 
@@ -53,7 +53,7 @@ function AppRouter() {
           <Route path="/seminars" element={<SeminarsPage />} />
           <Route path="/registration" element={<RegistrationPage />} />
           <Route path="/gallery" element={<GalleryPage />} />
-          <Route path="/online-courses" element={<OnlineCoursesPage />} />
+          {/* <Route path="/online-courses" element={<OnlineCoursesPage />} /> */}
           <Route path="/articles" element={<ArticlesPage />} />
           <Route path="/members-overview" element={<MembersOverviewPage />} />
           <Route path="/apply-membership" element={<ApplyMembershipPage />} />
@@ -66,12 +66,12 @@ function AppRouter() {
           <Route path="/live-events" element={<LiveEventsPage />} />
           <Route path="/upcoming-events/:eventId?" element={<UpcomingEventsPage />} />
           <Route path="/past-events" element={<PastEventsPage />} />
-          <Route path="/course-details/:courseId" element={<CourseDetailsPage />} />
+          {/* <Route path="/course-details/:courseId" element={<CourseDetailsPage />} /> */}
           <Route path="/member-profile/:memberId" element={<MemberProfile />} />
-          <Route path="/continuing-education/:memberId?" element={<ContinuingEducationMember />} />
+          {/* <Route path="/continuing-education/:memberId?" element={<ContinuingEducationMember />} /> */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/dashboard" element={<ProtectedRoute requireAdmin={true}><Dashboard /></ProtectedRoute>} />
-          <Route path="/dashboard-course-editor" element={<ProtectedRoute requireAdmin={true}><DashboardCourseEditorPage /></ProtectedRoute>} />
+          {/* <Route path="/dashboard-course-editor" element={<ProtectedRoute requireAdmin={true}><DashboardCourseEditorPage /></ProtectedRoute>} /> */}
           <Route path="/set-password" element={<SetPasswordPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>

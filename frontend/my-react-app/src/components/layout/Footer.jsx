@@ -70,7 +70,7 @@ const Footer = () => {
         // { name: 'Active Members', href: '/active-members' },
         { name: 'Become a Member', href: '/apply-membership' },
         { name: 'Members Overview', href: '/members-overview' },
-        { name: 'Online Courses', href: '/online-courses' },
+        // { name: 'Online Courses', href: '/online-courses' },
         { name: 'Articles', href: '/articles' },
       ]
     },

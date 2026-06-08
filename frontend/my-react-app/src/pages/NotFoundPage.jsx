@@ -54,7 +54,7 @@ function NotFoundPage() {
             <div className="flex flex-wrap justify-center gap-4">
               <Link to="/" className="text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors">Home</Link>
               <Link to="/about" className="text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors">About</Link>
-              <Link to="/upcoming-events" className="text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors">Events</Link>
+              <Link to="/upcoming-events" className="text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors">Upcoming Course</Link>
               <Link to="/members-overview" className="text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors">Members</Link>
               <Link to="/contact" className="text-[#5A9B8E] hover:text-[#4A8B7E] transition-colors">Contact</Link>
             </div>

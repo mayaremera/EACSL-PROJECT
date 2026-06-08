@@ -456,13 +456,13 @@ const UpcomingEventsPage = () => {
       <div className="min-h-screen bg-gray-50">
         {/* Hero Section */}
         <PageHero
-          title="Events"
-          subtitle="Stay updated with our latest conferences and professional development events"
+          title="Courses"
+          subtitle="Stay updated with our latest conferences and professional development courses"
           icon={<Calendar className="w-12 h-12" />}
         />
 
         {/* Breadcrumb */}
-        <Breadcrumbs items={[{ label: 'Events' }]} />
+        <Breadcrumbs items={[{ label: 'Courses' }]} />
 
         {/* Empty State */}
         <div className="min-h-[60vh] flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12">
@@ -471,16 +471,16 @@ const UpcomingEventsPage = () => {
               <Calendar className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             </div>
             <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
-              No Currently Live Event or Upcoming Event
+              No Currently Live Course or Upcoming Course
             </h2>
             <p className="text-lg text-gray-600 mb-8">
-              There is no currently live event or upcoming event coming soon. Check out our past events to see what we've been up to!
+              There is no currently live course or upcoming course coming soon. Check out our past courses to see what we've been up to!
             </p>
             <button
               onClick={() => navigate('/past-events')}
               className="px-8 py-3 bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white font-semibold rounded-lg transition-colors duration-200 shadow-md hover:shadow-lg"
             >
-              View Past Events
+              View Past Courses
             </button>
           </div>
         </div>
@@ -492,7 +492,7 @@ const UpcomingEventsPage = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <p className="text-gray-600">Loading event information...</p>
+          <p className="text-gray-600">Loading course information...</p>
         </div>
       </div>
     );
@@ -516,7 +516,7 @@ const UpcomingEventsPage = () => {
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-4">Registration Successful!</h2>
           <p className="text-gray-600 mb-6 leading-relaxed">
-            Thank you for registering for our conference! Our admin team will contact you shortly with Instapay payment details.
+            Thank you for registering for our course! Our admin team will contact you shortly with Instapay payment details.
           </p>
           <div className="bg-teal-50 border-l-4 border-[#5A9B8E] p-4 mb-6">
             <p className="text-sm text-gray-700">
@@ -529,7 +529,7 @@ const UpcomingEventsPage = () => {
             onClick={() => window.location.reload()}
             className="px-8 py-3 bg-[#5A9B8E] hover:bg-[#4A8B7E] text-white font-semibold rounded-lg transition-colors duration-200"
           >
-            Back to Event Page
+            Back to Course Page
           </button>
         </div>
       </div>
@@ -582,7 +582,7 @@ const UpcomingEventsPage = () => {
               </div>
             </div>
             <div className="inline-block bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-4">
-              <span className="text-sm font-semibold">LIVE EVENT</span>
+              <span className="text-sm font-semibold">LIVE COURSE</span>
             </div>
             <h1 className="text-4xl md:text-6xl font-bold mb-4">{eventData.title || 'Conference Schedule'}</h1>
             <p className="text-xl md:text-2xl text-teal-50 max-w-3xl mx-auto mb-6">
@@ -624,9 +624,9 @@ const UpcomingEventsPage = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2">
-            {/* Event Overview */}
+            {/* Course Overview */}
             <div className="bg-white rounded-xl shadow-md p-8 mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Event Overview</h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">Course Overview</h2>
               {eventData.overviewDescription && (
                 <p className="text-gray-700 mb-6">{eventData.overviewDescription}</p>
               )}
@@ -1008,10 +1008,10 @@ const UpcomingEventsPage = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-[#5A9B8E] rounded-2xl p-8 md:p-12 text-center">
               <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
-                Questions About the Event?
+                Questions About the Course?
               </h2>
               <p className="text-teal-50 mb-6 max-w-2xl mx-auto">
-                Contact us for more information about the conference
+                Contact us for more information about the course
               </p>
               <a 
                 href='/contact'
