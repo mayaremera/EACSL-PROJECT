@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, Plus, Trash2, Upload, Mic, GraduationCap, Briefcase, FileText } from 'lucide-react';
 import { eventsService } from '../../services/eventsService';
 import { eventParticipantsService } from '../../services/eventParticipantsService';
+import { getUploadErrorMessage, validateImageFile } from '../../utils/imageUploadUtils';
 import ImagePlaceholder from '../ui/ImagePlaceholder';
 
 const EventEditForm = ({ event, onSave, onCancel }) => {
@@ -214,23 +215,21 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
 
   const handleFileChange = (file) => {
     if (file) {
-      // Check if it's an image file
-      const isValidImage = file.type.startsWith('image/') || 
-                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(file.name);
-      
-      if (isValidImage) {
-        // Clean up old preview URL if it exists
-        if (imagePreview && imagePreview.startsWith('blob:')) {
-          URL.revokeObjectURL(imagePreview);
-        }
-        
-        // Create preview URL for the uploaded file
-        const previewUrl = URL.createObjectURL(file);
-        setImagePreview(previewUrl);
-        setImageFile(file);
-      } else {
-        alert('Please upload only image files (JPG, PNG, GIF, etc.)');
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        alert(validation.error);
+        return;
       }
+
+      // Clean up old preview URL if it exists
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
+      
+      // Create preview URL for the uploaded file
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+      setImageFile(file);
     }
   };
 
@@ -336,23 +335,22 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
 
   const handleParticipantImageChange = (file) => {
     if (file) {
-      const isValidImage = file.type.startsWith('image/') || 
-                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(file.name);
-      
-      if (isValidImage) {
-        if (newParticipant.imagePreview && newParticipant.imagePreview.startsWith('blob:')) {
-          URL.revokeObjectURL(newParticipant.imagePreview);
-        }
-        
-        const previewUrl = URL.createObjectURL(file);
-        setNewParticipant(prev => ({
-          ...prev,
-          imageFile: file,
-          imagePreview: previewUrl
-        }));
-      } else {
-        alert('Please upload only image files (JPG, PNG, GIF, etc.)');
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        alert(validation.error);
+        return;
       }
+
+      if (newParticipant.imagePreview && newParticipant.imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(newParticipant.imagePreview);
+      }
+      
+      const previewUrl = URL.createObjectURL(file);
+      setNewParticipant(prev => ({
+        ...prev,
+        imageFile: file,
+        imagePreview: previewUrl
+      }));
     }
   };
 
@@ -376,14 +374,13 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
       // Upload image if provided
       if (newParticipant.imageFile) {
         const uploadResult = await eventParticipantsService.uploadImage(
-          newParticipant.imageFile,
-          newParticipant.imageFile.name
+          newParticipant.imageFile
         );
         if (uploadResult.data && !uploadResult.error) {
           imageUrl = uploadResult.data.url;
           imagePath = uploadResult.data.path;
         } else {
-          alert('Failed to upload image. Please try again.');
+          alert(getUploadErrorMessage(uploadResult.error));
           setIsUploadingParticipantImage(false);
           return;
         }
@@ -471,14 +468,13 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
         }
 
         const uploadResult = await eventParticipantsService.uploadImage(
-          newParticipant.imageFile,
-          newParticipant.imageFile.name
+          newParticipant.imageFile
         );
         if (uploadResult.data && !uploadResult.error) {
           imageUrl = uploadResult.data.url;
           imagePath = uploadResult.data.path;
         } else {
-          alert('Failed to upload image. Please try again.');
+          alert(getUploadErrorMessage(uploadResult.error));
           setIsUploadingParticipantImage(false);
           return;
         }
@@ -575,11 +571,11 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
 
       // If a new file was uploaded, upload it to EventBucket
       if (imageFile) {
-        const uploadResult = await eventsService.uploadImage(imageFile, imageFile.name);
+        const uploadResult = await eventsService.uploadImage(imageFile);
         if (uploadResult.data && !uploadResult.error) {
           finalImageUrl = uploadResult.data.url;
         } else {
-          alert('Failed to upload image. Please try again.');
+          alert(getUploadErrorMessage(uploadResult.error));
           setIsUploading(false);
           return;
         }
@@ -588,11 +584,11 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
       // Upload booklet PDF if a new file was uploaded
       let finalBookletUrl = formData.bookletUrl;
       if (bookletFile) {
-        const uploadResult = await eventsService.uploadImage(bookletFile, bookletFile.name);
+        const uploadResult = await eventsService.uploadImage(bookletFile);
         if (uploadResult.data && !uploadResult.error) {
           finalBookletUrl = uploadResult.data.url;
         } else {
-          alert('Failed to upload booklet PDF. Please try again.');
+          alert(getUploadErrorMessage(uploadResult.error, 'Failed to upload booklet PDF. Please try again.'));
           setIsUploading(false);
           return;
         }
@@ -616,7 +612,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
       await onSave(dataToSave);
     } catch (error) {
       console.error('Error uploading image:', error);
-      alert('Failed to upload image. Please try again.');
+      alert(getUploadErrorMessage(error));
     } finally {
       setIsUploading(false);
     }

@@ -1,4 +1,5 @@
 import { supabase } from "../lib/supabase";
+import { buildStorageFilePath, validateImageFile } from '../utils/imageUploadUtils';
 
 // Supabase Members Service
 export const membersService = {
@@ -306,16 +307,19 @@ export const membersService = {
   },
 
   // Upload image to dashboardmemberimages bucket
-  async uploadImage(file, fileName) {
+  async uploadImage(file) {
     try {
       if (!file || !(file instanceof File)) {
         console.error('Invalid file provided to uploadImage');
         return { data: null, error: { message: 'Invalid file' } };
       }
 
-      const fileExt = fileName.split('.').pop() || 'png';
-      // Upload directly to bucket root (no folder) for dashboardmemberimages
-      const filePath = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        return { data: null, error: { message: validation.error } };
+      }
+
+      const filePath = buildStorageFilePath('', file);
 
       console.log('📤 Uploading file to dashboardmemberimages:', {
         fileName: file.name,

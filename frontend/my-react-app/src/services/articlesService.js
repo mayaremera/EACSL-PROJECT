@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { buildStorageFilePath, validateImageFile } from '../utils/imageUploadUtils';
 
 // Supabase Articles Service
 export const articlesService = {
@@ -284,10 +285,14 @@ export const articlesService = {
   },
 
   // Upload image to ArticlesBucket
-  async uploadImage(file, fileName) {
+  async uploadImage(file) {
     try {
-      const fileExt = fileName.split('.').pop();
-      const filePath = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        return { data: null, error: { message: validation.error } };
+      }
+
+      const filePath = buildStorageFilePath('', file);
 
       const { data, error } = await supabase.storage
         .from('ArticlesBucket')

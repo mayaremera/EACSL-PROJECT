@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { buildStorageFilePath, validateImageFile } from '../utils/imageUploadUtils';
 
 // Supabase Event Participants Service
 export const eventParticipantsService = {
@@ -180,10 +181,14 @@ export const eventParticipantsService = {
   },
 
   // Upload image to EventBucket
-  async uploadImage(file, fileName) {
+  async uploadImage(file) {
     try {
-      const fileExt = fileName.split('.').pop();
-      const filePath = `participants/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        return { data: null, error: { message: validation.error } };
+      }
+
+      const filePath = buildStorageFilePath('participants/', file);
 
       const { data, error } = await supabase.storage
         .from('EventBucket')

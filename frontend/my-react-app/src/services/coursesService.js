@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { buildStorageFilePath, validateImageFile } from '../utils/imageUploadUtils';
 
 // Supabase Courses Service
 export const coursesService = {
@@ -162,15 +163,19 @@ export const coursesService = {
   },
 
   // Upload course image to CoursesBucket
-  async uploadCourseImage(file, fileName) {
+  async uploadCourseImage(file) {
     try {
       if (!file || !(file instanceof File)) {
         console.error('Invalid file provided to uploadCourseImage');
         return { data: null, error: { message: 'Invalid file' } };
       }
 
-      const fileExt = fileName.split('.').pop() || 'png';
-      const filePath = `course-images/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        return { data: null, error: { message: validation.error } };
+      }
+
+      const filePath = buildStorageFilePath('course-images/', file);
 
       console.log('📤 Uploading course image to CoursesBucket:', {
         fileName: file.name,
@@ -211,15 +216,19 @@ export const coursesService = {
   },
 
   // Upload instructor image to CoursesBucket
-  async uploadInstructorImage(file, fileName) {
+  async uploadInstructorImage(file) {
     try {
       if (!file || !(file instanceof File)) {
         console.error('Invalid file provided to uploadInstructorImage');
         return { data: null, error: { message: 'Invalid file' } };
       }
 
-      const fileExt = fileName.split('.').pop() || 'png';
-      const filePath = `instructor-images/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        return { data: null, error: { message: validation.error } };
+      }
+
+      const filePath = buildStorageFilePath('instructor-images/', file);
 
       console.log('📤 Uploading instructor image to CoursesBucket:', {
         fileName: file.name,

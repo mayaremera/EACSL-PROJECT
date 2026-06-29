@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Save, Loader, Upload, Check, AlertCircle, BookOpen, Plus, Trash2 } from 'lucide-react';
 import { membersManager, coursesManager } from '../../utils/dataManager';
 import { membersService } from '../../services/membersService';
+import { getUploadErrorMessage, validateImageFile } from '../../utils/imageUploadUtils';
 import ImagePlaceholder from '../ui/ImagePlaceholder';
 
 const MemberEditForm = ({ member, onSave, onCancel }) => {
@@ -293,11 +294,13 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
 
   const handleCertificateImageChange = (file) => {
     if (file) {
-      const isValidImage = file.type.startsWith('image/') || 
-                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(file.name);
-      
-      if (isValidImage) {
-        if (editingCertificate !== null) {
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        alert(validation.error);
+        return;
+      }
+
+      if (editingCertificate !== null) {
           // Editing existing certificate
           const previewUrl = URL.createObjectURL(file);
           setFormData(prev => {
@@ -318,9 +321,6 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
             imagePreview: previewUrl
           }));
         }
-      } else {
-        alert('Please upload only image files (JPG, PNG, GIF, etc.)');
-      }
     }
   };
 
@@ -336,13 +336,14 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
       let imagePath = '';
 
       if (newCertificate.imageFile) {
-        const uploadResult = await membersService.uploadImage(
-          newCertificate.imageFile,
-          `certificate-${Date.now()}-${newCertificate.imageFile.name}`
-        );
+        const uploadResult = await membersService.uploadImage(newCertificate.imageFile);
         if (uploadResult.data && !uploadResult.error) {
           imageUrl = uploadResult.data.url;
           imagePath = uploadResult.data.path;
+        } else {
+          alert(getUploadErrorMessage(uploadResult.error));
+          setIsUploadingCertificateImage(false);
+          return;
         }
       }
 
@@ -366,7 +367,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
       setNewCertificate({ title: '', imageFile: null, imagePreview: null });
     } catch (error) {
       console.error('Error uploading certificate image:', error);
-      alert('Failed to upload image. Please try again.');
+      alert(getUploadErrorMessage(error));
     } finally {
       setIsUploadingCertificateImage(false);
     }
@@ -407,13 +408,14 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
           }
         }
 
-        const uploadResult = await membersService.uploadImage(
-          newCertificate.imageFile,
-          `certificate-${Date.now()}-${newCertificate.imageFile.name}`
-        );
+        const uploadResult = await membersService.uploadImage(newCertificate.imageFile);
         if (uploadResult.data && !uploadResult.error) {
           imageUrl = uploadResult.data.url;
           imagePath = uploadResult.data.path;
+        } else {
+          alert(getUploadErrorMessage(uploadResult.error));
+          setIsUploadingCertificateImage(false);
+          return;
         }
       }
 
@@ -529,11 +531,13 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
 
   const handleCustomCourseImageChange = (file) => {
     if (file) {
-      const isValidImage = file.type.startsWith('image/') || 
-                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(file.name);
-      
-      if (isValidImage) {
-        if (editingCustomCourse !== null) {
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        alert(validation.error);
+        return;
+      }
+
+      if (editingCustomCourse !== null) {
           // Editing existing course
           const previewUrl = URL.createObjectURL(file);
           setFormData(prev => {
@@ -554,9 +558,6 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
             imagePreview: previewUrl
           }));
         }
-      } else {
-        alert('Please upload only image files (JPG, PNG, GIF, etc.)');
-      }
     }
   };
 
@@ -572,13 +573,14 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
       let imagePath = '';
 
       if (newCustomCourse.imageFile) {
-        const uploadResult = await membersService.uploadImage(
-          newCustomCourse.imageFile,
-          `custom-course-${Date.now()}-${newCustomCourse.imageFile.name}`
-        );
+        const uploadResult = await membersService.uploadImage(newCustomCourse.imageFile);
         if (uploadResult.data && !uploadResult.error) {
           imageUrl = uploadResult.data.url;
           imagePath = uploadResult.data.path;
+        } else {
+          alert(getUploadErrorMessage(uploadResult.error));
+          setIsUploadingCustomCourseImage(false);
+          return;
         }
       }
 
@@ -602,7 +604,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
       setNewCustomCourse({ title: '', imageFile: null, imagePreview: null });
     } catch (error) {
       console.error('Error uploading custom course image:', error);
-      alert('Failed to upload image. Please try again.');
+      alert(getUploadErrorMessage(error));
     } finally {
       setIsUploadingCustomCourseImage(false);
     }
@@ -643,13 +645,14 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
           }
         }
 
-        const uploadResult = await membersService.uploadImage(
-          newCustomCourse.imageFile,
-          `custom-course-${Date.now()}-${newCustomCourse.imageFile.name}`
-        );
+        const uploadResult = await membersService.uploadImage(newCustomCourse.imageFile);
         if (uploadResult.data && !uploadResult.error) {
           imageUrl = uploadResult.data.url;
           imagePath = uploadResult.data.path;
+        } else {
+          alert(getUploadErrorMessage(uploadResult.error));
+          setIsUploadingCustomCourseImage(false);
+          return;
         }
       }
 
@@ -714,22 +717,20 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
 
   const handleFileChange = (field, file) => {
     if (file) {
-      // Check if it's an image file by MIME type or extension
-      const isValidImage = file.type.startsWith('image/') || 
-                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(file.name);
-      
-      if (isValidImage) {
-        // Clean up old preview URL if it exists
-        if (imagePreview) {
-          URL.revokeObjectURL(imagePreview);
-        }
-        setFormData(prev => ({ ...prev, [field]: file }));
-        // Create preview URL for the uploaded file
-        const previewUrl = URL.createObjectURL(file);
-        setImagePreview(previewUrl);
-      } else {
-        alert('Please upload only image files (JPG, PNG, GIF, etc.)');
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        alert(validation.error);
+        return;
       }
+
+      // Clean up old preview URL if it exists
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+      setFormData(prev => ({ ...prev, [field]: file }));
+      // Create preview URL for the uploaded file
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
     }
   };
 
@@ -859,7 +860,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
             type: formData.image.type
           });
           
-          const uploadResult = await membersService.uploadImage(formData.image, formData.image.name);
+          const uploadResult = await membersService.uploadImage(formData.image);
           
           console.log('Upload result:', uploadResult);
           

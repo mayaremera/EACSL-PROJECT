@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Upload, Trash2 } from 'lucide-react';
 import { articlesService } from '../../services/articlesService';
+import { getUploadErrorMessage, validateImageFile } from '../../utils/imageUploadUtils';
 
 const ArticleEditForm = ({ article, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -113,23 +114,21 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
 
   const handleFileChange = (file) => {
     if (file) {
-      // Check if it's an image file
-      const isValidImage = file.type.startsWith('image/') || 
-                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(file.name);
-      
-      if (isValidImage) {
-        // Clean up old preview URL if it exists
-        if (imagePreview && imagePreview.startsWith('blob:')) {
-          URL.revokeObjectURL(imagePreview);
-        }
-        
-        // Create preview URL for the uploaded file
-        const previewUrl = URL.createObjectURL(file);
-        setImagePreview(previewUrl);
-        setImageFile(file);
-      } else {
-        alert('Please upload only image files (JPG, PNG, GIF, etc.)');
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        alert(validation.error);
+        return;
       }
+
+      // Clean up old preview URL if it exists
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
+      
+      // Create preview URL for the uploaded file
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+      setImageFile(file);
     }
   };
 
@@ -177,23 +176,21 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
 
   const handleModalFileChange = (file) => {
     if (file) {
-      // Check if it's an image file
-      const isValidImage = file.type.startsWith('image/') || 
-                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(file.name);
-      
-      if (isValidImage) {
-        // Clean up old preview URL if it exists
-        if (modalImagePreview && modalImagePreview.startsWith('blob:')) {
-          URL.revokeObjectURL(modalImagePreview);
-        }
-        
-        // Create preview URL for the uploaded file
-        const previewUrl = URL.createObjectURL(file);
-        setModalImagePreview(previewUrl);
-        setModalImageFile(file);
-      } else {
-        alert('Please upload only image files (JPG, PNG, GIF, etc.)');
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        alert(validation.error);
+        return;
       }
+
+      // Clean up old preview URL if it exists
+      if (modalImagePreview && modalImagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(modalImagePreview);
+      }
+      
+      // Create preview URL for the uploaded file
+      const previewUrl = URL.createObjectURL(file);
+      setModalImagePreview(previewUrl);
+      setModalImageFile(file);
     }
   };
 
@@ -251,12 +248,12 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
 
       // If a new file was uploaded, upload it to ArticlesBucket
       if (imageFile) {
-        const uploadResult = await articlesService.uploadImage(imageFile, imageFile.name);
+        const uploadResult = await articlesService.uploadImage(imageFile);
         if (uploadResult.data && !uploadResult.error) {
           finalImagePath = uploadResult.data.path;
           finalImageUrl = uploadResult.data.url;
         } else {
-          alert('Failed to upload image. Please try again.');
+          alert(getUploadErrorMessage(uploadResult.error));
           setIsUploading(false);
           return;
         }
@@ -264,12 +261,12 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
 
       // If a new modal image file was uploaded, upload it to ArticlesBucket
       if (modalImageFile) {
-        const uploadResult = await articlesService.uploadImage(modalImageFile, `modal-${modalImageFile.name}`);
+        const uploadResult = await articlesService.uploadImage(modalImageFile);
         if (uploadResult.data && !uploadResult.error) {
           finalModalImagePath = uploadResult.data.path;
           finalModalImageUrl = uploadResult.data.url;
         } else {
-          alert('Failed to upload modal image. Please try again.');
+          alert(getUploadErrorMessage(uploadResult.error, 'Failed to upload modal image. Please try again.'));
           setIsUploading(false);
           return;
         }
@@ -300,7 +297,7 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
       console.log('✅ ArticleEditForm - Save completed');
     } catch (error) {
       console.error('Error uploading image:', error);
-      alert('Failed to upload image. Please try again.');
+      alert(getUploadErrorMessage(error));
     } finally {
       setIsUploading(false);
     }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, Upload, Trash2 } from 'lucide-react';
 import { forParentsService } from '../../services/forParentsService';
+import { getUploadErrorMessage, validateImageFile } from '../../utils/imageUploadUtils';
 
 const ForParentEditForm = ({ article, onSave, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -47,12 +48,13 @@ const ForParentEditForm = ({ article, onSave, onCancel }) => {
 
   const handleFileChange = (file) => {
     if (file) {
-      // Check if it's an image file
-      const isValidImage = file.type.startsWith('image/') || 
-                          /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(file.name);
-      
-      if (isValidImage) {
-        // Clean up old preview URL if it exists
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        alert(validation.error);
+        return;
+      }
+
+      // Clean up old preview URL if it exists
         if (imagePreview && imagePreview.startsWith('blob:')) {
           URL.revokeObjectURL(imagePreview);
         }
@@ -61,9 +63,6 @@ const ForParentEditForm = ({ article, onSave, onCancel }) => {
         const previewUrl = URL.createObjectURL(file);
         setImagePreview(previewUrl);
         setImageFile(file);
-      } else {
-        alert('Please upload only image files (JPG, PNG, GIF, etc.)');
-      }
     }
   };
 
@@ -119,12 +118,12 @@ const ForParentEditForm = ({ article, onSave, onCancel }) => {
 
       // If a new file was uploaded, upload it to ParentBucket
       if (imageFile) {
-        const uploadResult = await forParentsService.uploadImage(imageFile, imageFile.name);
+        const uploadResult = await forParentsService.uploadImage(imageFile);
         if (uploadResult.data && !uploadResult.error) {
           finalImagePath = uploadResult.data.path;
           finalImageUrl = uploadResult.data.url;
         } else {
-          alert('Failed to upload image. Please try again.');
+          alert(getUploadErrorMessage(uploadResult.error));
           setIsUploading(false);
           return;
         }
@@ -146,7 +145,7 @@ const ForParentEditForm = ({ article, onSave, onCancel }) => {
       await onSave(dataToSave);
     } catch (error) {
       console.error('Error uploading image:', error);
-      alert('Failed to upload image. Please try again.');
+      alert(getUploadErrorMessage(error));
     } finally {
       setIsUploading(false);
     }

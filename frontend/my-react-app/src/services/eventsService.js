@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase';
+import { buildStorageFilePath, validateImageFile } from '../utils/imageUploadUtils';
 
 // Supabase Events Service
 export const eventsService = {
@@ -345,10 +346,20 @@ export const eventsService = {
   },
 
   // Upload image to EventBucket
-  async uploadImage(file, fileName) {
+  async uploadImage(file) {
     try {
-      const fileExt = fileName.split('.').pop();
-      const filePath = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const isPdf = file?.type === 'application/pdf' || file?.name?.toLowerCase().endsWith('.pdf');
+
+      if (!isPdf) {
+        const validation = validateImageFile(file);
+        if (!validation.valid) {
+          return { data: null, error: { message: validation.error } };
+        }
+      }
+
+      const filePath = isPdf
+        ? `booklets/${Date.now()}-${Math.random().toString(36).substring(7)}.pdf`
+        : buildStorageFilePath('', file);
 
       const { data, error } = await supabase.storage
         .from('EventBucket')

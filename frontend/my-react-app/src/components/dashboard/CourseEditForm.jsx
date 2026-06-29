@@ -313,7 +313,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
       // Upload course image if it's a new File
       if (formData.image instanceof File) {
         console.log('📤 Uploading course image to storage...');
-        const uploadResult = await coursesService.uploadCourseImage(formData.image, formData.image.name);
+        const uploadResult = await coursesService.uploadCourseImage(formData.image);
         if (uploadResult.error) {
           alert(`Failed to upload course image: ${uploadResult.error.message || 'Unknown error'}`);
           setIsLoading(false);
@@ -331,7 +331,7 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
       // Upload instructor image if it's a new File
       if (formData.instructorImage instanceof File) {
         console.log('📤 Uploading instructor image to storage...');
-        const uploadResult = await coursesService.uploadInstructorImage(formData.instructorImage, formData.instructorImage.name);
+        const uploadResult = await coursesService.uploadInstructorImage(formData.instructorImage);
         if (uploadResult.error) {
           alert(`Failed to upload instructor image: ${uploadResult.error.message || 'Unknown error'}`);
           setIsLoading(false);
