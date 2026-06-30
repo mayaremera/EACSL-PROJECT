@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Upload, Trash2 } from 'lucide-react';
 import { articlesService } from '../../services/articlesService';
 import { getUploadErrorMessage, validateImageFile } from '../../utils/imageUploadUtils';
@@ -24,6 +24,11 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
   const [dragActive, setDragActive] = useState(false);
   const [modalDragActive, setModalDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const imagePreviewRef = useRef(null);
+  const modalImagePreviewRef = useRef(null);
+
+  imagePreviewRef.current = imagePreview;
+  modalImagePreviewRef.current = modalImagePreview;
 
   useEffect(() => {
     if (article) {
@@ -84,7 +89,19 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
       setImagePreview(null);
       setModalImagePreview(null);
     }
-  }, [article]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [article?.id]);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreviewRef.current?.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreviewRef.current);
+      }
+      if (modalImagePreviewRef.current?.startsWith('blob:')) {
+        URL.revokeObjectURL(modalImagePreviewRef.current);
+      }
+    };
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -159,7 +176,9 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
     }
   };
 
-  const removeImage = () => {
+  const removeImage = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
     // Clean up preview URL
     if (imagePreview && imagePreview.startsWith('blob:')) {
       URL.revokeObjectURL(imagePreview);
@@ -221,7 +240,9 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
     }
   };
 
-  const removeModalImage = () => {
+  const removeModalImage = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
     // Clean up preview URL
     if (modalImagePreview && modalImagePreview.startsWith('blob:')) {
       URL.revokeObjectURL(modalImagePreview);
@@ -245,6 +266,8 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
       let finalImagePath = formData.imagePath;
       let finalModalImageUrl = formData.modalImageUrl;
       let finalModalImagePath = formData.modalImagePath;
+      const existingImagePath = article?.imagePath || null;
+      const existingModalImagePath = article?.modalImagePath || null;
 
       // If a new file was uploaded, upload it to ArticlesBucket
       if (imageFile) {
@@ -252,11 +275,17 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
         if (uploadResult.data && !uploadResult.error) {
           finalImagePath = uploadResult.data.path;
           finalImageUrl = uploadResult.data.url;
+          if (existingImagePath && existingImagePath !== finalImagePath) {
+            await articlesService.deleteImage(existingImagePath);
+          }
         } else {
           alert(getUploadErrorMessage(uploadResult.error));
           setIsUploading(false);
           return;
         }
+      } else if (!finalImageUrl && existingImagePath) {
+        await articlesService.deleteImage(existingImagePath);
+        finalImagePath = null;
       }
 
       // If a new modal image file was uploaded, upload it to ArticlesBucket
@@ -265,11 +294,17 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
         if (uploadResult.data && !uploadResult.error) {
           finalModalImagePath = uploadResult.data.path;
           finalModalImageUrl = uploadResult.data.url;
+          if (existingModalImagePath && existingModalImagePath !== finalModalImagePath) {
+            await articlesService.deleteImage(existingModalImagePath);
+          }
         } else {
           alert(getUploadErrorMessage(uploadResult.error, 'Failed to upload modal image. Please try again.'));
           setIsUploading(false);
           return;
         }
+      } else if (!finalModalImageUrl && existingModalImagePath) {
+        await articlesService.deleteImage(existingModalImagePath);
+        finalModalImagePath = null;
       }
 
       // Clean up preview URLs if they were blobs
@@ -283,11 +318,11 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
       // Prepare data to save
       const dataToSave = {
         ...formData,
-        image: finalImageUrl || finalImagePath || formData.image, // For backward compatibility
-        imageUrl: finalImageUrl,
+        image: finalImageUrl || null,
+        imageUrl: finalImageUrl || null,
         imagePath: finalImagePath,
-        modalImage: finalModalImageUrl || finalModalImagePath || formData.modalImage, // For backward compatibility
-        modalImageUrl: finalModalImageUrl,
+        modalImage: finalModalImageUrl || null,
+        modalImageUrl: finalModalImageUrl || null,
         modalImagePath: finalModalImagePath
       };
 

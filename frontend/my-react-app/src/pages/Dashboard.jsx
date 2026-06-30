@@ -24,7 +24,7 @@ import {
     ClipboardList,
     Menu,
 } from "lucide-react";
-import { coursesManager, membersManager, eventsManager, articlesManager, therapyProgramsManager, forParentsManager, initializeData } from '../utils/dataManager';
+import { coursesManager, membersManager, eventsManager, articlesManager, therapyProgramsManager, forParentsManager, initializeData, UPCOMING_EVENT_LIMIT_MESSAGE } from '../utils/dataManager';
 import { supabase } from '../lib/supabase';
 import { membershipFormsService } from '../services/membershipFormsService';
 import { contactFormsService } from '../services/contactFormsService';
@@ -1275,13 +1275,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
 
     const handleMembersUpdate = (e) => {
         setMembers(e.detail);
-        // If we're editing a member, refresh the editingMember with latest data
-        if (editingMember && editingMember.id) {
-            const updatedMember = e.detail.find(m => m.id === editingMember.id);
-            if (updatedMember) {
-                setEditingMember(updatedMember);
-            }
-        }
     };
 
     const handleFormsUpdate = (e) => {
@@ -1313,10 +1306,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             past: Array.isArray(e.detail?.past) ? e.detail.past : []
         };
         setEvents(eventsData);
-        if (editingEvent?.id) {
-            const updated = [...eventsData.upcoming, ...eventsData.past].find(ev => ev.id === editingEvent.id);
-            if (updated) setEditingEvent(updated);
-        }
     };
 
     const handleArticlesUpdate = (e) => {
@@ -2427,8 +2416,21 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         return matchesSearch && matchesStatus;
     });
 
+    const handleTryAddEvent = () => {
+        if ((events.upcoming?.length || 0) >= 1) {
+            toast.warning(UPCOMING_EVENT_LIMIT_MESSAGE);
+            return;
+        }
+        setIsAddingEvent(true);
+    };
+
     const handleSaveEvent = async (eventData) => {
         try {
+            if (!editingEvent && (events.upcoming?.length || 0) >= 1) {
+                toast.warning(UPCOMING_EVENT_LIMIT_MESSAGE);
+                return;
+            }
+
             let savedEvent;
             if (editingEvent) {
                 console.log('📝 Updating event:', editingEvent.id, eventData);
@@ -2439,21 +2441,14 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 savedEvent = await eventsManager.add(eventData);
                 console.log('✅ Event added:', savedEvent);
             }
-            // Wait for events to reload from Supabase before closing form
             await loadEvents();
-            
-            // Update URL to show the saved event
-            if (savedEvent && savedEvent.id) {
-                // Don't navigate away from dashboard - keep user in dashboard
-                // window.history.pushState({}, '', `/upcoming-events/${savedEvent.id}`);
-            }
+
+            setEditingEvent(null);
+            setIsAddingEvent(false);
         } catch (error) {
             console.error('❌ Error saving event:', error);
-            alert(`Failed to save event: ${error.message || 'Unknown error'}`);
+            toast.error(error.message || 'Failed to save event');
         }
-        
-        setEditingEvent(null);
-        setIsAddingEvent(false);
     };
 
     const handleDeleteEvent = async (id) => {
@@ -2471,9 +2466,19 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     };
 
     const handleMoveToUpcoming = async (id) => {
-        if (window.confirm('Move this event back to upcoming events?')) {
+        if ((events.upcoming?.length || 0) >= 1) {
+            toast.warning(UPCOMING_EVENT_LIMIT_MESSAGE);
+            return;
+        }
+        if (!window.confirm('Move this event back to upcoming events?')) {
+            return;
+        }
+        try {
             await eventsManager.moveToUpcoming(id);
             await loadEvents();
+        } catch (error) {
+            console.error('Error moving event to upcoming:', error);
+            toast.error(error.message || 'Failed to move event to upcoming');
         }
     };
 
@@ -2888,8 +2893,10 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                         Sync
                                     </button>
                                     <button
-                                        onClick={() => setIsAddingEvent(true)}
-                                        className="flex items-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md"
+                                        onClick={handleTryAddEvent}
+                                        disabled={(events.upcoming?.length || 0) >= 1}
+                                        title={(events.upcoming?.length || 0) >= 1 ? UPCOMING_EVENT_LIMIT_MESSAGE : 'Add a new upcoming event'}
+                                        className="flex items-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#5A9B8E]"
                                     >
                                         <Plus size={20} />
                                         Add Event
@@ -3165,8 +3172,10 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             </div>
                             <div className="md:hidden w-full">
                                 <button
-                                    onClick={() => setIsAddingEvent(true)}
-                                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md"
+                                    onClick={handleTryAddEvent}
+                                    disabled={(events.upcoming?.length || 0) >= 1}
+                                    title={(events.upcoming?.length || 0) >= 1 ? UPCOMING_EVENT_LIMIT_MESSAGE : 'Add a new upcoming event'}
+                                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#5A9B8E] text-white rounded-lg hover:bg-[#4A8B7E] transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#5A9B8E]"
                                 >
                                     <Plus size={20} />
                                     Add Event
@@ -3399,7 +3408,9 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                     </button>
                                                     <button
                                                         onClick={() => handleMoveToUpcoming(event.id)}
-                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+                                                        disabled={(events.upcoming?.length || 0) >= 1}
+                                                        title={(events.upcoming?.length || 0) >= 1 ? UPCOMING_EVENT_LIMIT_MESSAGE : 'Move to upcoming events'}
+                                                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-500"
                                                     >
                                                         <Archive size={16} />
                                                         Restore

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Plus, Trash2, Upload, Mic, GraduationCap, Briefcase, FileText } from 'lucide-react';
 import { eventsService } from '../../services/eventsService';
 import { eventParticipantsService } from '../../services/eventParticipantsService';
@@ -34,6 +34,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
       { time: '8:30 PM', trackA: 'Closing Ceremony & Conference Summary', trackB: 'All Attendees', trackC: 'All Attendees' }
     ],
     heroImageUrl: '',
+    heroImagePath: '',
     day1Title: 'Day One - Knowledge and Innovation',
     day2Title: 'Day Two - Collaboration and Future Directions',
     eventDate: '',
@@ -64,6 +65,11 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
   const [editingParticipant, setEditingParticipant] = useState(null);
   const [isAddingParticipant, setIsAddingParticipant] = useState(false);
   const [isUploadingParticipantImage, setIsUploadingParticipantImage] = useState(false);
+  const imagePreviewRef = useRef(null);
+  const bookletPreviewRef = useRef(null);
+
+  imagePreviewRef.current = imagePreview;
+  bookletPreviewRef.current = bookletPreview;
 
   useEffect(() => {
     if (event) {
@@ -98,6 +104,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
         scheduleDay1: event.scheduleDay1 || [],
         scheduleDay2: event.scheduleDay2 || [],
         heroImageUrl: event.heroImageUrl || '',
+        heroImagePath: event.heroImagePath || '',
         day1Title: event.day1Title || 'Day One - Knowledge and Innovation',
         day2Title: event.day2Title || 'Day Two - Collaboration and Future Directions',
         eventDate: formattedDate,
@@ -108,35 +115,30 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
           ) : []
         )
       });
-      // Set preview if image exists
-      if (event.heroImageUrl) {
-        setImagePreview(event.heroImageUrl);
-      }
+      setImagePreview(event.heroImageUrl || null);
+      setImageFile(null);
+
+      setBookletPreview(event.bookletUrl || null);
+      setBookletFile(null);
       
-      // Set booklet preview if exists
-      if (event.bookletUrl) {
-        setBookletPreview(event.bookletUrl);
-      }
-      
-      // Load participants for this event
-      if (event && event.id) {
+      if (event.id) {
         loadParticipants(event.id);
       }
     }
 
-    // Cleanup function to revoke blob URLs on unmount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [event?.id]);
+
+  useEffect(() => {
     return () => {
-      if (imagePreview && imagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(imagePreview);
+      if (imagePreviewRef.current?.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreviewRef.current);
       }
-      if (bookletPreview && bookletPreview.startsWith('blob:')) {
-        URL.revokeObjectURL(bookletPreview);
-      }
-      if (newParticipant.imagePreview && newParticipant.imagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(newParticipant.imagePreview);
+      if (bookletPreviewRef.current?.startsWith('blob:')) {
+        URL.revokeObjectURL(bookletPreviewRef.current);
       }
     };
-  }, [event, imagePreview, bookletPreview, newParticipant.imagePreview]);
+  }, []);
 
   const loadParticipants = async (eventId) => {
     try {
@@ -260,8 +262,9 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
     }
   };
 
-  const removeImage = () => {
-    // Clean up preview URL
+  const removeImage = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
     if (imagePreview && imagePreview.startsWith('blob:')) {
       URL.revokeObjectURL(imagePreview);
     }
@@ -269,7 +272,8 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
     setImageFile(null);
     setFormData(prev => ({
       ...prev,
-      heroImageUrl: ''
+      heroImageUrl: '',
+      heroImagePath: ''
     }));
   };
 
@@ -320,8 +324,9 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
     }
   };
 
-  const removeBooklet = () => {
-    // Clean up preview URL
+  const removeBooklet = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
     if (bookletPreview && bookletPreview.startsWith('blob:')) {
       URL.revokeObjectURL(bookletPreview);
     }
@@ -568,20 +573,27 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
     
     try {
       let finalImageUrl = formData.heroImageUrl;
+      let finalImagePath = formData.heroImagePath || null;
+      const existingHeroImagePath = event?.heroImagePath || null;
 
-      // If a new file was uploaded, upload it to EventBucket
       if (imageFile) {
         const uploadResult = await eventsService.uploadImage(imageFile);
         if (uploadResult.data && !uploadResult.error) {
           finalImageUrl = uploadResult.data.url;
+          finalImagePath = uploadResult.data.path;
+          if (existingHeroImagePath && existingHeroImagePath !== finalImagePath) {
+            await eventsService.deleteImage(existingHeroImagePath);
+          }
         } else {
           alert(getUploadErrorMessage(uploadResult.error));
           setIsUploading(false);
           return;
         }
+      } else if (!finalImageUrl && existingHeroImagePath) {
+        await eventsService.deleteImage(existingHeroImagePath);
+        finalImagePath = null;
       }
 
-      // Upload booklet PDF if a new file was uploaded
       let finalBookletUrl = formData.bookletUrl;
       if (bookletFile) {
         const uploadResult = await eventsService.uploadImage(bookletFile);
@@ -605,7 +617,8 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
       // Prepare data to save
       const dataToSave = {
         ...formData,
-        heroImageUrl: finalImageUrl,
+        heroImageUrl: finalImageUrl || null,
+        heroImagePath: finalImagePath,
         bookletUrl: finalBookletUrl
       };
 
@@ -1079,7 +1092,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                     <button
                       type="button"
                       onClick={removeImage}
-                      className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                      className="absolute top-2 right-2 z-10 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
                     >
                       <Trash2 size={18} />
                     </button>

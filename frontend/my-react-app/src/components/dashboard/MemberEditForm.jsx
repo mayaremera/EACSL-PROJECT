@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Loader, Upload, Check, AlertCircle, BookOpen, Plus, Trash2 } from 'lucide-react';
 import { membersManager, coursesManager } from '../../utils/dataManager';
 import { membersService } from '../../services/membersService';
@@ -55,30 +55,27 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
     'Hearing and balance sciences disorders'
   ];
 
-  // Cleanup object URLs on unmount
+  const imagePreviewRef = useRef(null);
+  const newCertificatePreviewRef = useRef(null);
+  const newCustomCoursePreviewRef = useRef(null);
+
+  imagePreviewRef.current = imagePreview;
+  newCertificatePreviewRef.current = newCertificate.imagePreview;
+  newCustomCoursePreviewRef.current = newCustomCourse.imagePreview;
+
   useEffect(() => {
     return () => {
-      if (imagePreview) {
-        URL.revokeObjectURL(imagePreview);
+      if (imagePreviewRef.current?.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreviewRef.current);
       }
-      // Cleanup custom course preview URLs
-      if (newCustomCourse.imagePreview && newCustomCourse.imagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(newCustomCourse.imagePreview);
+      if (newCertificatePreviewRef.current?.startsWith('blob:')) {
+        URL.revokeObjectURL(newCertificatePreviewRef.current);
       }
-      // Cleanup certificate preview URLs
-      if (newCertificate.imagePreview && newCertificate.imagePreview.startsWith('blob:')) {
-        URL.revokeObjectURL(newCertificate.imagePreview);
-      }
-      // Cleanup any custom courses with blob previews
-      if (formData.customCourses) {
-        formData.customCourses.forEach(course => {
-          if (course.imagePreview && course.imagePreview.startsWith('blob:')) {
-            URL.revokeObjectURL(course.imagePreview);
-          }
-        });
+      if (newCustomCoursePreviewRef.current?.startsWith('blob:')) {
+        URL.revokeObjectURL(newCustomCoursePreviewRef.current);
       }
     };
-  }, [imagePreview, newCustomCourse.imagePreview, newCertificate.imagePreview, formData.customCourses]);
+  }, []);
 
   useEffect(() => {
     if (member) {
@@ -179,99 +176,10 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         completedCourses: [],
         customCourses: []
       });
-      setEmailExistsError(null); // Reset error when adding new member
+      setEmailExistsError(null);
     }
-  }, [member]);
-
-  // Listen for member updates and refresh form data
-  useEffect(() => {
-    const handleMemberUpdate = () => {
-      if (member && member.id) {
-        // Get the latest member data from membersManager (use cached data for fast access)
-        const updatedMember = membersManager._getAllFromLocalStorage().find(m => m.id === member.id);
-        if (updatedMember) {
-          // Update form data with latest member data
-          let memberIsActive = true;
-          if (updatedMember.hasOwnProperty('isActive')) {
-            if (updatedMember.isActive === false || updatedMember.isActive === 'false' || updatedMember.isActive === 0) {
-              memberIsActive = false;
-            } else if (updatedMember.isActive === true || updatedMember.isActive === 'true' || updatedMember.isActive === 1) {
-              memberIsActive = true;
-            } else {
-              memberIsActive = Boolean(updatedMember.isActive);
-            }
-          }
-          
-          // Handle certificates: convert old string format to object format if needed
-          let updatedCertificates = [];
-          if (updatedMember.certificates && Array.isArray(updatedMember.certificates)) {
-            updatedCertificates = updatedMember.certificates.map(cert => {
-              if (typeof cert === 'object' && cert !== null && cert.title) {
-                return cert;
-              }
-              if (typeof cert === 'string') {
-                return { title: cert, image: '', imagePath: '' };
-              }
-              return cert;
-            });
-          }
-          
-          // Debug logging for specialty update
-          console.log('🔍 Updating member data:', {
-            memberId: updatedMember.id,
-            memberName: updatedMember.name,
-            specialtyFromUpdated: updatedMember.specialty,
-            specialtyType: typeof updatedMember.specialty,
-            isArray: Array.isArray(updatedMember.specialty)
-          });
-          
-          setFormData({
-            name: updatedMember.name || '',
-            role: updatedMember.role || 'Member',
-            description: updatedMember.description || '',
-            fullDescription: updatedMember.fullDescription || '',
-            email: updatedMember.email || '',
-            isActive: memberIsActive,
-            activeTill: updatedMember.activeTill || '',
-            certificates: updatedCertificates,
-            specialty: Array.isArray(updatedMember.specialty) ? updatedMember.specialty : [],
-            phone: updatedMember.phone || '',
-            location: updatedMember.location || '',
-            website: updatedMember.website || '',
-            linkedin: updatedMember.linkedin || '',
-            image: updatedMember.image || '',
-            totalMoneySpent: updatedMember.totalMoneySpent || '0 EGP',
-            coursesEnrolled: updatedMember.coursesEnrolled || 0,
-            totalHoursLearned: updatedMember.totalHoursLearned || 0,
-            // Ensure activeCourses and completedCourses are always arrays
-            activeCourses: Array.isArray(updatedMember.activeCourses) ? updatedMember.activeCourses : [],
-            completedCourses: Array.isArray(updatedMember.completedCourses) ? updatedMember.completedCourses : [],
-            customCourses: Array.isArray(updatedMember.customCourses) ? updatedMember.customCourses : []
-          });
-        }
-      }
-    };
-
-    window.addEventListener('membersUpdated', handleMemberUpdate);
-    return () => {
-      window.removeEventListener('membersUpdated', handleMemberUpdate);
-    };
-  }, [member]);
-
-  // Load available courses - disabled
-  // useEffect(() => {
-  //   const loadCourses = async () => {
-  //     const cachedCourses = coursesManager._getAllFromLocalStorage();
-  //     setAvailableCourses(cachedCourses);
-  //     try {
-  //       const courses = await coursesManager.getAll();
-  //       setAvailableCourses(courses);
-  //     } catch (error) {
-  //       console.error('Error loading courses:', error);
-  //     }
-  //   };
-  //   loadCourses();
-  // }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [member?.id]);
 
   // Roles available in the system (Admin is NOT in this list - it's set directly in Supabase)
   // Admin role is for authentication only and should not be selectable in the dropdown

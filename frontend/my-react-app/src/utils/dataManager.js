@@ -1477,6 +1477,16 @@ export const membersManager = {
 };
 
 // Events Management
+export const UPCOMING_EVENT_LIMIT_MESSAGE =
+  "Only one upcoming event is allowed. Move the current upcoming event to past before adding another.";
+
+const assertSingleUpcomingSlot = (upcoming, excludeId = null) => {
+  const count = (upcoming || []).filter((e) => e.id !== excludeId).length;
+  if (count >= 1) {
+    throw new Error(UPCOMING_EVENT_LIMIT_MESSAGE);
+  }
+};
+
 export const eventsManager = {
   // Cache for events (loaded from Supabase)
   _cache: null,
@@ -1668,6 +1678,11 @@ export const eventsManager = {
       createdAt: new Date().toISOString(),
     };
 
+    if (newEvent.status === "upcoming") {
+      const localEvents = eventsManager._getAllFromLocalStorage();
+      assertSingleUpcomingSlot(localEvents.upcoming);
+    }
+
     // Save to Supabase FIRST (source of truth)
     try {
       console.log("💾 Saving event to Supabase...");
@@ -1677,9 +1692,11 @@ export const eventsManager = {
         // Handle table not found error - allow local storage fallback for development
         if (error.code === 'TABLE_NOT_FOUND') {
           console.warn("⚠️ Events table doesn't exist in Supabase. Saving to localStorage only.");
-          // For development: save to localStorage as fallback
           const localEvents = eventsManager._getAllFromLocalStorage();
           const upcoming = localEvents.upcoming || [];
+          if (newEvent.status === "upcoming") {
+            assertSingleUpcomingSlot(upcoming);
+          }
           const tempId = upcoming.length > 0 ? Math.max(...upcoming.map((e) => e.id)) + 1 : 1;
           const localEvent = { ...newEvent, id: tempId };
     const updated = {
@@ -1876,6 +1893,7 @@ export const eventsManager = {
         finalUpcoming = upcoming.filter((e) => e.id !== id);
           finalPast = [...past, data];
       } else {
+        assertSingleUpcomingSlot(upcoming, id);
         finalPast = past.filter((e) => e.id !== id);
           finalUpcoming = [...upcoming, data];
       }
@@ -2034,6 +2052,8 @@ export const eventsManager = {
     if (!event) {
       throw new Error(`Event with id ${id} not found in past events`);
     }
+
+    assertSingleUpcomingSlot(upcoming);
 
     const updatedEvent = {
       ...event,

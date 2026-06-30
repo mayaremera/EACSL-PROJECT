@@ -19,8 +19,10 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
     price: '',
     moneyBackGuarantee: '30-Day Money-Back Guarantee',
     image: '',
+    image_path: '',
     instructor: '',
     instructorImage: '',
+    instructor_image_path: '',
     instructorTitle: '',
     instructorBio: '',
     description: '',
@@ -76,9 +78,11 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
         enrolled: course.enrolled || course.students || 0,
         price: (course.price && course.price !== '0' && String(course.price).trim() !== '') ? course.price : '',
         moneyBackGuarantee: course.moneyBackGuarantee || '30-Day Money-Back Guarantee',
-        image: course.image || '',
+        image: course.image || course.image_url || '',
+        image_path: course.image_path || '',
         instructor: course.instructor || '',
-        instructorImage: course.instructorImage || '',
+        instructorImage: course.instructorImage || course.instructor_image_url || '',
+        instructor_image_path: course.instructor_image_path || '',
         instructorTitle: course.instructorTitle || '',
         instructorBio: course.instructorBio || '',
         description: course.description || '',
@@ -88,8 +92,10 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
         learningOutcomes: learningOutcomes,
         curriculum: curriculum
       });
+      setImagePreviews({});
     }
-  }, [course]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [course?.id]);
 
   const categories = [
     'Speech Therapy', 'Autism', 'Dysphagia', 'Fluency Disorders',
@@ -273,8 +279,8 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
   };
 
   const removeFile = (field, e) => {
-    e.stopPropagation();
-    // Clean up object URL if it exists
+    e?.stopPropagation?.();
+    e?.preventDefault?.();
     if (imagePreviews[field]) {
       URL.revokeObjectURL(imagePreviews[field]);
       setImagePreviews(prev => {
@@ -283,7 +289,13 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
         return newPreviews;
       });
     }
-    setFormData(prev => ({ ...prev, [field]: null }));
+    if (field === 'image') {
+      setFormData(prev => ({ ...prev, image: '', image_path: '' }));
+    } else if (field === 'instructorImage') {
+      setFormData(prev => ({ ...prev, instructorImage: '', instructor_image_path: '' }));
+    } else {
+      setFormData(prev => ({ ...prev, [field]: '' }));
+    }
   };
 
   // Helper function to convert File to data URL
@@ -309,8 +321,9 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
       let imagePath = formData.image_path || '';
       let instructorImageUrl = formData.instructorImage || '';
       let instructorImagePath = formData.instructor_image_path || '';
+      const existingImagePath = course?.image_path || null;
+      const existingInstructorImagePath = course?.instructor_image_path || null;
 
-      // Upload course image if it's a new File
       if (formData.image instanceof File) {
         console.log('📤 Uploading course image to storage...');
         const uploadResult = await coursesService.uploadCourseImage(formData.image);
@@ -321,14 +334,17 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
         }
         imageUrl = uploadResult.data.url;
         imagePath = uploadResult.data.path;
+        if (existingImagePath && existingImagePath !== imagePath) {
+          await coursesService.deleteImage(existingImagePath);
+        }
         console.log('✅ Course image uploaded:', { url: imageUrl, path: imagePath });
+      } else if (!imageUrl && existingImagePath) {
+        await coursesService.deleteImage(existingImagePath);
+        imagePath = '';
       } else if (typeof formData.image === 'string' && formData.image.startsWith('data:')) {
-        // If it's a data URL (old format), we should still try to upload it
-        // But for now, we'll skip it and use the existing URL
         console.warn('⚠️ Course image is a data URL. Consider uploading to storage.');
       }
 
-      // Upload instructor image if it's a new File
       if (formData.instructorImage instanceof File) {
         console.log('📤 Uploading instructor image to storage...');
         const uploadResult = await coursesService.uploadInstructorImage(formData.instructorImage);
@@ -339,10 +355,14 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
         }
         instructorImageUrl = uploadResult.data.url;
         instructorImagePath = uploadResult.data.path;
+        if (existingInstructorImagePath && existingInstructorImagePath !== instructorImagePath) {
+          await coursesService.deleteImage(existingInstructorImagePath);
+        }
         console.log('✅ Instructor image uploaded:', { url: instructorImageUrl, path: instructorImagePath });
+      } else if (!instructorImageUrl && existingInstructorImagePath) {
+        await coursesService.deleteImage(existingInstructorImagePath);
+        instructorImagePath = '';
       } else if (typeof formData.instructorImage === 'string' && formData.instructorImage.startsWith('data:')) {
-        // If it's a data URL (old format), we should still try to upload it
-        // But for now, we'll skip it and use the existing URL
         console.warn('⚠️ Instructor image is a data URL. Consider uploading to storage.');
       }
 

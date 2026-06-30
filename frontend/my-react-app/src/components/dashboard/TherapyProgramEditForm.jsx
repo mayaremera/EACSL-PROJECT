@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { X, Save, Upload, Trash2 } from 'lucide-react';
 import { therapyProgramsService } from '../../services/therapyProgramsService';
 import { getUploadErrorMessage, validateImageFile } from '../../utils/imageUploadUtils';
@@ -25,6 +25,9 @@ const TherapyProgramEditForm = ({ program, onSave, onCancel }) => {
   const [imagePreview, setImagePreview] = useState(null);
   const [dragActive, setDragActive] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const imagePreviewRef = useRef(null);
+
+  imagePreviewRef.current = imagePreview;
 
   useEffect(() => {
     if (program) {
@@ -36,12 +39,20 @@ const TherapyProgramEditForm = ({ program, onSave, onCancel }) => {
         imageUrl: program.imageUrl || program.image || '',
         imagePath: program.imagePath || '',
       });
-      // Set preview if image exists
-      if (program.image) {
-        setImagePreview(program.image);
-      }
+      const previewImage = program.imageUrl || program.image || null;
+      setImagePreview(previewImage);
+      setImageFile(null);
     }
-  }, [program]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [program?.id]);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreviewRef.current?.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreviewRef.current);
+      }
+    };
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -98,7 +109,9 @@ const TherapyProgramEditForm = ({ program, onSave, onCancel }) => {
     }
   };
 
-  const removeImage = () => {
+  const removeImage = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
     // Clean up preview URL
     if (imagePreview && imagePreview.startsWith('blob:')) {
       URL.revokeObjectURL(imagePreview);
@@ -120,18 +133,24 @@ const TherapyProgramEditForm = ({ program, onSave, onCancel }) => {
     try {
       let finalImageUrl = formData.imageUrl;
       let finalImagePath = formData.imagePath;
+      const existingImagePath = program?.imagePath || null;
 
-      // If a new file was uploaded, upload it to TherapyBucket
       if (imageFile) {
         const uploadResult = await therapyProgramsService.uploadImage(imageFile);
         if (uploadResult.data && !uploadResult.error) {
           finalImagePath = uploadResult.data.path;
           finalImageUrl = uploadResult.data.url;
+          if (existingImagePath && existingImagePath !== finalImagePath) {
+            await therapyProgramsService.deleteImage(existingImagePath);
+          }
         } else {
           alert(getUploadErrorMessage(uploadResult.error));
           setIsUploading(false);
           return;
         }
+      } else if (!finalImageUrl && existingImagePath) {
+        await therapyProgramsService.deleteImage(existingImagePath);
+        finalImagePath = null;
       }
 
       // Clean up preview URL if it was a blob
@@ -142,8 +161,8 @@ const TherapyProgramEditForm = ({ program, onSave, onCancel }) => {
       // Prepare data to save
       const dataToSave = {
         ...formData,
-        image: finalImageUrl || finalImagePath || formData.image, // For backward compatibility
-        imageUrl: finalImageUrl,
+        image: finalImageUrl || null,
+        imageUrl: finalImageUrl || null,
         imagePath: finalImagePath
       };
 
