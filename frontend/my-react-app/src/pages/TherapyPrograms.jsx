@@ -5,77 +5,58 @@ import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import { useNavigate, Link } from 'react-router-dom';
 import ImagePlaceholder from '../components/ui/ImagePlaceholder';
+import PageLoader from '../components/ui/PageLoader';
 import { eventsManager } from '../utils/dataManager';
 import { useAuth } from '../contexts/AuthContext';
+
+import { SUPABASE_FETCH_OPTIONS } from '../utils/supabaseFetch';
 
 const TherapyPrograms = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [programs, setPrograms] = useState([]);
   const [currentEvent, setCurrentEvent] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const scrollContainerRef = useRef(null);
 
   useEffect(() => {
-    const loadPrograms = async () => {
+    let mounted = true;
+
+    const loadData = async () => {
+      setIsLoading(true);
       try {
-        // First, load from cache for immediate display
-        const cachedPrograms = therapyProgramsManager._getAllFromLocalStorage();
-        if (cachedPrograms && cachedPrograms.length > 0) {
-          setPrograms(cachedPrograms);
-        }
-        
-        // Then refresh from Supabase in the background
-        const allPrograms = await therapyProgramsManager.getAll();
+        const [allPrograms, eventsData] = await Promise.all([
+          therapyProgramsManager.getAll(SUPABASE_FETCH_OPTIONS),
+          eventsManager.getAll(SUPABASE_FETCH_OPTIONS),
+        ]);
+        if (!mounted) return;
         setPrograms(allPrograms);
+        setCurrentEvent(eventsData.upcoming?.[0] || null);
       } catch (error) {
         console.error('Error loading therapy programs:', error);
-        // Fallback to cached data
-        const cachedPrograms = therapyProgramsManager._getAllFromLocalStorage();
-        setPrograms(cachedPrograms);
+      } finally {
+        if (mounted) setIsLoading(false);
       }
     };
 
-    const loadEvent = async () => {
-      try {
-        // First, load from cache for immediate display
-        const cachedEvents = eventsManager.getUpcomingSync();
-        if (cachedEvents && cachedEvents.length > 0) {
-          setCurrentEvent(cachedEvents[0]);
-        }
-        
-        // Then refresh from Supabase in the background
-        const upcomingEvents = await eventsManager.getUpcoming();
-        if (upcomingEvents && upcomingEvents.length > 0) {
-          setCurrentEvent(upcomingEvents[0]);
-        }
-      } catch (error) {
-        console.error('Error loading upcoming events:', error);
+    loadData();
+
+    const handleProgramsUpdate = (e) => {
+      if (e.detail && Array.isArray(e.detail) && mounted) {
+        setPrograms(e.detail);
       }
     };
 
-    loadPrograms();
-    loadEvent();
-
-    // Listen for updates
-    const handleProgramsUpdate = async () => {
-      try {
-        const allPrograms = await therapyProgramsManager.getAll();
-        setPrograms(allPrograms);
-      } catch (error) {
-        console.error('Error loading therapy programs:', error);
-        // Fallback to cached data
-        const cachedPrograms = therapyProgramsManager._getAllFromLocalStorage();
-        setPrograms(cachedPrograms);
+    const handleEventsUpdate = (e) => {
+      if (mounted) {
+        setCurrentEvent(e.detail?.upcoming?.[0] || null);
       }
-    };
-
-    const handleEventsUpdate = () => {
-      loadEvent();
     };
 
     window.addEventListener('therapyProgramsUpdated', handleProgramsUpdate);
     window.addEventListener('eventsUpdated', handleEventsUpdate);
     return () => {
+      mounted = false;
       window.removeEventListener('therapyProgramsUpdated', handleProgramsUpdate);
       window.removeEventListener('eventsUpdated', handleEventsUpdate);
     };
@@ -107,6 +88,10 @@ const TherapyPrograms = () => {
       scrollContainerRef.current.scrollBy({ left: cardWidth + 32, behavior: 'smooth' });
     }
   };
+
+  if (isLoading) {
+    return <PageLoader label="Loading therapy programs..." />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

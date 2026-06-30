@@ -4,51 +4,44 @@ import { forParentsManager } from '../utils/dataManager';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import ImagePlaceholder from '../components/ui/ImagePlaceholder';
+import PageLoader from '../components/ui/PageLoader';
 import { useAuth } from '../contexts/AuthContext';
+
+import { SUPABASE_FETCH_OPTIONS } from '../utils/supabaseFetch';
 
 const ForParentsPage = () => {
   const { user } = useAuth();
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [articles, setArticles] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const scrollContainerRef = useRef(null);
 
   useEffect(() => {
+    let mounted = true;
+
     const loadArticles = async () => {
+      setIsLoading(true);
       try {
-        // First, load from cache for immediate display
-        const cachedArticles = forParentsManager._getAllFromLocalStorage();
-        if (cachedArticles && cachedArticles.length > 0) {
-          setArticles(cachedArticles);
-        }
-        
-        // Then refresh from Supabase in the background
-        const allArticles = await forParentsManager.getAll();
-        setArticles(allArticles);
+        const allArticles = await forParentsManager.getAll(SUPABASE_FETCH_OPTIONS);
+        if (mounted) setArticles(allArticles);
       } catch (error) {
         console.error('Error loading for parents articles:', error);
-        // Fallback to cached data
-        const cachedArticles = forParentsManager._getAllFromLocalStorage();
-        setArticles(cachedArticles);
+      } finally {
+        if (mounted) setIsLoading(false);
       }
     };
 
     loadArticles();
 
-    // Listen for updates
-    const handleArticlesUpdate = async () => {
-      try {
-        const allArticles = await forParentsManager.getAll();
-        setArticles(allArticles);
-      } catch (error) {
-        console.error('Error loading for parents articles:', error);
-        // Fallback to cached data
-        const cachedArticles = forParentsManager._getAllFromLocalStorage();
-        setArticles(cachedArticles);
+    const handleArticlesUpdate = (e) => {
+      if (e.detail && Array.isArray(e.detail) && mounted) {
+        setArticles(e.detail);
       }
     };
 
     window.addEventListener('forParentsUpdated', handleArticlesUpdate);
     return () => {
+      mounted = false;
       window.removeEventListener('forParentsUpdated', handleArticlesUpdate);
     };
   }, []);
@@ -67,6 +60,10 @@ const ForParentsPage = () => {
       scrollContainerRef.current.scrollBy({ left: cardWidth + 24, behavior: 'smooth' });
     }
   };
+
+  if (isLoading) {
+    return <PageLoader label="Loading articles..." />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

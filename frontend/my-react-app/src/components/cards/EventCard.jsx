@@ -11,12 +11,6 @@ const EventCard = () => {
                     alt="Workspace"
                     className="w-full h-[300px] object-cover rounded-2xl"
                 />
-
-                {/* Date Badge */}
-                <div className="absolute top-0 left-0 bg-[#8B0000] text-white rounded-tr-3xl rounded-br-full w-[110px] h-[110px] flex flex-col items-center justify-center">
-                    <div className="text-2xl font-bold leading-none text-center">2025</div>
-                    <div className="text-sm font-medium text-center">25, June</div>
-                </div>
             </div>
 
             {/* Content Section */}

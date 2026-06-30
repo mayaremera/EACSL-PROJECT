@@ -1530,12 +1530,6 @@ export const eventsManager = {
       }
     }
     
-    // If forcing refresh, check if we're within cooldown period
-    if (forceRefresh && timeSinceLastFetch < minFetchInterval) {
-      console.log(`⏱️ Events fetch cooldown active (${Math.ceil((minFetchInterval - timeSinceLastFetch) / 1000)}s remaining). Using cached data.`);
-      return eventsManager._getAllFromLocalStorage();
-    }
-    
     // Update last fetch time
     eventsManager._lastFetchTime = now;
     
@@ -2092,7 +2086,7 @@ export const eventsManager = {
 
     console.log("🔔 Setting up real-time subscription for events...");
     
-    // Real-time subscription - just update state, don't fetch (periodic sync handles fetching)
+    // Real-time subscription - refetch from Supabase and update cache
     eventsManager._subscription = supabase
       .channel('events-changes')
       .on(
@@ -2105,21 +2099,35 @@ export const eventsManager = {
         async (payload) => {
           console.log('🔔 Real-time event change detected:', payload.eventType, payload);
           
-          // Just notify the UI - don't fetch immediately
-          // The periodic sync (every 10 seconds) will fetch the latest data
-          // This prevents excessive requests while still being responsive
-          if (callback && typeof callback === 'function') {
-            // Get cached data to update UI immediately
-            const cachedEvents = eventsManager._getAllFromLocalStorage();
-            callback(cachedEvents, payload);
+          try {
+            const { data, error } = await eventsService.getAll();
+            
+            if (!error && data) {
+              const supabaseEvents = data.map((e) => eventsService.mapSupabaseToLocal(e));
+              const events = {
+                upcoming: supabaseEvents.filter((e) => e.status === "upcoming"),
+                past: supabaseEvents.filter((e) => e.status === "past"),
+              };
+              
+              eventsManager._lastFetchTime = Date.now();
+              eventsManager.saveAll(events);
+              
+              if (callback && typeof callback === 'function') {
+                callback(events, payload);
+              }
+              
+              console.log('✅ Real-time update applied:', payload.eventType);
+            } else {
+              console.warn('⚠️ Failed to refresh events after real-time change:', error);
+            }
+          } catch (err) {
+            console.error('❌ Exception handling real-time event change:', err);
           }
-          
-          console.log('✅ Real-time notification sent (periodic sync will fetch latest data)');
         }
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time subscription active for events (notifications only - periodic sync handles fetching)');
+          console.log('✅ Real-time subscription active for events');
         } else if (status === 'CHANNEL_ERROR') {
           console.warn('⚠️ Real-time subscription error - table may not exist');
         }
@@ -2364,12 +2372,6 @@ export const articlesManager = {
           console.error('Error parsing cached articles:', e);
         }
       }
-    }
-    
-    // If forcing refresh, check if we're within cooldown period
-    if (forceRefresh && timeSinceLastFetch < minFetchInterval) {
-      console.log(`⏱️ Articles fetch cooldown active (${Math.ceil((minFetchInterval - timeSinceLastFetch) / 1000)}s remaining). Using cached data.`);
-      return articlesManager._getAllFromLocalStorage();
     }
     
     // Update last fetch time
@@ -2937,12 +2939,6 @@ export const therapyProgramsManager = {
       }
     }
     
-    // If forcing refresh, check if we're within cooldown period
-    if (forceRefresh && timeSinceLastFetch < minFetchInterval) {
-      console.log(`⏱️ Therapy programs fetch cooldown active (${Math.ceil((minFetchInterval - timeSinceLastFetch) / 1000)}s remaining). Using cached data.`);
-      return therapyProgramsManager._getAllFromLocalStorage();
-    }
-    
     // Update last fetch time
     therapyProgramsManager._lastFetchTime = now;
     
@@ -3257,34 +3253,43 @@ export const therapyProgramsManager = {
 
     console.log("🔔 Setting up real-time subscription for therapy programs...");
     
-    // Real-time subscription - just update state, don't fetch (periodic sync handles fetching)
     therapyProgramsManager._subscription = supabase
       .channel('therapy-programs-changes')
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          event: '*',
           schema: 'public',
           table: 'therapy_programs'
         },
         async (payload) => {
           console.log('🔔 Real-time therapy program change detected:', payload.eventType, payload);
           
-          // Just notify the UI - don't fetch immediately
-          // The periodic sync (every 10 seconds) will fetch the latest data
-          // This prevents excessive requests while still being responsive
-          if (callback && typeof callback === 'function') {
-            // Get cached data to update UI immediately
-            const cachedPrograms = therapyProgramsManager._getAllFromLocalStorage();
-            callback(cachedPrograms, payload);
+          try {
+            const { data, error } = await therapyProgramsService.getAll();
+            
+            if (!error && data) {
+              const supabasePrograms = data.map((p) => therapyProgramsService.mapSupabaseToLocal(p));
+              
+              therapyProgramsManager._lastFetchTime = Date.now();
+              therapyProgramsManager.saveAll(supabasePrograms);
+              
+              if (callback && typeof callback === 'function') {
+                callback(supabasePrograms, payload);
+              }
+              
+              console.log('✅ Real-time update applied:', payload.eventType);
+            } else {
+              console.warn('⚠️ Failed to refresh therapy programs after real-time change:', error);
+            }
+          } catch (err) {
+            console.error('❌ Exception handling real-time therapy program change:', err);
           }
-          
-          console.log('✅ Real-time notification sent (periodic sync will fetch latest data)');
         }
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time subscription active for therapy programs (notifications only - periodic sync handles fetching)');
+          console.log('✅ Real-time subscription active for therapy programs');
         } else if (status === 'CHANNEL_ERROR') {
           console.warn('⚠️ Real-time subscription error - table may not exist');
         }
@@ -3517,12 +3522,6 @@ export const forParentsManager = {
           console.error('Error parsing cached for parents articles:', e);
         }
       }
-    }
-    
-    // If forcing refresh, check if we're within cooldown period
-    if (forceRefresh && timeSinceLastFetch < minFetchInterval) {
-      console.log(`⏱️ For parents articles fetch cooldown active (${Math.ceil((minFetchInterval - timeSinceLastFetch) / 1000)}s remaining). Using cached data.`);
-      return forParentsManager._getAllFromLocalStorage();
     }
     
     // Update last fetch time
@@ -3839,34 +3838,43 @@ export const forParentsManager = {
 
     console.log("🔔 Setting up real-time subscription for for parents articles...");
     
-    // Real-time subscription - just update state, don't fetch (periodic sync handles fetching)
     forParentsManager._subscription = supabase
       .channel('for-parents-changes')
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen to all events (INSERT, UPDATE, DELETE)
+          event: '*',
           schema: 'public',
           table: 'for_parents'
         },
         async (payload) => {
           console.log('🔔 Real-time for parents article change detected:', payload.eventType, payload);
           
-          // Just notify the UI - don't fetch immediately
-          // The periodic sync (every 10 seconds) will fetch the latest data
-          // This prevents excessive requests while still being responsive
-          if (callback && typeof callback === 'function') {
-            // Get cached data to update UI immediately
-            const cachedArticles = forParentsManager._getAllFromLocalStorage();
-            callback(cachedArticles, payload);
+          try {
+            const { data, error } = await forParentsService.getAll();
+            
+            if (!error && data) {
+              const supabaseArticles = data.map((a) => forParentsService.mapSupabaseToLocal(a));
+              
+              forParentsManager._lastFetchTime = Date.now();
+              forParentsManager.saveAll(supabaseArticles);
+              
+              if (callback && typeof callback === 'function') {
+                callback(supabaseArticles, payload);
+              }
+              
+              console.log('✅ Real-time update applied:', payload.eventType);
+            } else {
+              console.warn('⚠️ Failed to refresh for parents articles after real-time change:', error);
+            }
+          } catch (err) {
+            console.error('❌ Exception handling real-time for parents change:', err);
           }
-          
-          console.log('✅ Real-time notification sent (periodic sync will fetch latest data)');
         }
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time subscription active for for parents articles (notifications only - periodic sync handles fetching)');
+          console.log('✅ Real-time subscription active for for parents articles');
         } else if (status === 'CHANNEL_ERROR') {
           console.warn('⚠️ Real-time subscription error - table may not exist');
         }

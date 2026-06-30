@@ -4,35 +4,44 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { getFeaturedCourses } from '../../data/courses';
 import { coursesManager } from '../../utils/dataManager';
 import CourseCard from '../cards/CourseCard';
+import PageLoader from '../ui/PageLoader';
+import { SUPABASE_FETCH_OPTIONS } from '../../utils/supabaseFetch';
 
 const CoursesSection = () => {
     const [courses, setCourses] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const navigate = useNavigate();
     const location = useLocation();
     const scrollContainerRef = useRef(null);
 
     useEffect(() => {
+        let mounted = true;
+
         const loadCourses = async () => {
-            // First, load from cache for immediate display
-            const cachedCourses = coursesManager._getAllFromLocalStorage();
-            setCourses(cachedCourses);
-            
-            // Then refresh from Supabase in the background
+            setIsLoading(true);
             try {
-                const allCourses = await coursesManager.getAll();
-                setCourses(allCourses);
+                const allCourses = await coursesManager.getAll(SUPABASE_FETCH_OPTIONS);
+                if (mounted) setCourses(allCourses);
             } catch (error) {
                 console.error('Error loading courses:', error);
+            } finally {
+                if (mounted) setIsLoading(false);
             }
         };
         
         loadCourses();
-        window.addEventListener('coursesUpdated', (e) => {
-            setCourses(e.detail);
-        });
+        const handleCoursesUpdated = (e) => {
+            if (e.detail && Array.isArray(e.detail)) {
+                setCourses(e.detail);
+            } else {
+                loadCourses();
+            }
+        };
+        window.addEventListener('coursesUpdated', handleCoursesUpdated);
 
         return () => {
-            window.removeEventListener('coursesUpdated', loadCourses);
+            mounted = false;
+            window.removeEventListener('coursesUpdated', handleCoursesUpdated);
         };
     }, []);
 
@@ -73,6 +82,10 @@ const CoursesSection = () => {
                     </Link>
                 </div>
 
+                {isLoading ? (
+                    <PageLoader variant="section" label="Loading courses..." />
+                ) : (
+                <>
                 {/* Mobile Slider - Only visible on mobile */}
                 <div className="md:hidden relative">
                     {/* Navigation Buttons */}
@@ -125,6 +138,8 @@ const CoursesSection = () => {
                         />
                     ))}
                 </div>
+                </>
+                )}
             </div>
         </section>
     );

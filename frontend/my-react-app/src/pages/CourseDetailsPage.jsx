@@ -6,6 +6,9 @@ import { useAuth } from '../contexts/AuthContext';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import ImagePlaceholder from '../components/ui/ImagePlaceholder';
+import PageLoader from '../components/ui/PageLoader';
+
+import { SUPABASE_FETCH_OPTIONS } from '../utils/supabaseFetch';
 
 const CourseDetailPage = () => {
     const { courseId } = useParams();
@@ -13,11 +16,10 @@ const CourseDetailPage = () => {
     const { user, loading: authLoading, isRefreshingToken } = useAuth();
     const [activeTab, setActiveTab] = useState('details');
     const [courseData, setCourseData] = useState(null);
+    const [isLoadingCourse, setIsLoadingCourse] = useState(true);
     const [expandedLessons, setExpandedLessons] = useState(new Set());
     const redirectTimeoutRef = useRef(null);
     const lastUserCheckRef = useRef(null);
-    const courseRefreshIntervalRef = useRef(null);
-    const lastCourseFetchRef = useRef(0);
 
     // Toggle lesson expansion
     const toggleLesson = (sectionIndex, lessonIndex) => {
@@ -98,49 +100,21 @@ const CourseDetailPage = () => {
         initializeData();
         
         const loadCourse = async (forceRefresh = false) => {
-            // Throttle: Only fetch if enough time has passed (10 seconds) or if forcing refresh
-            const now = Date.now();
-            const timeSinceLastFetch = now - lastCourseFetchRef.current;
-            const minFetchInterval = 10000; // 10 seconds minimum between fetches
-            
-            if (!forceRefresh && timeSinceLastFetch < minFetchInterval) {
-                // Too soon - just use cache if we don't have data yet
-                const cachedCourses = coursesManager._getAllFromLocalStorage();
-                const course = cachedCourses.find(c => c.id === parseInt(courseId));
-                if (course) {
-                    setCourseDataFromCourse(course);
+            if (!forceRefresh) setIsLoadingCourse(true);
+
+            try {
+                const courses = await coursesManager.getAll(SUPABASE_FETCH_OPTIONS);
+                const freshCourse = courses.find((c) => c.id === parseInt(courseId, 10));
+                if (freshCourse) {
+                    setCourseDataFromCourse(freshCourse);
+                } else if (!forceRefresh) {
+                    setCourseData(null);
                 }
-                return;
-            }
-            
-            // Update last fetch time
-            lastCourseFetchRef.current = now;
-            
-            // First, load from cache for immediate display
-            const cachedCourses = coursesManager._getAllFromLocalStorage();
-            let course = cachedCourses.find(c => c.id === parseInt(courseId));
-            
-            if (course) {
-                // Set course data immediately from cache
-                setCourseDataFromCourse(course);
-            }
-            
-            // Then refresh from Supabase in the background (only if forcing refresh or enough time passed)
-            if (forceRefresh || timeSinceLastFetch >= minFetchInterval) {
-                try {
-                    const courses = await coursesManager.getAll({ forceRefresh: true });
-                    const freshCourse = courses.find(c => c.id === parseInt(courseId));
-                    if (freshCourse) {
-                        setCourseDataFromCourse(freshCourse);
-                    } else {
-                        // Course not found - only set to null if we don't have cached data
-                        if (!course) {
-                            setCourseData(null);
-                        }
-                    }
-                } catch (error) {
-                    console.error('Error refreshing course from Supabase:', error);
-                }
+            } catch (error) {
+                console.error('Error loading course from Supabase:', error);
+                if (!forceRefresh) setCourseData(null);
+            } finally {
+                if (!forceRefresh) setIsLoadingCourse(false);
             }
         };
 
@@ -179,35 +153,20 @@ const CourseDetailPage = () => {
             });
         };
 
-        // Load immediately (with cache)
+        // Load from Supabase
         loadCourse(false);
 
-        // Set up periodic refresh every 10 seconds (same as Dashboard events)
-        courseRefreshIntervalRef.current = setInterval(() => {
-            console.log('🔄 Periodic course sync (10s interval)');
-            loadCourse(true).catch(err => {
-                console.error('Failed to sync course:', err);
-            });
-        }, 10000); // 10 seconds
-
-        // Throttled event listener for course updates (only update if enough time passed)
-        const handleCoursesUpdate = () => {
-            const now = Date.now();
-            const timeSinceLastFetch = now - lastCourseFetchRef.current;
-            if (timeSinceLastFetch >= 10000) {
-                loadCourse(true).catch(err => {
-                    console.error('Failed to load course on update:', err);
-                });
+        const handleCoursesUpdate = (e) => {
+            if (!e.detail || !Array.isArray(e.detail)) return;
+            const freshCourse = e.detail.find((c) => c.id === parseInt(courseId, 10));
+            if (freshCourse) {
+                setCourseDataFromCourse(freshCourse);
             }
         };
 
         window.addEventListener('coursesUpdated', handleCoursesUpdate);
 
         return () => {
-            if (courseRefreshIntervalRef.current) {
-                clearInterval(courseRefreshIntervalRef.current);
-                courseRefreshIntervalRef.current = null;
-            }
             window.removeEventListener('coursesUpdated', handleCoursesUpdate);
         };
     }, [courseId, generateDefaultCurriculum, generateDefaultLearningOutcomes]);
@@ -270,15 +229,8 @@ const CourseDetailPage = () => {
     }, [user, authLoading, isRefreshingToken, navigate, courseId]);
 
     // Show loading state while checking auth or loading course
-    if (authLoading) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5A9B8E] mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading...</p>
-                </div>
-            </div>
-        );
+    if (authLoading || isLoadingCourse) {
+        return <PageLoader label="Loading course..." />;
     }
 
     // If not authenticated, don't render (redirect will happen)

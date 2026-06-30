@@ -17,7 +17,10 @@ import { membersManager, initializeData } from '../utils/dataManager';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import ImagePlaceholder from '../components/ui/ImagePlaceholder';
+import PageLoader from '../components/ui/PageLoader';
 import { getDisplayRole } from '../utils/roleDisplay';
+
+import { SUPABASE_FETCH_OPTIONS } from '../utils/supabaseFetch';
 
 function MemberProfile() {
     const { memberId } = useParams();
@@ -30,19 +33,13 @@ function MemberProfile() {
         const loadMember = async () => {
             initializeData();
             try {
-                const allMembers = await membersManager.getAll();
-                const memberData = allMembers.find(m => m.id === parseInt(memberId));
+                const allMembers = await membersManager.getAll(SUPABASE_FETCH_OPTIONS);
+                const memberData = allMembers.find(m => m.id === parseInt(memberId, 10));
                 if (memberData) {
                     setMember(memberData);
                 }
             } catch (error) {
                 console.error('Error loading member:', error);
-                // Fallback to cached data
-                const cachedMembers = membersManager._getAllFromLocalStorage();
-                const memberData = cachedMembers.find(m => m.id === parseInt(memberId));
-                if (memberData) {
-                    setMember(memberData);
-                }
             } finally {
                 setLoading(false);
             }
@@ -68,14 +65,7 @@ function MemberProfile() {
     }, [memberId]);
 
     if (loading) {
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#5A9B8E] mx-auto mb-4"></div>
-                    <p className="text-gray-600">Loading member profile...</p>
-                </div>
-            </div>
-        );
+        return <PageLoader label="Loading member profile..." />;
     }
 
     if (!member) {

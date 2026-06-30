@@ -5,7 +5,10 @@ import { membersManager } from '../utils/dataManager';
 import MemberCard from '../components/cards/MemberCard';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
+import PageLoader from '../components/ui/PageLoader';
 import { useAuth } from '../contexts/AuthContext';
+
+import { SUPABASE_FETCH_OPTIONS } from '../utils/supabaseFetch';
 
 function MembersOverviewPage() {
   const { user } = useAuth();
@@ -13,25 +16,21 @@ function MembersOverviewPage() {
   const [locationFilter, setLocationFilter] = useState('all');
   const [specialtyFilter, setSpecialtyFilter] = useState('all');
   const [members, setMembers] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const scrollContainerRef = useRef(null);
 
   useEffect(() => {
+    let mounted = true;
+
     const loadMembers = async () => {
+      setIsLoading(true);
       try {
-        // First, load from cache for immediate display
-        const cachedMembers = membersManager._getAllFromLocalStorage();
-        if (cachedMembers && cachedMembers.length > 0) {
-          setMembers(cachedMembers);
-        }
-        
-        // Then refresh from Supabase in the background
-        const allMembers = await membersManager.getAll();
-        setMembers(allMembers);
+        const allMembers = await membersManager.getAll(SUPABASE_FETCH_OPTIONS);
+        if (mounted) setMembers(allMembers);
       } catch (error) {
         console.error('Error loading members:', error);
-        // Fallback to cached data
-        const cachedMembers = membersManager._getAllFromLocalStorage();
-        setMembers(cachedMembers);
+      } finally {
+        if (mounted) setIsLoading(false);
       }
     };
     
@@ -48,6 +47,7 @@ function MembersOverviewPage() {
     window.addEventListener('membersUpdated', handleMembersUpdate);
 
     return () => {
+      mounted = false;
       window.removeEventListener('membersUpdated', handleMembersUpdate);
     };
   }, []);
@@ -77,6 +77,10 @@ function MembersOverviewPage() {
       scrollContainerRef.current.scrollBy({ left: cardWidth + 24, behavior: 'smooth' });
     }
   };
+
+  if (isLoading) {
+    return <PageLoader label="Loading members..." />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

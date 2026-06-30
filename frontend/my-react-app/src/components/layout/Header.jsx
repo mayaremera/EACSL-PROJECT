@@ -35,7 +35,6 @@ const Header = () => {
       if (member) {
         setMemberData(member);
       } else {
-        // Try to find by email as fallback (use cached data for fast access)
         const allMembers = membersManager._getAllFromLocalStorage();
         const memberByEmail = allMembers.find(m => m.email === user.email);
         if (memberByEmail) {
@@ -45,6 +44,15 @@ const Header = () => {
     } else {
       setMemberData(null);
     }
+
+    const handleMembersUpdate = (e) => {
+      if (!user || !e.detail || !Array.isArray(e.detail)) return;
+      const member = e.detail.find(m => m.userId === user.id || m.email === user.email);
+      if (member) setMemberData(member);
+    };
+
+    window.addEventListener('membersUpdated', handleMembersUpdate);
+    return () => window.removeEventListener('membersUpdated', handleMembersUpdate);
   }, [user, getMemberByUserId]);
 
   // Handle scroll behavior for sticky header

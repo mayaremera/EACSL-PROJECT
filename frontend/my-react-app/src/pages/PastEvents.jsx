@@ -1,31 +1,50 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Users, Award, BookOpen, MapPin, Clock, X } from 'lucide-react';
 import { eventsManager } from '../utils/dataManager';
+import PageLoader from '../components/ui/PageLoader';
 import { useAuth } from '../contexts/AuthContext';
+
+import { SUPABASE_FETCH_OPTIONS } from '../utils/supabaseFetch';
 
 const PastEvents = () => {
   const { user } = useAuth();
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [pastEvents, setPastEvents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const loadPastEvents = () => {
-      const events = eventsManager.getPast();
-      setPastEvents(events);
+    let mounted = true;
+
+    const loadPastEvents = async () => {
+      setIsLoading(true);
+      try {
+        const { past } = await eventsManager.getAll(SUPABASE_FETCH_OPTIONS);
+        if (mounted) setPastEvents(past);
+      } catch (error) {
+        console.error('Error loading past events:', error);
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
     };
 
     loadPastEvents();
 
-    // Listen for event updates
-    const handleEventsUpdate = () => {
-      loadPastEvents();
+    const handleEventsUpdate = (e) => {
+      if (e.detail?.past && mounted) {
+        setPastEvents(e.detail.past);
+      }
     };
 
     window.addEventListener('eventsUpdated', handleEventsUpdate);
     return () => {
+      mounted = false;
       window.removeEventListener('eventsUpdated', handleEventsUpdate);
     };
   }, []);
+
+  if (isLoading) {
+    return <PageLoader label="Loading past events..." />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

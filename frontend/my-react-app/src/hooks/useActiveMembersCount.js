@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { membersManager } from '../utils/dataManager';
+import { SUPABASE_FETCH_OPTIONS } from '../utils/supabaseFetch';
 
 export const useActiveMembersCount = () => {
   const [count, setCount] = useState(0);
@@ -9,7 +10,7 @@ export const useActiveMembersCount = () => {
     try {
       setLoading(true);
       // getAll() is now async - fetch from Supabase first
-      const members = await membersManager.getAll();
+      const members = await membersManager.getAll(SUPABASE_FETCH_OPTIONS);
       
       // Ensure members is an array
       if (Array.isArray(members)) {

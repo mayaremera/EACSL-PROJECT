@@ -680,7 +680,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
               />
               <p className="mt-1 text-xs text-gray-500">
-                This date will be displayed in the hero section badge instead of "TBA" and "2025"
+                The scheduled date for this event
               </p>
             </div>
           </div>
@@ -701,7 +701,7 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#5A9B8E]"
               />
               <p className="mt-1 text-xs text-gray-500">
-                The event date displayed on the hero card badge
+                The scheduled date for this event
               </p>
             </div>
 

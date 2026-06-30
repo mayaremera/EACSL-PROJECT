@@ -11,6 +11,7 @@ import {
   therapyProgramsManager, 
   forParentsManager 
 } from "../utils/dataManager";
+import { SUPABASE_FETCH_OPTIONS } from "../utils/supabaseFetch";
 
 /**
  * Smart search service that searches across all entities in the website
@@ -48,13 +49,9 @@ export const searchService = {
    */
   async searchMembers(query) {
     try {
-      // Use cached data first for fast search, then sync in background
-      let members = membersManager._getAllFromLocalStorage();
-      
-      // Try to sync from Supabase in background (don't wait for it)
-      membersManager.getAll({ forceRefresh: true }).catch(() => {
-        // Silently fail background sync
-      });
+      const members = await this.withTimeout(
+        membersManager.getAll(SUPABASE_FETCH_OPTIONS)
+      );
       
       if (!members || members.length === 0) return [];
 
@@ -97,14 +94,10 @@ export const searchService = {
    */
   async searchEvents(query) {
     try {
-      // Use cached data first for fast search
-      const cached = eventsManager._getAllFromLocalStorage();
+      const cached = await this.withTimeout(
+        eventsManager.getAll(SUPABASE_FETCH_OPTIONS)
+      );
       const events = [...(cached.upcoming || []), ...(cached.past || [])];
-      
-      // Try to sync from Supabase in background (don't wait for it)
-      eventsManager.getAll({ forceRefresh: true }).catch(() => {
-        // Silently fail background sync
-      });
       
       if (!events || events.length === 0) return [];
 
@@ -149,13 +142,9 @@ export const searchService = {
    */
   async searchArticles(query) {
     try {
-      // Use cached data first for fast search
-      let articles = articlesManager._getAllFromLocalStorage();
-      
-      // Try to sync from Supabase in background (don't wait for it)
-      articlesManager.getAll({ forceRefresh: true }).catch(() => {
-        // Silently fail background sync
-      });
+      const articles = await this.withTimeout(
+        articlesManager.getAll(SUPABASE_FETCH_OPTIONS)
+      );
       
       if (!articles || articles.length === 0) return [];
 
@@ -199,15 +188,9 @@ export const searchService = {
    */
   async searchCourses(query) {
     try {
-      // Use cached data first for fast search
-      let courses = coursesManager._getAllFromLocalStorage();
-      
-      // Try to sync from Supabase in background (don't wait for it)
-      coursesManager.getAll().then(() => {
-        // Cache will be updated by coursesManager
-      }).catch(() => {
-        // Silently fail background sync
-      });
+      const courses = await this.withTimeout(
+        coursesManager.getAll(SUPABASE_FETCH_OPTIONS)
+      );
       
       if (!courses || courses.length === 0) return [];
 
@@ -252,13 +235,9 @@ export const searchService = {
    */
   async searchTherapyPrograms(query) {
     try {
-      // Use cached data first for fast search
-      let programs = therapyProgramsManager._getAllFromLocalStorage();
-      
-      // Try to sync from Supabase in background (don't wait for it)
-      therapyProgramsManager.getAll({ forceRefresh: true }).catch(() => {
-        // Silently fail background sync
-      });
+      const programs = await this.withTimeout(
+        therapyProgramsManager.getAll(SUPABASE_FETCH_OPTIONS)
+      );
       
       if (!programs || programs.length === 0) return [];
 
@@ -299,13 +278,9 @@ export const searchService = {
    */
   async searchForParents(query) {
     try {
-      // Use cached data first for fast search
-      let articles = forParentsManager._getAllFromLocalStorage();
-      
-      // Try to sync from Supabase in background (don't wait for it)
-      forParentsManager.getAll({ forceRefresh: true }).catch(() => {
-        // Silently fail background sync
-      });
+      const articles = await this.withTimeout(
+        forParentsManager.getAll(SUPABASE_FETCH_OPTIONS)
+      );
       
       if (!articles || articles.length === 0) return [];
 

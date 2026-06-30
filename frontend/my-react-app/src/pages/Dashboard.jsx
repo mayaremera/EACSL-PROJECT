@@ -1181,17 +1181,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const [selectedEventRegistration, setSelectedEventRegistration] = useState(null);
     const [selectedContactForm, setSelectedContactForm] = useState(null);
     const [selectedReservation, setSelectedReservation] = useState(null);
-    
-    // Refs to track last load times and prevent excessive requests
-    const lastEventsLoadTime = useRef(0);
-    const eventsLoadCooldown = 10000; // 10 seconds cooldown between loads
-    const lastArticlesLoadTime = useRef(0);
-    const articlesLoadCooldown = 5000; // 5 seconds cooldown between loads
-    const lastTherapyProgramsLoadTime = useRef(0);
-    const therapyProgramsLoadCooldown = 10000; // 10 seconds cooldown between loads
-    const lastForParentsLoadTime = useRef(0);
-    const forParentsLoadCooldown = 10000; // 10 seconds cooldown between loads
-    const eventsSyncInterval = useRef(null);
 
     // Initialize data and load
     useEffect(() => {
@@ -1209,11 +1198,11 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         loadContactForms();
         // Load events after initialization (now async, fetches from Supabase first)
         setTimeout(() => {
-            loadEvents(true).catch(err => {
+            loadEvents().catch(err => {
                 console.error('Failed to load events:', err);
             });
         }, 100);
-        loadArticles(true).catch(err => {
+        loadArticles().catch(err => {
             console.error('Failed to load articles:', err);
         });
         loadTherapyPrograms().catch(err => {
@@ -1222,80 +1211,16 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         loadForParentsArticles().catch(err => {
             console.error('Failed to load for parents articles:', err);
         });
-        
-        // Set up real-time subscription for members
-        const unsubscribeMembers = membersManager.subscribe((updatedMembers, payload) => {
-            console.log('Real-time members update received:', payload.eventType);
-            setMembers(updatedMembers);
-        });
-        
-        // Set up real-time subscription for events
-        const unsubscribeEvents = eventsManager.subscribe(async (updatedEvents, payload) => {
-            console.log('Real-time events update received:', payload.eventType);
-            setEvents(updatedEvents);
-        });
-        
-        // Set up real-time subscription for courses
-        const unsubscribeCourses = coursesManager.subscribe((updatedCourses, payload) => {
-            console.log('Real-time courses update received:', payload.eventType);
-            setCourses(updatedCourses);
-        });
-        
-        // Set up real-time subscription for articles
-        const unsubscribeArticles = articlesManager.subscribe(async (updatedArticles, payload) => {
-            console.log('Real-time articles update received:', payload.eventType);
-            setArticles(updatedArticles);
-        });
-        
-        // Set up real-time subscription for therapy programs
-        const unsubscribeTherapyPrograms = therapyProgramsManager.subscribe(async (updatedPrograms, payload) => {
-            console.log('Real-time therapy programs update received:', payload.eventType);
-            setTherapyPrograms(updatedPrograms);
-        });
-        
-        // Set up real-time subscription for for parents articles
-        const unsubscribeForParents = forParentsManager.subscribe(async (updatedArticles, payload) => {
-            console.log('Real-time for parents articles update received:', payload.eventType);
-            setForParentsArticles(updatedArticles);
-        });
 
         // Sync event registrations from Supabase on initial load (silently fail if table doesn't exist)
         setTimeout(async () => {
             try {
                 await loadEventRegistrations();
             } catch (err) {
-                // Silently handle errors on initial load
                 console.warn('Could not load event registrations on initial load:', err);
             }
         }, 600);
-        
-        // Cleanup subscriptions on unmount
-        return () => {
-            if (unsubscribeMembers) {
-                unsubscribeMembers();
-            }
-            membersManager.unsubscribe();
-            if (unsubscribeEvents) {
-                unsubscribeEvents();
-            }
-            eventsManager.unsubscribe();
-            if (unsubscribeCourses) {
-                unsubscribeCourses();
-            }
-            coursesManager.unsubscribe();
-            if (unsubscribeArticles) {
-                unsubscribeArticles();
-            }
-            articlesManager.unsubscribe();
-            if (unsubscribeTherapyPrograms) {
-                unsubscribeTherapyPrograms();
-            }
-            therapyProgramsManager.unsubscribe();
-            if (unsubscribeForParents) {
-                unsubscribeForParents();
-            }
-            forParentsManager.unsubscribe();
-        };
+
         loadReservations();
 
         // Listen for updates
@@ -1324,54 +1249,19 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         };
     }, []);
 
-    // Set up periodic sync for events (every 10 seconds when on events tab)
+    // Reload tab data when switching tabs (realtime + window events keep data fresh)
     useEffect(() => {
         if (activeTab === 'events') {
-            // Load immediately with cache
-            loadEvents(false).catch(err => {
-                console.error('Failed to load events:', err);
-            });
-            
-            // Set up periodic sync every 10 seconds
-            eventsSyncInterval.current = setInterval(() => {
-                console.log('🔄 Periodic events sync (10s interval)');
-                loadEvents(true).catch(err => {
-                    console.error('Failed to sync events:', err);
-                });
-            }, 10000); // 10 seconds
-            
-            // Cleanup interval on tab change or unmount
-            return () => {
-                if (eventsSyncInterval.current) {
-                    clearInterval(eventsSyncInterval.current);
-                    eventsSyncInterval.current = null;
-                }
-            };
-        } else {
-            // Clear interval when not on events tab
-            if (eventsSyncInterval.current) {
-                clearInterval(eventsSyncInterval.current);
-                eventsSyncInterval.current = null;
-            }
+            loadEvents().catch(err => console.error('Failed to load events:', err));
         }
-    }, [activeTab]); // Add activeTab as dependency
-    
-    // Handle other tab loads
-    useEffect(() => {
         if (activeTab === 'articles') {
-            loadArticles(false).catch(err => {
-                console.error('Failed to load articles:', err);
-            });
+            loadArticles().catch(err => console.error('Failed to load articles:', err));
         }
         if (activeTab === 'therapy-programs') {
-            loadTherapyPrograms().catch(err => {
-                console.error('Failed to load therapy programs:', err);
-            });
+            loadTherapyPrograms().catch(err => console.error('Failed to load therapy programs:', err));
         }
         if (activeTab === 'for-parents') {
-            loadForParentsArticles().catch(err => {
-                console.error('Failed to load for parents articles:', err);
-            });
+            loadForParentsArticles().catch(err => console.error('Failed to load for parents articles:', err));
         }
         if (activeTab === 'applications') {
             loadForms();
@@ -1418,13 +1308,15 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     };
 
     const handleEventsUpdate = (e) => {
-        console.log('Events updated event received:', e.detail);
         const eventsData = {
-            upcoming: Array.isArray(e.detail.upcoming) ? e.detail.upcoming : [],
-            past: Array.isArray(e.detail.past) ? e.detail.past : []
+            upcoming: Array.isArray(e.detail?.upcoming) ? e.detail.upcoming : [],
+            past: Array.isArray(e.detail?.past) ? e.detail.past : []
         };
-        console.log('Setting events from update:', eventsData);
         setEvents(eventsData);
+        if (editingEvent?.id) {
+            const updated = [...eventsData.upcoming, ...eventsData.past].find(ev => ev.id === editingEvent.id);
+            if (updated) setEditingEvent(updated);
+        }
     };
 
     const handleArticlesUpdate = (e) => {
@@ -1439,118 +1331,39 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         setForParentsArticles(e.detail || []);
     };
 
-    const loadArticles = async (forceRefresh = false) => {
+    const loadArticles = async () => {
         try {
-            const now = Date.now();
-            const timeSinceLastLoad = now - lastArticlesLoadTime.current;
-            
-            // If we're forcing refresh but it's been less than cooldown time, use cache instead
-            if (forceRefresh && timeSinceLastLoad < articlesLoadCooldown) {
-                console.log(`⏱️ Articles load cooldown active (${Math.ceil((articlesLoadCooldown - timeSinceLastLoad) / 1000)}s remaining). Using cached data.`);
-                const cachedArticles = articlesManager._getAllFromLocalStorage();
-                setArticles(cachedArticles || []);
-                return;
-            }
-            
-            console.log('📥 Dashboard.loadArticles() - Starting...');
-            // Only force refresh if explicitly requested and cooldown has passed
-            const allArticles = await articlesManager.getAll({ forceRefresh: forceRefresh });
-            console.log(`📥 Dashboard.loadArticles() - Got ${allArticles?.length || 0} articles`);
-            if (allArticles && allArticles.length > 0) {
-                console.log('Sample article in loadArticles:', allArticles[0]);
-            }
-            
-            // Update last load time
-            lastArticlesLoadTime.current = now;
-            
+            const allArticles = await articlesManager.getAll({ forceRefresh: true, useCache: false });
             setArticles(allArticles || []);
-            console.log('✅ Dashboard.loadArticles() - Articles state updated');
         } catch (error) {
-            console.error('❌ Error loading articles:', error);
-            console.error('Error stack:', error.stack);
-            // Fallback to cached data
-            const cachedArticles = articlesManager._getAllFromLocalStorage();
-            console.log(`📦 Dashboard.loadArticles() - Using ${cachedArticles?.length || 0} cached articles`);
-            setArticles(cachedArticles || []);
+            console.error('Error loading articles:', error);
+            setArticles(articlesManager._getAllFromLocalStorage() || []);
         }
     };  
 
-    const loadTherapyPrograms = async (forceRefresh = false) => {
+    const loadTherapyPrograms = async () => {
         try {
-            const now = Date.now();
-            const timeSinceLastLoad = now - lastTherapyProgramsLoadTime.current;
-            
-            // If we're forcing refresh but it's been less than cooldown time, use cache instead
-            if (forceRefresh && timeSinceLastLoad < therapyProgramsLoadCooldown) {
-                console.log(`⏱️ Therapy programs load cooldown active (${Math.ceil((therapyProgramsLoadCooldown - timeSinceLastLoad) / 1000)}s remaining). Using cached data.`);
-                const cachedPrograms = therapyProgramsManager._getAllFromLocalStorage();
-                setTherapyPrograms(cachedPrograms || []);
-                return;
-            }
-            
-            // First, load from cache for immediate display
-            const cachedPrograms = therapyProgramsManager._getAllFromLocalStorage();
-            if (cachedPrograms && cachedPrograms.length > 0) {
-                setTherapyPrograms(cachedPrograms);
-            }
-            
-            console.log('🔄 Loading therapy programs from Supabase...');
-            // Only force refresh if explicitly requested and cooldown has passed
-            const allPrograms = await therapyProgramsManager.getAll({ forceRefresh: forceRefresh });
-            console.log(`✅ Loaded ${allPrograms?.length || 0} therapy programs`);
-            
-            // Update last load time
-            lastTherapyProgramsLoadTime.current = now;
-            
+            const allPrograms = await therapyProgramsManager.getAll({ forceRefresh: true, useCache: false });
             setTherapyPrograms(allPrograms || []);
         } catch (error) {
             console.error('Error loading therapy programs:', error);
-            // Fallback to cached data
-            const cachedPrograms = therapyProgramsManager._getAllFromLocalStorage();
-            setTherapyPrograms(cachedPrograms || []);
+            setTherapyPrograms(therapyProgramsManager._getAllFromLocalStorage() || []);
         }
     };
 
-    const loadForParentsArticles = async (forceRefresh = false) => {
+    const loadForParentsArticles = async () => {
         try {
-            const now = Date.now();
-            const timeSinceLastLoad = now - lastForParentsLoadTime.current;
-            
-            // If we're forcing refresh but it's been less than cooldown time, use cache instead
-            if (forceRefresh && timeSinceLastLoad < forParentsLoadCooldown) {
-                console.log(`⏱️ For parents articles load cooldown active (${Math.ceil((forParentsLoadCooldown - timeSinceLastLoad) / 1000)}s remaining). Using cached data.`);
-                const cachedArticles = forParentsManager._getAllFromLocalStorage();
-                setForParentsArticles(cachedArticles || []);
-                return;
-            }
-            
-            // First, load from cache for immediate display
-            const cachedArticles = forParentsManager._getAllFromLocalStorage();
-            if (cachedArticles && cachedArticles.length > 0) {
-                setForParentsArticles(cachedArticles);
-            }
-            
-            console.log('🔄 Loading for parents articles from Supabase...');
-            // Only force refresh if explicitly requested and cooldown has passed
-            const allArticles = await forParentsManager.getAll({ forceRefresh: forceRefresh });
-            console.log(`✅ Loaded ${allArticles?.length || 0} for parents articles`);
-            
-            // Update last load time
-            lastForParentsLoadTime.current = now;
-            
+            const allArticles = await forParentsManager.getAll({ forceRefresh: true, useCache: false });
             setForParentsArticles(allArticles || []);
         } catch (error) {
             console.error('Error loading for parents articles:', error);
-            // Fallback to cached data
-            const cachedArticles = forParentsManager._getAllFromLocalStorage();
-            setForParentsArticles(cachedArticles || []);
+            setForParentsArticles(forParentsManager._getAllFromLocalStorage() || []);
         }
     };
 
     const loadCourses = async () => {
         try {
-            // getAll() is now async and fetches from Supabase first
-            const allCourses = await coursesManager.getAll();
+            const allCourses = await coursesManager.getAll({ forceRefresh: true, useCache: false });
             setCourses(allCourses);
         } catch (error) {
             console.error('Error loading courses:', error);
@@ -1562,8 +1375,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
 
     const loadMembers = async () => {
         try {
-            // getAll() is now async and fetches from Supabase first
-            const allMembers = await membersManager.getAll();
+            const allMembers = await membersManager.getAll({ forceRefresh: true, useCache: false });
             setMembers(allMembers);
         } catch (error) {
             console.error('Error loading members:', error);
@@ -2040,47 +1852,20 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         }
     };
 
-    const loadEvents = async (forceRefresh = false) => {
+    const loadEvents = async () => {
         try {
-            const now = Date.now();
-            const timeSinceLastLoad = now - lastEventsLoadTime.current;
-            
-            // If we're forcing refresh but it's been less than cooldown time, use cache instead
-            if (forceRefresh && timeSinceLastLoad < eventsLoadCooldown) {
-                console.log(`⏱️ Events load cooldown active (${Math.ceil((eventsLoadCooldown - timeSinceLastLoad) / 1000)}s remaining). Using cached data.`);
-                const cachedEvents = eventsManager._getAllFromLocalStorage();
-                const eventsData = {
-                    upcoming: Array.isArray(cachedEvents.upcoming) ? cachedEvents.upcoming : [],
-                    past: Array.isArray(cachedEvents.past) ? cachedEvents.past : []
-                };
-                setEvents(eventsData);
-                return;
-            }
-            
-            console.log('🔄 Loading events from Supabase...');
-            // Only force refresh if explicitly requested and cooldown has passed
-            const allEvents = await eventsManager.getAll({ forceRefresh: forceRefresh });
-            // Ensure we have the correct structure
-            const eventsData = {
+            const allEvents = await eventsManager.getAll({ forceRefresh: true, useCache: false });
+            setEvents({
                 upcoming: Array.isArray(allEvents.upcoming) ? allEvents.upcoming : [],
                 past: Array.isArray(allEvents.past) ? allEvents.past : []
-            };
-            
-            console.log(`✅ Loaded ${eventsData.upcoming.length} upcoming and ${eventsData.past.length} past events from Supabase`);
-            
-            // Update last load time
-            lastEventsLoadTime.current = now;
-            
-            setEvents(eventsData);
+            });
         } catch (error) {
             console.error('Error loading events:', error);
-            // Fallback to cached data
             const cachedEvents = eventsManager._getAllFromLocalStorage();
-            const eventsData = {
+            setEvents({
                 upcoming: Array.isArray(cachedEvents.upcoming) ? cachedEvents.upcoming : [],
                 past: Array.isArray(cachedEvents.past) ? cachedEvents.past : []
-            };
-            setEvents(eventsData);
+            });
         }
     };
 
@@ -2541,7 +2326,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         const result = await eventsManager.syncFromSupabase();
         if (result.synced) {
             // Reload events to reflect changes (force refresh after sync)
-            await loadEvents(true);
+            await loadEvents();
             
             // Show detailed sync results
             let message = `✅ Successfully synced from Supabase!\n\n`;
@@ -2563,7 +2348,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                         const pushResult = await eventsManager.syncToSupabase();
                         if (pushResult.synced) {
                             alert(`✅ Successfully uploaded ${pushResult.syncedCount} event(s) to Supabase!`);
-                            await loadEvents(true);
+                            await loadEvents();
                         } else {
                             alert(`❌ Failed to upload events: ${pushResult.error?.message || 'Unknown error'}`);
                         }
@@ -2655,7 +2440,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 console.log('✅ Event added:', savedEvent);
             }
             // Wait for events to reload from Supabase before closing form
-            await loadEvents(true);
+            await loadEvents();
             
             // Update URL to show the saved event
             if (savedEvent && savedEvent.id) {
@@ -2674,21 +2459,21 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const handleDeleteEvent = async (id) => {
         if (window.confirm('Are you sure you want to delete this event?')) {
             await eventsManager.delete(id);
-            await loadEvents(true);
+            await loadEvents();
         }
     };
 
     const handleMoveToPast = async (id) => {
         if (window.confirm('Move this event to past events? You can move it back later if needed.')) {
             await eventsManager.moveToPast(id);
-            await loadEvents(true);
+            await loadEvents();
         }
     };
 
     const handleMoveToUpcoming = async (id) => {
         if (window.confirm('Move this event back to upcoming events?')) {
             await eventsManager.moveToUpcoming(id);
-            await loadEvents(true);
+            await loadEvents();
         }
     };
 
@@ -2704,7 +2489,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 console.log('✅ Article added:', added);
             }
             // Wait for articles to reload from Supabase before closing form
-            await loadArticles(true);
+            await loadArticles();
             setEditingArticle(null);
             setIsAddingArticle(false);
         } catch (error) {
@@ -2716,7 +2501,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const handleDeleteArticle = async (id) => {
         if (window.confirm('Are you sure you want to delete this article?')) {
             await articlesManager.delete(id);
-            await loadArticles(true);
+            await loadArticles();
         }
     };
 
@@ -2725,7 +2510,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
         const result = await articlesManager.syncFromSupabase();
         if (result.synced) {
             // Reload articles to reflect changes (force refresh after sync)
-            await loadArticles(true);
+            await loadArticles();
             
             // Show detailed sync results
             let message = `✅ Successfully synced from Supabase!\n\n`;
@@ -2744,7 +2529,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                         const pushResult = await articlesManager.syncToSupabase();
                         if (pushResult.synced) {
                             alert(`✅ Successfully uploaded ${pushResult.syncedCount} article(s) to Supabase!`);
-                            await loadArticles(true);
+                            await loadArticles();
                         } else {
                             alert(`❌ Failed to upload articles: ${pushResult.error?.message || 'Unknown error'}`);
                         }
@@ -3088,7 +2873,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             {activeTab === 'events' && (
                                 <div className="hidden md:flex items-center gap-2 md:gap-3">
                                     <button
-                                        onClick={() => loadEvents(true)}
+                                        onClick={() => loadEvents()}
                                         className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                                         title="Refresh Events"
                                     >
@@ -3114,7 +2899,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             {activeTab === 'articles' && (
                                 <div className="hidden md:flex items-center gap-2 md:gap-3">
                                     <button
-                                        onClick={() => loadArticles(true)}
+                                        onClick={() => loadArticles()}
                                         className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
                                         title="Refresh Articles"
                                     >
@@ -3273,7 +3058,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             <>
                             <div className="md:hidden flex items-center gap-2 mb-3 flex-wrap">
                                 <button
-                                    onClick={() => loadArticles(true)}
+                                    onClick={() => loadArticles()}
                                     className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
                                     title="Refresh Articles"
                                 >
@@ -3363,7 +3148,7 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             <>
                             <div className="md:hidden flex items-center gap-2 mb-3 flex-wrap">
                                 <button
-                                    onClick={() => loadEvents(true)}
+                                    onClick={() => loadEvents()}
                                     className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm"
                                     title="Refresh Events"
                                 >

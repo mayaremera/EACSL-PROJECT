@@ -7,7 +7,10 @@ import CourseCard from '../components/cards/CourseCard';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import ImagePlaceholder from '../components/ui/ImagePlaceholder';
+import PageLoader from '../components/ui/PageLoader';
 import { useAuth } from '../contexts/AuthContext';
+
+import { SUPABASE_FETCH_OPTIONS } from '../utils/supabaseFetch';
 
 const OnlineCoursesPage = () => {
   const { user } = useAuth();
@@ -19,31 +22,38 @@ const OnlineCoursesPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [courses, setCourses] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const modalRef = useRef(null);
   const scrollContainerRef = useRef(null);
 
   useEffect(() => {
+    let mounted = true;
+
     const loadCourses = async () => {
-      // First, load from cache for immediate display
-      const cachedCourses = coursesManager._getAllFromLocalStorage();
-      setCourses(cachedCourses);
-      
-      // Then refresh from Supabase in the background
+      setIsLoading(true);
       try {
-        const courses = await coursesManager.getAll();
-        setCourses(courses);
+        const allCourses = await coursesManager.getAll(SUPABASE_FETCH_OPTIONS);
+        if (mounted) setCourses(allCourses);
       } catch (error) {
         console.error('Error loading courses:', error);
+      } finally {
+        if (mounted) setIsLoading(false);
       }
     };
     
     loadCourses();
-    window.addEventListener('coursesUpdated', (e) => {
-      setCourses(e.detail);
-    });
+    const handleCoursesUpdated = (e) => {
+      if (e.detail && Array.isArray(e.detail)) {
+        setCourses(e.detail);
+      } else {
+        loadCourses();
+      }
+    };
+    window.addEventListener('coursesUpdated', handleCoursesUpdated);
 
     return () => {
-      window.removeEventListener('coursesUpdated', loadCourses);
+      mounted = false;
+      window.removeEventListener('coursesUpdated', handleCoursesUpdated);
     };
   }, []);
 
@@ -97,6 +107,10 @@ const OnlineCoursesPage = () => {
       scrollContainerRef.current.scrollBy({ left: cardWidth + 20, behavior: 'smooth' });
     }
   };
+
+  if (isLoading) {
+    return <PageLoader label="Loading courses..." />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">

@@ -5,45 +5,45 @@ import { eventParticipantsService } from '../services/eventParticipantsService';
 import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import ImagePlaceholder from '../components/ui/ImagePlaceholder';
+import PageLoader from '../components/ui/PageLoader';
 import { useAuth } from '../contexts/AuthContext';
+
+import { SUPABASE_FETCH_OPTIONS } from '../utils/supabaseFetch';
 
 export default function PastEventsPage() {
   const { user } = useAuth();
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [pastEvents, setPastEvents] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [eventParticipants, setEventParticipants] = useState({});
   const loadingParticipants = useRef(new Set());
 
   useEffect(() => {
+    let mounted = true;
+
     const loadPastEvents = async () => {
-      // First, load from cache for immediate display
-      const cachedEvents = eventsManager.getPastSync();
-      setPastEvents(cachedEvents);
-      
-      // Then refresh from Supabase in the background
+      setIsLoading(true);
       try {
-        const events = await eventsManager.getPast();
-        setPastEvents(events);
+        const { past } = await eventsManager.getAll(SUPABASE_FETCH_OPTIONS);
+        if (mounted) setPastEvents(past);
       } catch (error) {
         console.error('Error loading past events:', error);
+      } finally {
+        if (mounted) setIsLoading(false);
       }
     };
 
     loadPastEvents();
 
-    // Listen for event updates
-    const handleEventsUpdate = async () => {
-      console.log('PastEventsPage: Events updated event received');
-      try {
-        const events = await eventsManager.getPast();
-        setPastEvents(events);
-      } catch (error) {
-        console.error('Error loading past events:', error);
+    const handleEventsUpdate = (e) => {
+      if (e.detail?.past && mounted) {
+        setPastEvents(e.detail.past);
       }
     };
 
     window.addEventListener('eventsUpdated', handleEventsUpdate);
     return () => {
+      mounted = false;
       window.removeEventListener('eventsUpdated', handleEventsUpdate);
     };
   }, []);
@@ -95,6 +95,10 @@ export default function PastEventsPage() {
 
     loadParticipants();
   }, [selectedEvent]);
+
+  if (isLoading) {
+    return <PageLoader label="Loading past events..." />;
+  }
 
   if (pastEvents.length === 0) {
     return (

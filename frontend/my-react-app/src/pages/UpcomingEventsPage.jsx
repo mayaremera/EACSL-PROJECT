@@ -8,7 +8,34 @@ import PageHero from '../components/ui/PageHero';
 import Breadcrumbs from '../components/ui/Breadcrumbs';
 import ParticipantModal from '../components/events/ParticipantModal';
 import ImagePlaceholder from '../components/ui/ImagePlaceholder';
+import PageLoader from '../components/ui/PageLoader';
+import { SUPABASE_FETCH_OPTIONS } from '../utils/supabaseFetch';
 import { useAuth } from '../contexts/AuthContext';
+
+const resolveEventFromData = (eventsData, eventIdParam, navigateFn) => {
+  const upcoming = eventsData?.upcoming || [];
+  const past = eventsData?.past || [];
+
+  if (eventIdParam) {
+    const id = parseInt(eventIdParam, 10);
+    if (past.find((e) => e.id === id)) {
+      navigateFn('/past-events', { replace: true });
+      return null;
+    }
+    const event = upcoming.find((e) => e.id === id);
+    if (event) return event;
+  }
+
+  if (upcoming.length > 0) {
+    const firstEvent = upcoming[0];
+    if (!eventIdParam || parseInt(eventIdParam, 10) !== firstEvent.id) {
+      navigateFn(`/upcoming-events/${firstEvent.id}`, { replace: true });
+    }
+    return firstEvent;
+  }
+
+  return null;
+};
 
 const UpcomingEventsPage = () => {
   const { user } = useAuth();
@@ -35,197 +62,97 @@ const UpcomingEventsPage = () => {
   });
   const [selectedParticipant, setSelectedParticipant] = useState(null);
   const [errors, setErrors] = useState({});
-  const [countdown, setCountdown] = useState({
-    months: 3,
-    days: 6,
-    hours: 21,
-    minutes: 0,
-    seconds: 0
-  });
+  const [isLoading, setIsLoading] = useState(true);
+
+  const loadParticipants = async (event) => {
+    if (!event?.id) return;
+    try {
+      const participantsResult = await eventParticipantsService.getByEventId(event.id);
+      if (participantsResult.data && !participantsResult.error) {
+        setParticipants(participantsResult.data);
+      }
+    } catch (error) {
+      console.error('Error loading participants:', error);
+    }
+  };
+
+  const resolveEventFromSupabase = async () => {
+    const { upcoming, past } = await eventsManager.getAll(SUPABASE_FETCH_OPTIONS);
+
+    if (eventId) {
+      const id = parseInt(eventId, 10);
+      const pastEvent = past.find((e) => e.id === id);
+      if (pastEvent) {
+        navigate('/past-events', { replace: true });
+        return null;
+      }
+      const event = upcoming.find((e) => e.id === id);
+      if (event) return event;
+    }
+
+    if (upcoming.length > 0) {
+      const firstEvent = upcoming[0];
+      if (!eventId || parseInt(eventId, 10) !== firstEvent.id) {
+        navigate(`/upcoming-events/${firstEvent.id}`, { replace: true });
+      }
+      return firstEvent;
+    }
+
+    return null;
+  };
 
   useEffect(() => {
+    let mounted = true;
+
     const loadEvent = async () => {
-      // First, load from cache for immediate display
-      let event = null;
-      
-      // If eventId is provided, get that specific event
-      if (eventId) {
-        event = eventsManager.getByIdSync(parseInt(eventId));
-        // If event is found but it's a past event, redirect to past events
-        if (event && event.status === 'past') {
-          navigate(`/past-events`, { replace: true });
-          return;
-        }
-      }
-      
-      // If no eventId or event not found, get the first upcoming event
-      if (!event) {
-        const upcomingEvents = eventsManager.getUpcomingSync();
-        if (upcomingEvents && upcomingEvents.length > 0) {
-          event = upcomingEvents[0];
-          // Update URL if we're showing a different event than requested
-          if (eventId && event.id !== parseInt(eventId)) {
-            navigate(`/upcoming-events/${event.id}`, { replace: true });
-          } else if (!eventId) {
-            navigate(`/upcoming-events/${event.id}`, { replace: true });
-          }
-          setHasNoEvents(false);
-        } else {
-          // No upcoming events available
+      setIsLoading(true);
+      try {
+        const event = await resolveEventFromSupabase();
+        if (!mounted) return;
+
+        if (!event) {
           setHasNoEvents(true);
           setEventData(null);
           return;
         }
-      } else {
+
         setHasNoEvents(false);
-      }
-      
-      setEventData(event);
-      
-      // Load participants for this event
-      if (event && event.id) {
-        try {
-          const participantsResult = await eventParticipantsService.getByEventId(event.id);
-          if (participantsResult.data && !participantsResult.error) {
-            setParticipants(participantsResult.data);
-          }
-        } catch (error) {
-          console.error('Error loading participants:', error);
-        }
-      }
-      
-      // Refresh from Supabase in the background
-      try {
-        if (eventId) {
-          const freshEvent = await eventsManager.getById(parseInt(eventId));
-          if (freshEvent) {
-            setEventData(freshEvent);
-            if (freshEvent.status === 'past') {
-              navigate(`/past-events`, { replace: true });
-              return;
-            }
-            // Reload participants for fresh event
-            try {
-              const participantsResult = await eventParticipantsService.getByEventId(freshEvent.id);
-              if (participantsResult.data && !participantsResult.error) {
-                setParticipants(participantsResult.data);
-              }
-            } catch (error) {
-              console.error('Error loading participants:', error);
-            }
-          }
-        } else {
-          const upcomingEvents = await eventsManager.getUpcoming();
-          if (upcomingEvents && upcomingEvents.length > 0) {
-            const firstEvent = upcomingEvents[0];
-            setEventData(firstEvent);
-            navigate(`/upcoming-events/${firstEvent.id}`, { replace: true });
-            // Load participants for first event
-            try {
-              const participantsResult = await eventParticipantsService.getByEventId(firstEvent.id);
-              if (participantsResult.data && !participantsResult.error) {
-                setParticipants(participantsResult.data);
-              }
-            } catch (error) {
-              console.error('Error loading participants:', error);
-            }
-          } else {
-            setHasNoEvents(true);
-            setEventData(null);
-          }
-        }
+        setEventData(event);
+        await loadParticipants(event);
       } catch (error) {
-        console.error('Error refreshing event from Supabase:', error);
+        console.error('Error loading event from Supabase:', error);
+        if (mounted) {
+          setHasNoEvents(true);
+          setEventData(null);
+        }
+      } finally {
+        if (mounted) setIsLoading(false);
       }
     };
 
     loadEvent();
 
-    // Listen for event updates
-    const handleEventsUpdate = async () => {
-      try {
-        if (eventId) {
-          const freshEvent = await eventsManager.getById(parseInt(eventId));
-          if (freshEvent) {
-            setEventData(freshEvent);
-            if (freshEvent.status === 'past') {
-              navigate(`/past-events`, { replace: true });
-            }
-          }
-        } else {
-          const upcomingEvents = await eventsManager.getUpcoming();
-          if (upcomingEvents && upcomingEvents.length > 0) {
-            const firstEvent = upcomingEvents[0];
-            setEventData(firstEvent);
-            navigate(`/upcoming-events/${firstEvent.id}`, { replace: true });
-          } else {
-            setHasNoEvents(true);
-            setEventData(null);
-          }
-        }
-      } catch (error) {
-        console.error('Error refreshing event from Supabase:', error);
+    const handleEventsUpdate = async (e) => {
+      const event = resolveEventFromData(e.detail, eventId, navigate);
+      if (!mounted) return;
+
+      if (!event) {
+        setHasNoEvents(true);
+        setEventData(null);
+        return;
       }
+
+      setHasNoEvents(false);
+      setEventData(event);
+      await loadParticipants(event);
     };
 
     window.addEventListener('eventsUpdated', handleEventsUpdate);
     return () => {
+      mounted = false;
       window.removeEventListener('eventsUpdated', handleEventsUpdate);
     };
   }, [eventId, navigate]);
-
-  // Countdown timer effect
-  useEffect(() => {
-    // Calculate target date: 3 months, 6 days, and 21 hours from now
-    const now = new Date();
-    const targetDate = new Date(now);
-    targetDate.setMonth(targetDate.getMonth() + 3);
-    targetDate.setDate(targetDate.getDate() + 6);
-    targetDate.setHours(targetDate.getHours() + 21);
-
-    const updateCountdown = () => {
-      const now = new Date();
-      const difference = targetDate - now;
-
-      if (difference <= 0) {
-        setCountdown({ months: 0, days: 0, hours: 0, minutes: 0, seconds: 0 });
-        return;
-      }
-
-      // Calculate months by comparing dates
-      let months = 0;
-      let days = 0;
-      let tempDate = new Date(now);
-      
-      // Calculate months
-      while (tempDate.getMonth() !== targetDate.getMonth() || tempDate.getFullYear() !== targetDate.getFullYear()) {
-        tempDate.setMonth(tempDate.getMonth() + 1);
-        if (tempDate <= targetDate) {
-          months++;
-        } else {
-          tempDate.setMonth(tempDate.getMonth() - 1);
-          break;
-        }
-      }
-      
-      // Calculate remaining days, hours, minutes, seconds
-      const remaining = targetDate - tempDate;
-      days = Math.floor(remaining / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((remaining % (1000 * 60)) / 1000);
-
-      setCountdown({ months, days, hours, minutes, seconds });
-    };
-
-    // Update immediately
-    updateCountdown();
-
-    // Update every second
-    const interval = setInterval(updateCountdown, 1000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   const validateField = (name, value) => {
     let error = '';
@@ -451,6 +378,10 @@ const UpcomingEventsPage = () => {
     }
   };
 
+  if (isLoading) {
+    return <PageLoader label="Loading course information..." />;
+  }
+
   if (hasNoEvents) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -483,16 +414,6 @@ const UpcomingEventsPage = () => {
               View Past Courses
             </button>
           </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (!eventData) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">Loading course information...</p>
         </div>
       </div>
     );
@@ -551,36 +472,6 @@ const UpcomingEventsPage = () => {
         )}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="text-center">
-            {/* Countdown Timer */}
-            <div className="mb-8">
-              <div className="inline-flex items-center gap-4 bg-white/10 backdrop-blur-md px-6 py-4 rounded-2xl border border-white/20">
-                {countdown.months > 0 && (
-                  <div className="flex flex-col items-center">
-                    <div className="text-3xl md:text-4xl font-bold text-white">{String(countdown.months).padStart(2, '0')}</div>
-                    <div className="text-xs md:text-sm text-teal-200 uppercase tracking-wide mt-1">Months</div>
-                  </div>
-                )}
-                <div className="flex flex-col items-center">
-                  <div className="text-3xl md:text-4xl font-bold text-white">{String(countdown.days).padStart(2, '0')}</div>
-                  <div className="text-xs md:text-sm text-teal-200 uppercase tracking-wide mt-1">Days</div>
-                </div>
-                <div className="text-2xl md:text-3xl font-bold text-white/50">:</div>
-                <div className="flex flex-col items-center">
-                  <div className="text-3xl md:text-4xl font-bold text-white">{String(countdown.hours).padStart(2, '0')}</div>
-                  <div className="text-xs md:text-sm text-teal-200 uppercase tracking-wide mt-1">Hours</div>
-                </div>
-                <div className="text-2xl md:text-3xl font-bold text-white/50">:</div>
-                <div className="flex flex-col items-center">
-                  <div className="text-2xl md:text-3xl font-bold text-white">{String(countdown.minutes).padStart(2, '0')}</div>
-                  <div className="text-xs md:text-sm text-teal-200 uppercase tracking-wide mt-1">Minutes</div>
-                </div>
-                <div className="text-2xl md:text-3xl font-bold text-white/50">:</div>
-                <div className="flex flex-col items-center">
-                  <div className="text-2xl md:text-3xl font-bold text-white">{String(countdown.seconds).padStart(2, '0')}</div>
-                  <div className="text-xs md:text-sm text-teal-200 uppercase tracking-wide mt-1">Seconds</div>
-                </div>
-              </div>
-            </div>
             <div className="inline-block bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-4">
               <span className="text-sm font-semibold">LIVE COURSE</span>
             </div>
