@@ -552,15 +552,46 @@ export const AuthProvider = ({ children }) => {
 
   // Sign out
   const signOut = async () => {
-    // Use local scope to avoid 403 errors - this signs out only the current session
-    const { error } = await supabase.auth.signOut({ scope: 'local' });
-    if (error) {
-      console.error('Sign out error:', error);
-      // Even if there's an error, clear local session state
+    const STORAGE_KEY = 'sb-jwhvfugznhwtpfurdkxm-auth-token';
+    
+    try {
+      let error = null;
+      
+      try {
+        const result = await supabase.auth.signOut({ scope: 'global' });
+        error = result.error;
+      } catch (globalError) {
+        console.warn('Global sign out failed, trying local scope:', globalError);
+        try {
+          const result = await supabase.auth.signOut({ scope: 'local' });
+          error = result.error;
+        } catch (localError) {
+          console.warn('Local sign out also failed:', localError);
+          error = localError;
+        }
+      }
+      
+      if (error) {
+        console.error('Sign out API error:', error);
+      }
+    } catch (err) {
+      console.error('Unexpected error during sign out:', err);
+    } finally {
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem(STORAGE_KEY);
+          localStorage.removeItem('sb-jwhvfugznhwtpfurdkxm-auth-token');
+        } catch (storageError) {
+          console.warn('Failed to clear auth storage:', storageError);
+        }
+      }
+      
       setSession(null);
       setUser(null);
+      setLoading(false);
     }
-    return { error };
+    
+    return { error: null };
   };
 
   // Reset password

@@ -243,21 +243,15 @@ const Header = () => {
 
   const handleSignOut = async () => {
     try {
-      const { error } = await signOut();
-      if (error) {
-        console.error('Sign out error:', error);
-        // Still close dropdown and clear UI even if API call fails
-        // The AuthContext will handle clearing local state
-      }
-      setUserDropdownOpen(false);
-      setIsMenuOpen(false);
-      // Redirect to home page after sign out
-      window.location.href = '/';
+      await signOut();
     } catch (err) {
       console.error('Unexpected error during sign out:', err);
+    } finally {
       setUserDropdownOpen(false);
       setIsMenuOpen(false);
-      window.location.href = '/';
+      setTimeout(() => {
+        navigate('/');
+      }, 150);
     }
   };
 
