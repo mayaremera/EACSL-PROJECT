@@ -4,6 +4,7 @@ import Header from "./Header";
 import Footer from "./Footer";
 import Container from "./Container";
 import SecondFooter from "./SecondFooter";
+import DeveloperFooter from "./DeveloperFooter";
 
 function Layout() {
   return (
@@ -14,6 +15,7 @@ function Layout() {
       </Container>
       <Footer />
       <SecondFooter />
+      <DeveloperFooter />
     </>
   );
 }
