@@ -24,7 +24,7 @@ import AlshaimaaSalem from '../assets/MembersImages/image.avif';
 const AboutPage = () => {
   const { user } = useAuth();
   const boardMembers = [
-    { name: "Mai Dewedar", role: "EACSL President/ SLP", image: MaiDewedar },
+    { name: "Dr. Mai Dewedar", role: "EACSL President/ SLP", image: MaiDewedar },
     { name: "Osama Elsayed", role: "Board member/SLP", image: OsamaElsayed },
     { name: "Reham Ali", role: "Board member/SLP", image: RehamAli },
     { name: "Eman Mostafa", role: "Board member/SLP", image: EmanMostafa },
