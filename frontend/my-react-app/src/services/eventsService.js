@@ -17,16 +17,13 @@ export const eventsService = {
             error.message?.includes('relation') || 
             error.message?.includes('does not exist') ||
             error.message?.includes('schema cache')) {
-          console.warn('Events table does not exist in Supabase. Please run the SQL script from EVENTS_SUPABASE_SETUP.md');
           return { data: [], error: { message: 'Table does not exist. Please create the events table first.', code: 'TABLE_NOT_FOUND' } };
         }
-        console.error('Error fetching events from Supabase:', error);
         return { data: null, error };
       }
       
       return { data: data || [], error: null };
     } catch (err) {
-      console.error('Exception fetching events:', err);
       return { data: null, error: err };
     }
   },
@@ -48,13 +45,11 @@ export const eventsService = {
             error.message?.includes('schema cache')) {
           return { data: [], error: { message: 'Table does not exist. Please create the events table first.', code: 'TABLE_NOT_FOUND' } };
         }
-        console.error('Error fetching upcoming events from Supabase:', error);
         return { data: null, error };
       }
       
       return { data: data || [], error: null };
     } catch (err) {
-      console.error('Exception fetching upcoming events:', err);
       return { data: null, error: err };
     }
   },
@@ -76,13 +71,11 @@ export const eventsService = {
             error.message?.includes('schema cache')) {
           return { data: [], error: { message: 'Table does not exist. Please create the events table first.', code: 'TABLE_NOT_FOUND' } };
         }
-        console.error('Error fetching past events from Supabase:', error);
         return { data: null, error };
       }
       
       return { data: data || [], error: null };
     } catch (err) {
-      console.error('Exception fetching past events:', err);
       return { data: null, error: err };
     }
   },
@@ -101,7 +94,6 @@ export const eventsService = {
           // Not found - return null data, no error (same as articlesService)
           return { data: null, error: null };
         }
-        console.error('Error fetching event from Supabase:', error);
         return { data: null, error };
       }
       
@@ -109,7 +101,6 @@ export const eventsService = {
       const localEvent = this.mapSupabaseToLocal(data);
       return { data: localEvent, error: null };
     } catch (err) {
-      console.error('Exception fetching event:', err);
       return { data: null, error: err };
     }
   },
@@ -182,10 +173,8 @@ export const eventsService = {
         // Check if it's a table not found error
         if (error.code === 'PGRST205' || 
             (error.code === 'PGRST116' && error.message?.includes('schema cache'))) {
-          console.warn('Events table does not exist in Supabase. Event saved locally only.');
           return { data: null, error: { message: 'Table does not exist. Please create the events table first.', code: 'TABLE_NOT_FOUND' } };
         }
-        console.error('Error adding event to Supabase:', error);
         return { data: null, error };
       }
       
@@ -193,7 +182,6 @@ export const eventsService = {
       const localEvent = this.mapSupabaseToLocal(data);
       return { data: localEvent, error: null };
     } catch (err) {
-      console.error('Exception adding event:', err);
       return { data: null, error: err };
     }
   },
@@ -265,36 +253,22 @@ export const eventsService = {
       
       if (error) {
         // Log the FULL error object to see what Supabase is actually saying
-        console.error('❌ FULL Supabase Error Object:', JSON.stringify(error, null, 2));
-        console.error('❌ Error code:', error.code);
-        console.error('❌ Error message:', error.message);
-        console.error('❌ Error details:', error.details);
-        console.error('❌ Error hint:', error.hint);
-        console.error('❌ Error status:', error.status);
-        console.error('❌ Error statusCode:', error.statusCode);
         
         // PGRST205 means table doesn't exist
         // PGRST116 with "schema cache" also means table doesn't exist
         if (error.code === 'PGRST205' || 
             (error.code === 'PGRST116' && error.message?.includes('schema cache'))) {
-          console.warn('Events table does not exist in Supabase. Event updated locally only.');
           return { data: null, error: { message: 'Table does not exist. Please create the events table first.', code: 'TABLE_NOT_FOUND' } };
         }
         
         // PGRST116 with "0 rows" means event doesn't exist, but table does
         if (error.code === 'PGRST116' && error.details?.includes('0 rows')) {
-          console.warn('Event not found in Supabase, but table exists. Update will fail - event may need to be created first.');
         }
         
         // 400 Bad Request or 406 Not Acceptable means table exists but there's a problem
         if (error.status === 400 || error.statusCode === 400 || 
             error.status === 406 || error.statusCode === 406 ||
             error.code === 'PGRST204') {
-          console.error('❌ 400/406 Error - Table exists but update failed. This usually means:');
-          console.error('   - Column name mismatch');
-          console.error('   - Missing required columns');
-          console.error('   - Wrong data type');
-          console.error('   - RLS policy blocking the update');
           return { data: null, error: { 
             message: `Bad Request: ${error.message || 'Check column names and RLS policies'}`,
             code: 'BAD_REQUEST',
@@ -304,7 +278,6 @@ export const eventsService = {
           }};
         }
         
-        console.error('Error updating event in Supabase:', error);
         return { data: null, error };
       }
       
@@ -312,7 +285,6 @@ export const eventsService = {
       const localEvent = this.mapSupabaseToLocal(data);
       return { data: localEvent, error: null };
     } catch (err) {
-      console.error('Exception updating event:', err);
       return { data: null, error: err };
     }
   },
@@ -331,16 +303,13 @@ export const eventsService = {
             error.message?.includes('relation') || 
             error.message?.includes('does not exist') ||
             error.message?.includes('schema cache')) {
-          console.warn('Events table does not exist in Supabase. Event deleted locally only.');
           return { error: { message: 'Table does not exist. Please create the events table first.', code: 'TABLE_NOT_FOUND' } };
         }
-        console.error('Error deleting event from Supabase:', error);
         return { error };
       }
       
       return { error: null };
     } catch (err) {
-      console.error('Exception deleting event:', err);
       return { error: err };
     }
   },
@@ -369,7 +338,6 @@ export const eventsService = {
         });
 
       if (error) {
-        console.error('Error uploading image to EventBucket:', error);
         return { data: null, error };
       }
 
@@ -386,7 +354,6 @@ export const eventsService = {
         error: null 
       };
     } catch (err) {
-      console.error('Exception uploading image:', err);
       return { data: null, error: err };
     }
   },
@@ -399,13 +366,11 @@ export const eventsService = {
         .remove([filePath]);
 
       if (error) {
-        console.error('Error deleting image from EventBucket:', error);
         return { error };
       }
 
       return { error: null };
     } catch (err) {
-      console.error('Exception deleting image:', err);
       return { error: err };
     }
   },

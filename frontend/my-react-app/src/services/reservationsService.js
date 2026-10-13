@@ -25,9 +25,6 @@ export const reservationsService = {
           error.message?.includes("does not exist") ||
           error.message?.includes("schema cache")
         ) {
-          console.warn(
-            "Reservations table does not exist. Please create the table first."
-          );
           return {
             data: [],
             error: {
@@ -37,7 +34,6 @@ export const reservationsService = {
             },
           };
         }
-        console.error("Error fetching reservations from Supabase:", error);
         return { data: null, error };
       }
 
@@ -48,7 +44,6 @@ export const reservationsService = {
 
       return { data: mappedData, error: null };
     } catch (err) {
-      console.error("Exception fetching reservations:", err);
       return { data: null, error: err };
     }
   },
@@ -67,13 +62,11 @@ export const reservationsService = {
         .single();
 
       if (error) {
-        console.error("Error fetching reservation from Supabase:", error);
         return { data: null, error };
       }
 
       return { data: this.mapSupabaseToLocal(data), error: null };
     } catch (err) {
-      console.error("Exception fetching reservation:", err);
       return { data: null, error: err };
     }
   },
@@ -101,9 +94,6 @@ export const reservationsService = {
           error.message?.includes("relation") ||
           error.message?.includes("does not exist")
         ) {
-          console.warn(
-            "Reservations table does not exist. Please create the table first."
-          );
           return {
             data: null,
             error: {
@@ -113,13 +103,11 @@ export const reservationsService = {
             },
           };
         }
-        console.error("Error adding reservation to Supabase:", error);
         return { data: null, error };
       }
 
       return { data: this.mapSupabaseToLocal(data), error: null };
     } catch (err) {
-      console.error("Exception adding reservation:", err);
       return { data: null, error: err };
     }
   },
@@ -155,13 +143,11 @@ export const reservationsService = {
         .single();
 
       if (error) {
-        console.error("Error updating reservation status:", error);
         return { data: null, error };
       }
 
       return { data: this.mapSupabaseToLocal(data), error: null };
     } catch (err) {
-      console.error("Exception updating reservation status:", err);
       return { data: null, error: err };
     }
   },
@@ -179,13 +165,11 @@ export const reservationsService = {
         .eq("id", id);
 
       if (error) {
-        console.error("Error deleting reservation:", error);
         return { data: null, error };
       }
 
       return { data: { id }, error: null };
     } catch (err) {
-      console.error("Exception deleting reservation:", err);
       return { data: null, error: err };
     }
   },

@@ -24,15 +24,10 @@ const SetPasswordPage = () => {
     } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
       if (!mounted) return;
 
-      console.log('SetPasswordPage: Auth state change:', event);
-      console.log('Session exists:', !!currentSession);
       
       // Handle password recovery and sign in events
       if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN' || (event === 'TOKEN_REFRESHED' && currentSession)) {
-        console.log('Auth event detected:', event);
         if (currentSession && mounted) {
-          console.log('Session set from auth state change');
-          console.log('User email:', currentSession.user?.email);
           setSession(currentSession);
           setIsVerifying(false);
           
@@ -47,7 +42,6 @@ const SetPasswordPage = () => {
       // Also check if we have a session on any auth event (fallback)
       // This catches cases where Supabase sets the session but doesn't fire PASSWORD_RECOVERY event
       if (currentSession && mounted) {
-        console.log('Session found on auth state change (fallback)');
         setSession(currentSession);
         setIsVerifying(false);
         
@@ -63,9 +57,6 @@ const SetPasswordPage = () => {
     // Also check for hash parameters directly (fallback)
     const checkSession = async () => {
       try {
-        console.log('SetPasswordPage: Checking session...');
-        console.log('Current URL:', window.location.href);
-        console.log('URL Hash:', window.location.hash);
         
         // First, check if we have URL hash parameters (Supabase redirects with hash)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -73,11 +64,9 @@ const SetPasswordPage = () => {
         const type = hashParams.get('type');
         const refreshToken = hashParams.get('refresh_token');
         
-        console.log('Hash params:', { accessToken: !!accessToken, type, refreshToken: !!refreshToken });
         
         // If we have tokens in the hash, set the session
         if (accessToken && type === 'recovery') {
-          console.log('Found recovery token in URL hash, setting session...');
           
           // Set the session using the tokens from the URL
           const { data: { session: newSession }, error: sessionError } = await supabase.auth.setSession({
@@ -86,7 +75,6 @@ const SetPasswordPage = () => {
           });
           
           if (sessionError) {
-            console.error('Error setting session from hash:', sessionError);
             if (mounted) {
               setError('Invalid or expired link. Please request a new password reset email.');
             }
@@ -94,8 +82,6 @@ const SetPasswordPage = () => {
           }
           
           if (newSession && mounted) {
-            console.log('Session set successfully from recovery link');
-            console.log('User email:', newSession.user?.email);
             setSession(newSession);
             setIsVerifying(false);
             
@@ -109,7 +95,6 @@ const SetPasswordPage = () => {
         const { data: { session }, error: getSessionError } = await supabase.auth.getSession();
         
         if (getSessionError) {
-          console.error('Error getting session:', getSessionError);
           if (mounted) {
             setError('An error occurred. Please try again.');
           }
@@ -117,8 +102,6 @@ const SetPasswordPage = () => {
         }
         
         if (session && mounted) {
-          console.log('Found existing session');
-          console.log('User email:', session.user?.email);
           setSession(session);
           setIsVerifying(false);
         } else if (mounted && !accessToken) {
@@ -126,7 +109,6 @@ const SetPasswordPage = () => {
           // Give it a moment for onAuthStateChange to fire
           setTimeout(() => {
             if (mounted && !session) {
-              console.error('No session found and no recovery tokens in URL');
               setError('Invalid or expired link. Please request a new password reset email.');
               setIsVerifying(false);
             }
@@ -138,7 +120,6 @@ const SetPasswordPage = () => {
           setIsVerifying(false);
         }
       } catch (err) {
-        console.error('Error checking session:', err);
         if (mounted) {
           setError('An error occurred. Please try again.');
         }
@@ -181,20 +162,16 @@ const SetPasswordPage = () => {
         return;
       }
 
-      console.log('Updating password for user:', session.user.email);
-      console.log('User ID:', session.user.id);
       
       // Verify user exists in Supabase Authentication
       const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
       
       if (userError || !currentUser) {
-        console.error('Error verifying user:', userError);
         setError('Unable to verify your account. Please request a new password reset email.');
         setLoading(false);
         return;
       }
       
-      console.log('Verified user exists in Supabase Auth:', currentUser.email);
       
       // Update the user's password in Supabase Authentication
       const { data: updatedUser, error: updateError } = await supabase.auth.updateUser({
@@ -202,25 +179,20 @@ const SetPasswordPage = () => {
       });
 
       if (updateError) {
-        console.error('Error updating password in Supabase:', updateError);
         setError(updateError.message || 'Failed to update password. Please try again.');
         setLoading(false);
         return;
       }
 
       if (!updatedUser || !updatedUser.user) {
-        console.error('Password update returned no user data');
         setError('Password update failed. Please try again.');
         setLoading(false);
         return;
       }
 
-      console.log('Password updated successfully in Supabase Auth');
-      console.log('Updated user email:', updatedUser.user.email);
       
       // Verify the password was actually updated by attempting to sign in
       // (This is optional but provides extra verification)
-      console.log('Verifying password update...');
       
       // Success!
       setSuccess(true);
@@ -235,7 +207,6 @@ const SetPasswordPage = () => {
       }, 2000);
 
     } catch (err) {
-      console.error('Error updating password:', err);
       setError('An unexpected error occurred: ' + (err.message || 'Please try again.'));
       setLoading(false);
     }

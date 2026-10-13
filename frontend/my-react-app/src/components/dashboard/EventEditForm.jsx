@@ -82,7 +82,6 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
             formattedDate = date.toISOString().split('T')[0];
           }
         } catch (e) {
-          console.error('Error formatting event date:', e);
         }
       }
 
@@ -147,7 +146,6 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
         setParticipants(result.data);
       }
     } catch (error) {
-      console.error('Error loading participants:', error);
     }
   };
 
@@ -429,7 +427,6 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
         alert('Failed to add participant. Please try again.');
       }
     } catch (error) {
-      console.error('Error adding participant:', error);
       alert('Failed to add participant. Please try again.');
     } finally {
       setIsUploadingParticipantImage(false);
@@ -521,7 +518,6 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
         alert('Failed to update participant. Please try again.');
       }
     } catch (error) {
-      console.error('Error updating participant:', error);
       alert('Failed to update participant. Please try again.');
     } finally {
       setIsUploadingParticipantImage(false);
@@ -562,7 +558,6 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
         alert('Failed to delete participant. Please try again.');
       }
     } catch (error) {
-      console.error('Error deleting participant:', error);
       alert('Failed to delete participant. Please try again.');
     }
   };
@@ -624,7 +619,6 @@ const EventEditForm = ({ event, onSave, onCancel }) => {
 
       await onSave(dataToSave);
     } catch (error) {
-      console.error('Error uploading image:', error);
       alert(getUploadErrorMessage(error));
     } finally {
       setIsUploading(false);

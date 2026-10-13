@@ -34,13 +34,11 @@ export const AuthProvider = ({ children }) => {
         // If it's a 429 error, log it but don't clear the session
         // The session might still be valid in localStorage
         if (error.status === 429 || error.message?.includes('429')) {
-          console.warn('Rate limit error during session check (429). Using cached session if available.');
           lastTokenRefreshErrorRef.current = Date.now();
           tokenRefreshAttemptsRef.current += 1;
           
           // If we have too many 429 errors, wait before retrying
           if (tokenRefreshAttemptsRef.current > 3) {
-            console.warn('Multiple rate limit errors detected. Waiting before retry...');
             // Don't clear user/session on rate limit - keep existing state
             if (mounted) {
               setLoading(false);
@@ -49,7 +47,6 @@ export const AuthProvider = ({ children }) => {
           }
         } else {
           // For other errors, log them
-          console.error('Error getting session:', error);
         }
       }
       
@@ -180,7 +177,6 @@ export const AuthProvider = ({ children }) => {
       
       // Only log non-token-refresh events to reduce console spam
       if (event !== 'TOKEN_REFRESHED') {
-        console.log('Auth state change:', event, session ? 'Session exists' : 'No session');
       }
       
       // Handle different auth events
@@ -237,7 +233,6 @@ export const AuthProvider = ({ children }) => {
         } else if (event === 'SIGNED_IN') {
           // If SIGNED_IN event but no session, something went wrong
           // Don't clear user state though - keep existing state
-          console.warn('SIGNED_IN event but no session provided');
         } else if (!session) {
           // Session is null - check if we should preserve user state (token refresh)
           // Use the current user state to detect token refresh
@@ -298,17 +293,11 @@ export const AuthProvider = ({ children }) => {
         
         if (!existingMember) {
           // Not found in local storage - check Supabase before creating
-          console.log('onAuthStateChange: Member not found locally, checking Supabase...');
           const { data: supabaseMember, error: fetchError } = await membersService.getByUserId(session.user.id);
           
           if (supabaseMember && !fetchError) {
             // Found in Supabase - sync to local storage
             const mappedMember = membersService.mapSupabaseToLocal(supabaseMember);
-            console.log('✅ Found member in Supabase, syncing to local storage:', {
-              id: mappedMember.id,
-              email: mappedMember.email,
-              role: mappedMember.role
-            });
             
             // Add to local storage (use cached data for fast access)
             const allMembers = membersManager._getAllFromLocalStorage();
@@ -367,17 +356,14 @@ export const AuthProvider = ({ children }) => {
               image: session.user.user_metadata?.image || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.1.0&auto=format&fit=crop&q=60&w=600',
             };
             
-            console.log('onAuthStateChange: Creating new member record (not found in Supabase):', session.user.email);
             await membersManager.add(newMember);
             // Trigger UI update (use cached data for fast access)
             const allMembers = membersManager._getAllFromLocalStorage();
             window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
           } else {
             // Error fetching from Supabase - log but don't fail
-            console.warn('onAuthStateChange: Error checking Supabase for member:', fetchError);
           }
         } else {
-          console.log('onAuthStateChange: Member already exists locally for user:', session.user.email);
         }
       }
       
@@ -514,26 +500,20 @@ export const AuthProvider = ({ children }) => {
             image: metadata.image || 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.1.0&auto=format&fit=crop&q=60&w=600', // Default placeholder image
           };
           
-          console.log('Creating member record for new user:', email);
           // Await member creation to ensure it's added to both localStorage and Supabase
           const createdMember = await membersManager.add(newMember);
-          console.log('Member created successfully:', createdMember);
           
           // Verify member was added and trigger UI update (use cached data for fast access)
           const allMembers = membersManager._getAllFromLocalStorage();
           const verifyMember = allMembers.find(m => m.supabaseUserId === data.user.id || m.email === email);
           if (verifyMember) {
-            console.log('Member verified in localStorage:', verifyMember);
             // Force a UI update by dispatching the event again to ensure all listeners are notified
             window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
           } else {
-            console.error('ERROR: Member was not found in localStorage after creation!');
           }
         } else {
-          console.log('Member already exists for this user:', existingMember);
         }
       } catch (memberError) {
-        console.error('Error creating member record during signup:', memberError);
         // Don't fail the signup if member creation fails, but log it
       }
     }
@@ -561,28 +541,23 @@ export const AuthProvider = ({ children }) => {
         const result = await supabase.auth.signOut({ scope: 'global' });
         error = result.error;
       } catch (globalError) {
-        console.warn('Global sign out failed, trying local scope:', globalError);
         try {
           const result = await supabase.auth.signOut({ scope: 'local' });
           error = result.error;
         } catch (localError) {
-          console.warn('Local sign out also failed:', localError);
           error = localError;
         }
       }
       
       if (error) {
-        console.error('Sign out API error:', error);
       }
     } catch (err) {
-      console.error('Unexpected error during sign out:', err);
     } finally {
       if (typeof window !== 'undefined') {
         try {
           localStorage.removeItem(STORAGE_KEY);
           localStorage.removeItem('sb-jwhvfugznhwtpfurdkxm-auth-token');
         } catch (storageError) {
-          console.warn('Failed to clear auth storage:', storageError);
         }
       }
       
@@ -600,10 +575,6 @@ export const AuthProvider = ({ children }) => {
       // Use the current origin (localhost for dev, production URL for prod)
       // This ensures the redirect goes to the correct environment
       const redirectUrl = `${window.location.origin}/set-password`;
-      console.log('Sending password reset email to:', email);
-      console.log('Current origin:', window.location.origin);
-      console.log('Redirect URL:', redirectUrl);
-      console.log('IMPORTANT: Make sure this URL is added to Supabase Redirect URLs in Dashboard');
       
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl,
@@ -611,8 +582,6 @@ export const AuthProvider = ({ children }) => {
       
       // Log the response
       if (error) {
-        console.error('Supabase resetPasswordForEmail error:', error);
-        console.error('Error details:', JSON.stringify(error, null, 2));
         
         // Provide more helpful error messages
         let helpfulError = { ...error };
@@ -624,18 +593,10 @@ export const AuthProvider = ({ children }) => {
         
         return { data, error: helpfulError };
       } else {
-        console.log('Password reset email sent successfully');
-        console.log('Email will redirect to:', redirectUrl);
-        console.log('⚠️ If clicking the link opens the wrong URL, check Supabase Dashboard → Authentication → URL Configuration → Redirect URLs');
-        console.log('⚠️ If email doesn\'t arrive or takes too long (>5 minutes), check SMTP configuration:');
-        console.log('   → Go to Supabase Dashboard → Project Settings → Auth → SMTP Settings');
-        console.log('   → Enable Custom SMTP for faster email delivery (recommended for production)');
-        console.log('   → Without custom SMTP, emails may take 5-10 minutes to arrive');
       }
       
       return { data, error };
     } catch (err) {
-      console.error('Exception in resetPassword:', err);
       return { 
         data: null, 
         error: { 
@@ -693,7 +654,6 @@ export const AuthProvider = ({ children }) => {
       const createdMember = await membersManager.add(newMember);
       return { member: createdMember, created: true };
     } catch (err) {
-      console.error('Error syncing user to member:', err);
       return { error: err.message };
     }
   };

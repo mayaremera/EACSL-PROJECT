@@ -25,9 +25,6 @@ export const membershipFormsService = {
           error.message?.includes("does not exist") ||
           error.message?.includes("schema cache")
         ) {
-          console.warn(
-            "Membership forms table does not exist. Please create the table first."
-          );
           return {
             data: [],
             error: {
@@ -37,7 +34,6 @@ export const membershipFormsService = {
             },
           };
         }
-        console.error("Error fetching membership forms from Supabase:", error);
         return { data: null, error };
       }
 
@@ -48,7 +44,6 @@ export const membershipFormsService = {
 
       return { data: mappedData, error: null };
     } catch (err) {
-      console.error("Exception fetching membership forms:", err);
       return { data: null, error: err };
     }
   },
@@ -67,13 +62,11 @@ export const membershipFormsService = {
         .single();
 
       if (error) {
-        console.error("Error fetching membership form from Supabase:", error);
         return { data: null, error };
       }
 
       return { data: this.mapSupabaseToLocal(data), error: null };
     } catch (err) {
-      console.error("Exception fetching membership form:", err);
       return { data: null, error: err };
     }
   },
@@ -101,9 +94,6 @@ export const membershipFormsService = {
           error.message?.includes("relation") ||
           error.message?.includes("does not exist")
         ) {
-          console.warn(
-            "Membership forms table does not exist. Please create the table first."
-          );
           return {
             data: null,
             error: {
@@ -128,13 +118,11 @@ export const membershipFormsService = {
             },
           };
         }
-        console.error("Error adding membership form to Supabase:", error);
         return { data: null, error };
       }
 
       return { data: this.mapSupabaseToLocal(data), error: null };
     } catch (err) {
-      console.error("Exception adding membership form:", err);
       return { data: null, error: err };
     }
   },
@@ -170,13 +158,11 @@ export const membershipFormsService = {
         .single();
 
       if (error) {
-        console.error("Error updating membership form status:", error);
         return { data: null, error };
       }
 
       return { data: this.mapSupabaseToLocal(data), error: null };
     } catch (err) {
-      console.error("Exception updating membership form status:", err);
       return { data: null, error: err };
     }
   },
@@ -194,13 +180,11 @@ export const membershipFormsService = {
         .eq("id", id);
 
       if (error) {
-        console.error("Error deleting membership form:", error);
         return { data: null, error };
       }
 
       return { data: { id }, error: null };
     } catch (err) {
-      console.error("Exception deleting membership form:", err);
       return { data: null, error: err };
     }
   },
@@ -239,10 +223,6 @@ export const membershipFormsService = {
           uploadError.message?.includes("not found") ||
           uploadError.code === "404"
         ) {
-          console.warn(
-            `Supabase Storage bucket "member-forms-bucket" not found:`,
-            uploadError
-          );
           return {
             path: null,
             url: null,
@@ -258,10 +238,6 @@ export const membershipFormsService = {
           uploadError.message?.includes("row-level security") ||
           uploadError.message?.includes("RLS")
         ) {
-          console.warn(
-            "Storage bucket RLS policy error:",
-            uploadError
-          );
           return {
             path: null,
             url: null,
@@ -273,7 +249,6 @@ export const membershipFormsService = {
           };
         }
 
-        console.error("Error uploading file to storage:", uploadError);
         return { path: null, url: null, error: uploadError };
       }
 
@@ -288,7 +263,6 @@ export const membershipFormsService = {
         error: null,
       };
     } catch (err) {
-      console.error("Exception uploading file:", err);
       return { path: null, url: null, error: err };
     }
   },

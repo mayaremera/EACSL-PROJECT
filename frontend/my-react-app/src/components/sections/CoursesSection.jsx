@@ -23,7 +23,6 @@ const CoursesSection = () => {
                 const allCourses = await coursesManager.getAll(SUPABASE_FETCH_OPTIONS);
                 if (mounted) setCourses(allCourses);
             } catch (error) {
-                console.error('Error loading courses:', error);
             } finally {
                 if (mounted) setIsLoading(false);
             }

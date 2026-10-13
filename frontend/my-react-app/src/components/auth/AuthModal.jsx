@@ -74,7 +74,6 @@ const AuthModal = ({ isOpen, onClose }) => {
       const { data, error } = await Promise.race([resetPromise, timeoutPromise]);
       
       // Log for debugging
-      console.log('Password reset response:', { data, error });
       
       if (error) {
         // Provide more detailed error messages
@@ -94,7 +93,6 @@ const AuthModal = ({ isOpen, onClose }) => {
         }
         
         setError(errorMessage);
-        console.error('Password reset error:', error);
       } else {
         // Success - Supabase always returns success even if email fails to send
         // So we show success message but also warn about delays and checking spam
@@ -105,7 +103,6 @@ const AuthModal = ({ isOpen, onClose }) => {
         }, 8000); // Give more time to read the message
       }
     } catch (err) {
-      console.error('Password reset exception:', err);
       if (err.message?.includes('timeout')) {
         setError('Request timed out. The email may still be processing. Please check your inbox in a few minutes, or contact support if the issue persists.');
       } else {

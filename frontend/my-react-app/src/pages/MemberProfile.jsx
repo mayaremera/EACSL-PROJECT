@@ -39,7 +39,6 @@ function MemberProfile() {
                     setMember(memberData);
                 }
             } catch (error) {
-                console.error('Error loading member:', error);
             } finally {
                 setLoading(false);
             }

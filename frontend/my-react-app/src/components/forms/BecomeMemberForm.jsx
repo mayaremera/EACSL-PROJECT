@@ -175,7 +175,7 @@
 //             }
 //             setIsSubmitted(true);
 //         } catch (error) {
-//             console.error('Error submitting form:', error);
+//             
 //             const errorMessage = error.message || 'An error occurred while submitting the form. Please try again.';
 //             alert(`❌ Submission Failed\n\n${errorMessage}`);
 //             // Reset on error so user can retry
@@ -770,7 +770,6 @@ const BecomeMemberForm = ({ onSubmit }) => {
     const handleSubmit = async () => {
         // Prevent duplicate submissions
         if (isSubmittingRef.current) {
-            console.log('Already submitting, ignoring click');
             return;
         }
         
@@ -778,7 +777,6 @@ const BecomeMemberForm = ({ onSubmit }) => {
         isSubmittingRef.current = true;
         setIsSubmitting(true);
         
-        console.log('Starting form submission...');
         
         // Validate all fields
         const newErrors = {};
@@ -797,7 +795,6 @@ const BecomeMemberForm = ({ onSubmit }) => {
 
         // If validation fails, reset submitting state
         if (Object.keys(newErrors).length > 0) {
-            console.log('Validation failed:', newErrors);
             setIsSubmitting(false);
             isSubmittingRef.current = false;
             const errorMessages = Object.entries(newErrors)
@@ -808,7 +805,6 @@ const BecomeMemberForm = ({ onSubmit }) => {
         }
 
         // Check if email already exists before submitting
-        console.log('Validation passed, checking if email exists...');
         setEmailExistsError(null); // Reset error state
         
         // Check in existing members
@@ -819,7 +815,6 @@ const BecomeMemberForm = ({ onSubmit }) => {
         );
         
         if (existingMember) {
-            console.log('Email already exists in members:', existingMember);
             setIsSubmitting(false);
             isSubmittingRef.current = false;
             setEmailExistsError('member');
@@ -838,7 +833,6 @@ const BecomeMemberForm = ({ onSubmit }) => {
                 );
                 
                 if (pendingApplication) {
-                    console.log('Email already has pending application:', pendingApplication);
                     setIsSubmitting(false);
                     isSubmittingRef.current = false;
                     setEmailExistsError('pending');
@@ -846,21 +840,17 @@ const BecomeMemberForm = ({ onSubmit }) => {
                 }
             }
         } catch (error) {
-            console.warn('Error checking pending applications:', error);
             // Continue with submission if we can't check
         }
         
         // Validation passed and email doesn't exist, submit the form
-        console.log('Email check passed, calling onSubmit...');
         try {
             if (onSubmit) {
                 await onSubmit(formData);
-                console.log('onSubmit completed successfully');
             }
             setIsSubmitted(true);
             setIsSubmitting(false);
         } catch (error) {
-            console.error('Error submitting form:', error);
             const errorMessage = error.message || 'An error occurred while submitting the form. Please try again.';
             alert(`❌ Submission Failed\n\n${errorMessage}`);
             setIsSubmitting(false);
@@ -893,8 +883,6 @@ const BecomeMemberForm = ({ onSubmit }) => {
                 e.stopPropagation();
                 e.stopImmediatePropagation();
                 
-                console.log('✅ Drop handler called for field:', field);
-                console.log('Files in dataTransfer:', e.dataTransfer?.files?.length);
                 
                 if (!isSubmitting) {
                     setDragActive(prev => ({ ...prev, [field]: false }));
@@ -902,13 +890,10 @@ const BecomeMemberForm = ({ onSubmit }) => {
                     const files = e.dataTransfer?.files;
                     if (files && files.length > 0) {
                         const file = files[0];
-                        console.log('✅ Processing file:', file.name, file.type, file.size);
                         handleFileChange(field, file);
                     } else {
-                        console.warn('⚠️ No files found in dataTransfer');
                     }
                 } else {
-                    console.log('⚠️ Form is submitting, ignoring drop');
                 }
             };
 

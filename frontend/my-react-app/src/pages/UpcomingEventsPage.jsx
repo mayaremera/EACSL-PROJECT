@@ -72,7 +72,6 @@ const UpcomingEventsPage = () => {
         setParticipants(participantsResult.data);
       }
     } catch (error) {
-      console.error('Error loading participants:', error);
     }
   };
 
@@ -120,7 +119,6 @@ const UpcomingEventsPage = () => {
         setEventData(event);
         await loadParticipants(event);
       } catch (error) {
-        console.error('Error loading event from Supabase:', error);
         if (mounted) {
           setHasNoEvents(true);
           setEventData(null);
@@ -276,8 +274,6 @@ const UpcomingEventsPage = () => {
         submittedAt: new Date().toISOString()
       };
 
-      console.log('💾 Saving event registration to Supabase...');
-
       // Save to Supabase FIRST (source of truth) using service
       const result = await eventRegistrationsService.add(registrationData);
 
@@ -323,7 +319,6 @@ const UpcomingEventsPage = () => {
             const stored = localStorage.getItem('eventRegistrations');
             existingRegistrations = stored ? JSON.parse(stored) : [];
           } catch (err) {
-            console.error('Error reading from localStorage:', err);
           }
           
           existingRegistrations.push(formSubmission);
@@ -340,7 +335,6 @@ const UpcomingEventsPage = () => {
       }
 
       // Successfully saved to Supabase
-      console.log('✅ Registration successfully saved to Supabase:', result.data);
       
       // Clear any errors
       setErrors({});
@@ -363,12 +357,10 @@ const UpcomingEventsPage = () => {
           localStorage.setItem('eventRegistrations', JSON.stringify(existingRegistrations));
         }
       } catch (err) {
-        console.warn('Could not save to localStorage backup:', err);
       }
       
       setIsSubmitted(true);
     } catch (error) {
-      console.error('Unexpected error submitting registration:', error);
       alert(
         `Failed to submit registration: ${error.message || 'Unknown error'}\n\n` +
         'Please try again or contact support if the issue persists.'

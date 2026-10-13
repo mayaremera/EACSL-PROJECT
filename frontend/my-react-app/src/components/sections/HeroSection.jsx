@@ -33,7 +33,6 @@ const loadHeroCardSpeakers = async (event) => {
       .filter(Boolean)
       .slice(0, 4);
   } catch (error) {
-    console.error("Error loading hero card speakers:", error);
     return [];
   }
 };
@@ -119,7 +118,6 @@ const HeroSection = () => {
         const speakers = event ? await loadHeroCardSpeakers(event) : [];
         if (mounted) setHeroCardSpeakers(speakers);
       } catch (error) {
-        console.error("Error loading events:", error);
       } finally {
         if (mounted) setIsLoading(false);
       }

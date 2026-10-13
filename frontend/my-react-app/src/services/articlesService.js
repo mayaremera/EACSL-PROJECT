@@ -6,7 +6,6 @@ export const articlesService = {
   // Get all articles from Supabase
   async getAll() {
     try {
-      console.log('🔍 articlesService.getAll() - Fetching from Supabase...');
       const { data, error } = await supabase
         .from('articles')
         .select('*')
@@ -19,21 +18,15 @@ export const articlesService = {
             error.message?.includes('relation') || 
             error.message?.includes('does not exist') ||
             error.message?.includes('schema cache')) {
-          console.warn('⚠️ Articles table does not exist in Supabase. Please run the SQL script from ARTICLES_SUPABASE_SETUP.md');
           return { data: [], error: { message: 'Table does not exist. Please create the articles table first.', code: 'TABLE_NOT_FOUND' } };
         }
-        console.error('❌ Error fetching articles from Supabase:', error);
-        console.error('Error details:', { code: error.code, message: error.message, details: error.details, hint: error.hint });
         return { data: null, error };
       }
       
-      console.log(`✅ Successfully fetched ${data?.length || 0} articles from Supabase`);
       if (data && data.length > 0) {
-        console.log('Sample article:', data[0]);
       }
       return { data: data || [], error: null };
     } catch (err) {
-      console.error('❌ Exception fetching articles:', err);
       return { data: null, error: err };
     }
   },
@@ -52,7 +45,6 @@ export const articlesService = {
           // Not found - return null data, no error (same as eventsService)
           return { data: null, error: null };
         }
-        console.error('Error fetching article from Supabase:', error);
         return { data: null, error };
       }
       
@@ -60,7 +52,6 @@ export const articlesService = {
       const localArticle = this.mapSupabaseToLocal(data);
       return { data: localArticle, error: null };
     } catch (err) {
-      console.error('Exception fetching article:', err);
       return { data: null, error: err };
     }
   },
@@ -81,13 +72,11 @@ export const articlesService = {
             error.message?.includes('schema cache')) {
           return { data: [], error: { message: 'Table does not exist. Please create the articles table first.', code: 'TABLE_NOT_FOUND' } };
         }
-        console.error('Error fetching articles by category from Supabase:', error);
         return { data: null, error };
       }
       
       return { data: data || [], error: null };
     } catch (err) {
-      console.error('Exception fetching articles by category:', err);
       return { data: null, error: err };
     }
   },
@@ -141,10 +130,8 @@ export const articlesService = {
             error.message?.includes('relation') || 
             error.message?.includes('does not exist') ||
             error.message?.includes('schema cache')) {
-          console.warn('Articles table does not exist in Supabase. Article saved locally only.');
           return { data: null, error: { message: 'Table does not exist. Please create the articles table first.', code: 'TABLE_NOT_FOUND' } };
         }
-        console.error('Error adding article to Supabase:', error);
         return { data: null, error };
       }
       
@@ -152,7 +139,6 @@ export const articlesService = {
       const localArticle = this.mapSupabaseToLocal(data);
       return { data: localArticle, error: null };
     } catch (err) {
-      console.error('Exception adding article:', err);
       return { data: null, error: err };
     }
   },
@@ -204,36 +190,22 @@ export const articlesService = {
       
       if (error) {
         // Log the FULL error object to see what Supabase is actually saying
-        console.error('❌ FULL Supabase Error Object:', JSON.stringify(error, null, 2));
-        console.error('❌ Error code:', error.code);
-        console.error('❌ Error message:', error.message);
-        console.error('❌ Error details:', error.details);
-        console.error('❌ Error hint:', error.hint);
-        console.error('❌ Error status:', error.status);
-        console.error('❌ Error statusCode:', error.statusCode);
         
         // PGRST116 with "0 rows" means article not found (but table exists)
         // PGRST205 means table doesn't exist
         if (error.code === 'PGRST205' || 
             (error.code === 'PGRST116' && error.message?.includes('schema cache'))) {
-          console.warn('Articles table does not exist in Supabase. Article updated locally only.');
           return { data: null, error: { message: 'Table does not exist. Please create the articles table first.', code: 'TABLE_NOT_FOUND' } };
         }
         
         // PGRST116 with "0 rows" or "Cannot coerce" means article doesn't exist, but table does
         // This is OK - we can still try to update (might create it)
         if (error.code === 'PGRST116' && error.details?.includes('0 rows')) {
-          console.warn('Article not found in Supabase, but table exists. Update will fail - article may need to be created first.');
           // Don't treat this as table not found - it's a different issue
         }
         
         // 400 Bad Request means the table EXISTS but there's a problem with the data/columns
         if (error.status === 400 || error.statusCode === 400 || error.code === 'PGRST204') {
-          console.error('❌ 400 Bad Request - Table exists but update failed. This usually means:');
-          console.error('   - Column name mismatch');
-          console.error('   - Missing required columns');
-          console.error('   - Wrong data type');
-          console.error('   - RLS policy blocking the update');
           return { data: null, error: { 
             message: `Bad Request: ${error.message || 'Check column names and RLS policies'}`,
             code: 'BAD_REQUEST',
@@ -243,7 +215,6 @@ export const articlesService = {
           }};
         }
         
-        console.error('Error updating article in Supabase:', error);
         return { data: null, error };
       }
       
@@ -251,7 +222,6 @@ export const articlesService = {
       const localArticle = this.mapSupabaseToLocal(data);
       return { data: localArticle, error: null };
     } catch (err) {
-      console.error('Exception updating article:', err);
       return { data: null, error: err };
     }
   },
@@ -270,16 +240,13 @@ export const articlesService = {
             error.message?.includes('relation') || 
             error.message?.includes('does not exist') ||
             error.message?.includes('schema cache')) {
-          console.warn('Articles table does not exist in Supabase. Article deleted locally only.');
           return { error: { message: 'Table does not exist. Please create the articles table first.', code: 'TABLE_NOT_FOUND' } };
         }
-        console.error('Error deleting article from Supabase:', error);
         return { error };
       }
       
       return { error: null };
     } catch (err) {
-      console.error('Exception deleting article:', err);
       return { error: err };
     }
   },
@@ -302,7 +269,6 @@ export const articlesService = {
         });
 
       if (error) {
-        console.error('Error uploading image to ArticlesBucket:', error);
         return { data: null, error };
       }
 
@@ -319,7 +285,6 @@ export const articlesService = {
         error: null 
       };
     } catch (err) {
-      console.error('Exception uploading image:', err);
       return { data: null, error: err };
     }
   },
@@ -332,13 +297,11 @@ export const articlesService = {
         .remove([filePath]);
 
       if (error) {
-        console.error('Error deleting image from ArticlesBucket:', error);
         return { error };
       }
 
       return { error: null };
     } catch (err) {
-      console.error('Exception deleting image:', err);
       return { error: err };
     }
   },
@@ -346,7 +309,6 @@ export const articlesService = {
   // Map Supabase article structure to local structure
   mapSupabaseToLocal(supabaseArticle) {
     if (!supabaseArticle) {
-      console.error('mapSupabaseToLocal: supabaseArticle is null or undefined');
       return null;
     }
 
@@ -389,7 +351,6 @@ export const articlesService = {
         updatedAt: supabaseArticle.updated_at,
       };
     } catch (err) {
-      console.error('Error mapping article:', supabaseArticle, err);
       return null;
     }
   },

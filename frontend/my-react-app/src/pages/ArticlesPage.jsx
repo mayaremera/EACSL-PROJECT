@@ -27,7 +27,6 @@ const ArticlesPage = () => {
         const allArticles = await articlesManager.getAll(SUPABASE_FETCH_OPTIONS);
         if (mounted) setArticles(allArticles);
       } catch (error) {
-        console.error('Error loading articles:', error);
       } finally {
         if (mounted) setIsLoading(false);
       }

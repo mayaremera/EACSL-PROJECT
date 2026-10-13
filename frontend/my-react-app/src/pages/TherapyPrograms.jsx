@@ -33,7 +33,6 @@ const TherapyPrograms = () => {
         setPrograms(allPrograms);
         setCurrentEvent(eventsData.upcoming?.[0] || null);
       } catch (error) {
-        console.error('Error loading therapy programs:', error);
       } finally {
         if (mounted) setIsLoading(false);
       }

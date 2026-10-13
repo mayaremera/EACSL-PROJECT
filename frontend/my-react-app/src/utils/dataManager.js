@@ -32,30 +32,24 @@ export const coursesManager = {
         try {
           const cachedCourses = JSON.parse(cached);
           // Return cached data immediately, then refresh in background
-          coursesManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
-            console.warn('Background refresh failed:', err);
-          });
+          coursesManager.getAll({ forceRefresh: true, useCache: false }).catch(() => {});
           return cachedCourses;
         } catch (e) {
-          console.error('Error parsing cached courses:', e);
         }
       }
     }
     
     // Fetch from Supabase (source of truth)
     try {
-      console.log("🔄 Fetching courses from Supabase...");
       const { data, error } = await coursesService.getAll();
       
       if (error) {
         // If table doesn't exist, fall back to localStorage
         if (error.code === "TABLE_NOT_FOUND") {
-          console.warn("⚠️ Courses table not found in Supabase. Using localStorage fallback.");
           return coursesManager._getAllFromLocalStorage();
         }
         
         // Other errors - log and fall back to localStorage
-        console.error("❌ Error fetching from Supabase:", error);
         return coursesManager._getAllFromLocalStorage();
       }
       
@@ -67,10 +61,8 @@ export const coursesManager = {
       // Save to localStorage as cache
       coursesManager.saveAll(supabaseCourses);
       
-      console.log(`✅ Fetched ${supabaseCourses.length} courses from Supabase`);
       return supabaseCourses;
     } catch (err) {
-      console.error("❌ Exception fetching from Supabase:", err);
       return coursesManager._getAllFromLocalStorage();
     }
   },
@@ -83,7 +75,6 @@ export const coursesManager = {
       try {
       return JSON.parse(stored);
       } catch (e) {
-        console.error("Error parsing courses from localStorage:", e);
         return [];
       }
     }
@@ -115,7 +106,6 @@ export const coursesManager = {
     } catch (error) {
       // Handle quota exceeded or other localStorage errors gracefully
       if (error.name === 'QuotaExceededError' || error.message?.includes('quota')) {
-        console.warn("⚠️ localStorage quota exceeded. Skipping cache. Supabase is the source of truth.");
         // Try to clear old data and save a minimal version
         try {
           const minimalCourses = courses.map(course => ({
@@ -125,9 +115,7 @@ export const coursesManager = {
             // Remove all large fields
           }));
           localStorage.setItem("eacsl_courses", JSON.stringify(minimalCourses));
-          console.log("✅ Saved minimal course data to localStorage");
         } catch (retryError) {
-          console.warn("⚠️ Could not save even minimal data to localStorage. Using Supabase only.");
           // Remove the item entirely if it's causing issues
           try {
             localStorage.removeItem("eacsl_courses");
@@ -136,7 +124,6 @@ export const coursesManager = {
           }
         }
       } else {
-        console.error("❌ Error saving to localStorage:", error);
       }
     }
   },
@@ -145,17 +132,14 @@ export const coursesManager = {
   add: async (course) => {
     // Prepare course data for Supabase
     const supabaseCourse = coursesService.mapLocalToSupabase(course);
-    console.log("📤 Course data to save:", { original: course, mapped: supabaseCourse });
 
     // Save to Supabase FIRST (source of truth)
     try {
-      console.log("💾 Saving course to Supabase...");
       const { data, error } = await coursesService.add(supabaseCourse);
       
       if (error) {
         // Handle table not found error - allow local storage fallback for development
         if (error.code === 'TABLE_NOT_FOUND') {
-          console.warn("⚠️ Courses table doesn't exist in Supabase. Saving to localStorage only.");
           // For development: save to localStorage as fallback
           const localCourses = coursesManager._getAllFromLocalStorage();
           const tempId = localCourses.length > 0 ? Math.max(...localCourses.map((c) => c.id)) + 1 : 1;
@@ -166,7 +150,6 @@ export const coursesManager = {
         
         // Check for RLS policy errors
         if (error.code === '42501' || error.message?.includes('permission denied') || error.message?.includes('RLS')) {
-          console.error("❌ RLS Policy Error - Permission denied:", error);
           throw new Error(
             `Permission denied: ${error.message || 'You may not have permission to add courses. ' +
             'Please check your Supabase RLS policies or contact an administrator.'}`
@@ -175,7 +158,6 @@ export const coursesManager = {
         
         // Check for column/field errors
         if (error.code === '42703' || error.message?.includes('column') || error.message?.includes('does not exist')) {
-          console.error("❌ Column Error - Field doesn't exist in table:", error);
           throw new Error(
             `Database schema error: ${error.message || 'One or more fields don\'t exist in the courses table. ' +
             'Please update your Supabase table schema to include all required fields.'}`
@@ -183,7 +165,6 @@ export const coursesManager = {
         }
         
         // Other errors - throw to show to user
-        console.error("❌ Failed to save course to Supabase:", error);
         throw new Error(`Failed to save course: ${error.message || 'Unknown error'}`);
       }
       
@@ -191,7 +172,6 @@ export const coursesManager = {
         throw new Error('No data returned from Supabase');
       }
       
-      console.log("✅ Course successfully saved to Supabase:", data);
       
       // Map back to local format and merge with original course data to preserve extra fields
       const localCourse = {
@@ -212,19 +192,16 @@ export const coursesManager = {
         
         if (!exists) {
           coursesManager.saveAll([...localCourses, localCourse]);
-          console.log("✅ Course added to localStorage cache");
         } else {
           // Update existing course
           const index = localCourses.findIndex(c => c.id === localCourse.id);
           if (index >= 0) {
             localCourses[index] = localCourse;
             coursesManager.saveAll(localCourses);
-            console.log("✅ Course updated in localStorage cache");
           }
         }
       } catch (cacheError) {
         // localStorage cache failed, but that's okay - Supabase is the source of truth
-        console.warn("⚠️ Could not update localStorage cache (quota exceeded?), but course is saved to Supabase:", cacheError);
         // Dispatch event anyway so UI updates
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("coursesUpdated"));
@@ -233,7 +210,6 @@ export const coursesManager = {
       
       return localCourse;
     } catch (err) {
-      console.error("❌ Exception saving course to Supabase:", err);
       // Re-throw to let caller handle the error
       throw err;
     }
@@ -246,7 +222,6 @@ export const coursesManager = {
     const existingCourse = localCourses.find((c) => c.id === id);
     
     if (!existingCourse) {
-      console.error('Course not found with id:', id);
       throw new Error(`Course with id ${id} not found`);
     }
 
@@ -262,25 +237,16 @@ export const coursesManager = {
 
     // Update in Supabase FIRST (source of truth)
     try {
-      console.log("💾 Updating course in Supabase...");
       const { data, error } = await coursesService.update(id, supabaseCourse);
       
       if (error) {
-        console.error("❌ Supabase update error details:", {
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint
-        });
       }
       
       if (error) {
         // If course doesn't exist in Supabase, try to add it
         if (error.code === 'PGRST116' || error.message?.includes('No rows found') || error.message?.includes('not found')) {
-          console.log("Course not found in Supabase, attempting to add instead...");
           const addResult = await coursesService.add(supabaseCourse);
           if (addResult.data && !addResult.error) {
-            console.log("✅ Successfully added course to Supabase (was missing)");
             // Update localStorage with the new data
             const localCourse = coursesService.mapSupabaseToLocal(addResult.data);
             const localCourses = coursesManager._getAllFromLocalStorage();
@@ -295,7 +261,6 @@ export const coursesManager = {
           } else if (addResult.error) {
             if (addResult.error.code === 'TABLE_NOT_FOUND') {
               // Table doesn't exist - fallback to localStorage for development
-              console.warn("⚠️ Courses table doesn't exist. Saving to localStorage only.");
               const localCourses = coursesManager._getAllFromLocalStorage();
               const index = localCourses.findIndex((c) => c.id === id);
               if (index >= 0) {
@@ -308,7 +273,6 @@ export const coursesManager = {
           }
         } else if (error.code === 'TABLE_NOT_FOUND') {
           // Table doesn't exist - fallback to localStorage for development
-          console.warn("⚠️ Courses table doesn't exist. Saving to localStorage only.");
           const localCourses = coursesManager._getAllFromLocalStorage();
           const index = localCourses.findIndex((c) => c.id === id);
           if (index >= 0) {
@@ -319,7 +283,6 @@ export const coursesManager = {
         }
         
         // Other errors - throw to show to user
-        console.error("❌ Failed to update course in Supabase:", error);
         throw new Error(`Failed to update course: ${error.message || 'Unknown error'}`);
       }
       
@@ -327,7 +290,6 @@ export const coursesManager = {
         throw new Error('No data returned from Supabase');
       }
       
-      console.log("✅ Course successfully updated in Supabase:", data);
       
       // Map back to local format
       const localCourse = coursesService.mapSupabaseToLocal(data);
@@ -340,15 +302,12 @@ export const coursesManager = {
         if (index >= 0) {
           localCourses[index] = localCourse;
           coursesManager.saveAll(localCourses);
-          console.log("✅ Course updated in localStorage cache");
         } else {
           // Course was added (new ID from Supabase)
           coursesManager.saveAll([...localCourses, localCourse]);
-          console.log("✅ Course added to localStorage cache");
         }
       } catch (cacheError) {
         // localStorage cache failed, but that's okay - Supabase is the source of truth
-        console.warn("⚠️ Could not update localStorage cache (quota exceeded?), but course is updated in Supabase:", cacheError);
         // Dispatch event anyway so UI updates
         if (typeof window !== "undefined") {
           window.dispatchEvent(new CustomEvent("coursesUpdated"));
@@ -357,7 +316,6 @@ export const coursesManager = {
       
       return localCourse;
     } catch (err) {
-      console.error("❌ Exception updating course in Supabase:", err);
       // Re-throw to let caller handle the error
       throw err;
     }
@@ -367,13 +325,11 @@ export const coursesManager = {
   delete: async (id) => {
     // Delete from Supabase FIRST (source of truth)
     try {
-      console.log("🗑️ Deleting course from Supabase...");
       const { error } = await coursesService.delete(id);
       
       if (error) {
         if (error.code === 'TABLE_NOT_FOUND') {
           // Table doesn't exist - fallback to localStorage for development
-          console.warn("⚠️ Courses table doesn't exist. Deleting from localStorage only.");
           const localCourses = coursesManager._getAllFromLocalStorage();
           const filtered = localCourses.filter((c) => c.id !== id);
     coursesManager.saveAll(filtered);
@@ -381,21 +337,17 @@ export const coursesManager = {
         }
         
         // Other errors - throw to show to user
-        console.error("❌ Failed to delete course from Supabase:", error);
         throw new Error(`Failed to delete course: ${error.message || 'Unknown error'}`);
       }
       
-      console.log("✅ Course successfully deleted from Supabase");
       
       // Update localStorage cache
       const localCourses = coursesManager._getAllFromLocalStorage();
       const filtered = localCourses.filter((c) => c.id !== id);
       coursesManager.saveAll(filtered);
-      console.log("✅ Course removed from localStorage cache");
       
       return true;
     } catch (err) {
-      console.error("❌ Exception deleting course from Supabase:", err);
       // Re-throw to let caller handle the error
       throw err;
     }
@@ -408,7 +360,6 @@ export const coursesManager = {
       coursesManager._subscription.unsubscribe();
     }
 
-    console.log("🔔 Setting up real-time subscription for courses...");
     
     coursesManager._subscription = supabase
       .channel('courses-changes')
@@ -420,7 +371,6 @@ export const coursesManager = {
           table: 'courses'
         },
         async (payload) => {
-          console.log('🔔 Real-time course change detected:', payload.eventType, payload);
           
           try {
             // Refresh courses from Supabase
@@ -437,20 +387,15 @@ export const coursesManager = {
                 callback(supabaseCourses, payload);
               }
               
-              console.log('✅ Real-time update applied:', payload.eventType);
             } else {
-              console.warn('⚠️ Failed to refresh courses after real-time change:', error);
             }
           } catch (err) {
-            console.error('❌ Exception handling real-time change:', err);
           }
         }
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time subscription active for courses');
         } else if (status === 'CHANNEL_ERROR') {
-          console.warn('⚠️ Real-time subscription error - table may not exist');
         }
       });
 
@@ -459,7 +404,6 @@ export const coursesManager = {
       if (coursesManager._subscription) {
         coursesManager._subscription.unsubscribe();
         coursesManager._subscription = null;
-        console.log('🔕 Real-time subscription unsubscribed');
       }
     };
   },
@@ -469,7 +413,6 @@ export const coursesManager = {
     if (coursesManager._subscription) {
       coursesManager._subscription.unsubscribe();
       coursesManager._subscription = null;
-      console.log('🔕 Real-time subscription unsubscribed');
     }
   },
 
@@ -483,9 +426,6 @@ export const coursesManager = {
           error.code === "TABLE_NOT_FOUND" ||
           error.message?.includes("Table does not exist")
         ) {
-          console.warn(
-            "Courses table does not exist in Supabase. Please create it first."
-          );
           return {
             synced: false,
             error: {
@@ -495,7 +435,6 @@ export const coursesManager = {
             },
           };
         }
-        console.warn("Failed to fetch courses from Supabase:", error);
         return { synced: false, error };
       }
 
@@ -557,7 +496,6 @@ export const coursesManager = {
         error: null,
       };
     } catch (err) {
-      console.error("Exception syncing courses from Supabase:", err);
       return { synced: false, error: err };
     }
   },
@@ -571,7 +509,6 @@ export const coursesManager = {
       const errors = [];
 
       if (localCourses.length === 0) {
-        console.log("ℹ️ No local courses to sync");
         return {
           synced: true,
           syncedCount: 0,
@@ -581,7 +518,6 @@ export const coursesManager = {
         };
       }
 
-      console.log(`📤 Syncing ${localCourses.length} course(s) to Supabase...`);
 
       for (const course of localCourses) {
         try {
@@ -600,32 +536,26 @@ export const coursesManager = {
             const { error } = await coursesService.update(course.id, course);
             if (!error) {
               syncedCount++;
-              console.log(`✅ Updated course: ${course.title || course.id}`);
             } else if (error.code !== "TABLE_NOT_FOUND") {
               errorCount++;
               errors.push({ course: course.title || course.id, error });
-              console.warn(`❌ Failed to update course ${course.title || course.id}:`, error);
             }
           } else {
             // Add new course
             const { error } = await coursesService.add(course);
             if (!error) {
               syncedCount++;
-              console.log(`✅ Added course: ${course.title || course.id}`);
             } else if (error.code !== "TABLE_NOT_FOUND") {
               errorCount++;
               errors.push({ course: course.title || course.id, error });
-              console.warn(`❌ Failed to add course ${course.title || course.id}:`, error);
             }
           }
         } catch (courseErr) {
           errorCount++;
           errors.push({ course: course.title || course.id, error: courseErr });
-          console.error(`❌ Exception syncing course ${course.title || course.id}:`, courseErr);
         }
       }
 
-      console.log(`✅ Sync to Supabase completed: ${syncedCount} synced, ${errorCount} errors`);
 
       return {
         synced: true,
@@ -639,7 +569,6 @@ export const coursesManager = {
             : null,
       };
     } catch (err) {
-      console.error("❌ Exception syncing to Supabase:", err);
       return { 
         synced: false, 
         error: {
@@ -671,30 +600,24 @@ export const membersManager = {
         try {
           const cachedMembers = JSON.parse(cached);
           // Return cached data immediately, then refresh in background
-          membersManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
-            console.warn('Background refresh failed:', err);
-          });
+          membersManager.getAll({ forceRefresh: true, useCache: false }).catch(() => {});
           return cachedMembers;
         } catch (e) {
-          console.error('Error parsing cached members:', e);
         }
       }
     }
     
     // Fetch from Supabase (source of truth)
     try {
-      console.log("🔄 Fetching members from Supabase...");
       const { data, error } = await membersService.getAll();
       
       if (error) {
         // If table doesn't exist, fall back to localStorage
         if (error.code === "TABLE_NOT_FOUND") {
-          console.warn("⚠️ Members table not found in Supabase. Using localStorage fallback.");
           return membersManager._getAllFromLocalStorage();
         }
         
         // Other errors - log and fall back to localStorage
-        console.error("❌ Error fetching from Supabase:", error);
         return membersManager._getAllFromLocalStorage();
       }
       
@@ -721,10 +644,8 @@ export const membersManager = {
       // Save to localStorage as cache
       membersManager.saveAll(normalizedMembers);
       
-      console.log(`✅ Fetched ${normalizedMembers.length} members from Supabase`);
       return normalizedMembers;
     } catch (err) {
-      console.error("❌ Exception fetching from Supabase:", err);
       return membersManager._getAllFromLocalStorage();
     }
   },
@@ -759,7 +680,6 @@ export const membersManager = {
 
       return normalizedMembers;
       } catch (e) {
-        console.error('Error parsing localStorage members:', e);
         return [];
       }
     }
@@ -770,7 +690,6 @@ export const membersManager = {
   saveAll: (members) => {
     try {
       localStorage.setItem("eacsl_members", JSON.stringify(members));
-      console.log('✅ Successfully saved', members.length, 'members to localStorage');
       // Also update the module (for immediate reflection)
       if (typeof window !== "undefined") {
         window.dispatchEvent(
@@ -778,18 +697,15 @@ export const membersManager = {
         );
       }
     } catch (error) {
-      console.error('❌ Failed to save members to localStorage:', error);
       // If localStorage is full, try to clear some space or show error
       if (error.name === 'QuotaExceededError') {
         // Storage quota exceeded - log error (toast will be shown by caller if needed)
-        console.error('Storage quota exceeded. Please clear some browser data or contact support.');
       }
     }
   },
 
   // Add new member - Saves to Supabase first (source of truth), then updates localStorage
   add: async (member) => {
-    console.log("membersManager.add() called with member:", member);
     
     // Prepare member data
     const newMember = {
@@ -799,13 +715,11 @@ export const membersManager = {
 
     // Save to Supabase FIRST (source of truth)
     try {
-      console.log("💾 Saving member to Supabase...");
       const { data, error } = await membersService.add(newMember);
       
       if (error) {
         // Handle table not found error - allow local storage fallback for development
         if (error.code === 'TABLE_NOT_FOUND') {
-          console.warn("⚠️ Members table doesn't exist in Supabase. Saving to localStorage only.");
           // For development: save to localStorage as fallback
           const localMembers = membersManager._getAllFromLocalStorage();
           const tempId = localMembers.length > 0 ? Math.max(...localMembers.map((m) => m.id)) + 1 : 1;
@@ -816,7 +730,6 @@ export const membersManager = {
         }
         
         // Other errors - throw to show to user
-        console.error("❌ Failed to save member to Supabase:", error);
         throw new Error(`Failed to save member: ${error.message || 'Unknown error'}`);
       }
       
@@ -824,7 +737,6 @@ export const membersManager = {
         throw new Error('No data returned from Supabase');
       }
       
-      console.log("✅ Member successfully saved to Supabase:", data);
       
       // Update localStorage cache with the new member
       const localMembers = membersManager._getAllFromLocalStorage();
@@ -837,7 +749,6 @@ export const membersManager = {
       if (!exists) {
         localMembers.push(data);
         membersManager.saveAll(localMembers);
-        console.log("✅ Member added to localStorage cache");
     } else {
         // Update existing member
         const index = localMembers.findIndex(m => 
@@ -848,13 +759,11 @@ export const membersManager = {
         if (index >= 0) {
           localMembers[index] = data;
           membersManager.saveAll(localMembers);
-          console.log("✅ Member updated in localStorage cache");
         }
       }
       
       return data;
     } catch (err) {
-      console.error("❌ Exception saving member to Supabase:", err);
       // Re-throw to let caller handle the error
       throw err;
     }
@@ -862,14 +771,12 @@ export const membersManager = {
 
   // Update member - Updates Supabase first (source of truth), then updates localStorage cache
   update: async (id, updatedMember) => {
-    console.log('membersManager.update called with id:', id, 'data:', updatedMember);
     
     // Get current member from cache to merge with updates
     const localMembers = membersManager._getAllFromLocalStorage();
     const existingMember = localMembers.find((m) => m.id === id);
     
     if (!existingMember) {
-      console.error('Member not found with id:', id);
       throw new Error(`Member with id ${id} not found`);
     }
 
@@ -955,22 +862,16 @@ export const membersManager = {
         : (Array.isArray(existingMember.customCourses) ? existingMember.customCourses : []),
     };
 
-    console.log("📋 Complete member object to save:", completeMember);
-    console.log("📋 Specialty in completeMember:", completeMember.specialty);
-    console.log("📋 Custom courses in completeMember:", completeMember.customCourses);
 
     // Update in Supabase FIRST (source of truth)
     try {
-      console.log("💾 Updating member in Supabase...");
       const { data, error } = await membersService.update(id, completeMember);
       
       if (error) {
         // If member doesn't exist in Supabase, try to add it
         if (error.code === 'PGRST116' || error.message?.includes('No rows found') || error.message?.includes('not found')) {
-          console.log("Member not found in Supabase, attempting to add instead...");
           const addResult = await membersService.add(completeMember);
           if (addResult.data && !addResult.error) {
-            console.log("✅ Successfully added member to Supabase (was missing)");
             // Update localStorage with the new data
             const index = localMembers.findIndex(m => m.id === id);
             if (index >= 0) {
@@ -981,7 +882,6 @@ export const membersManager = {
           } else if (addResult.error) {
             if (addResult.error.code === 'TABLE_NOT_FOUND') {
               // Table doesn't exist - fallback to localStorage for development
-              console.warn("⚠️ Members table doesn't exist. Saving to localStorage only.");
               const index = localMembers.findIndex(m => m.id === id);
               if (index >= 0) {
                 localMembers[index] = completeMember;
@@ -993,7 +893,6 @@ export const membersManager = {
           }
         } else if (error.code === 'TABLE_NOT_FOUND') {
           // Table doesn't exist - fallback to localStorage for development
-          console.warn("⚠️ Members table doesn't exist. Saving to localStorage only.");
           const index = localMembers.findIndex(m => m.id === id);
           if (index >= 0) {
             localMembers[index] = completeMember;
@@ -1003,7 +902,6 @@ export const membersManager = {
         }
         
         // Other errors - throw to show to user
-        console.error("❌ Failed to update member in Supabase:", error);
         throw new Error(`Failed to update member: ${error.message || 'Unknown error'}`);
       }
       
@@ -1011,7 +909,6 @@ export const membersManager = {
         throw new Error('No data returned from Supabase');
       }
       
-      console.log("✅ Member successfully updated in Supabase:", data);
       
       // Map Supabase data back to local format
       const mappedMember = membersService.mapSupabaseToLocal(data);
@@ -1021,12 +918,10 @@ export const membersManager = {
       if (index >= 0) {
         localMembers[index] = mappedMember;
         membersManager.saveAll(localMembers);
-        console.log("✅ Member updated in localStorage cache");
       }
       
       return mappedMember;
     } catch (err) {
-      console.error("❌ Exception updating member in Supabase:", err);
       // Re-throw to let caller handle the error
       throw err;
     }
@@ -1039,7 +934,6 @@ export const membersManager = {
     const memberToDelete = localMembers.find((m) => m.id === id);
     
     if (!memberToDelete) {
-      console.warn(`Member with id ${id} not found in cache`);
       // Still try to delete from Supabase in case it exists there
     }
     
@@ -1047,42 +941,34 @@ export const membersManager = {
     if (memberToDelete && memberToDelete.image && memberToDelete.image.includes('dashboardmemberimages')) {
       try {
         await membersService.deleteImage(memberToDelete.image);
-        console.log('✅ Deleted member image from storage');
       } catch (deleteError) {
-        console.warn('Could not delete member image from storage:', deleteError);
         // Continue with member deletion even if image deletion fails
       }
     }
 
     // Delete from Supabase FIRST (source of truth)
     try {
-      console.log("🗑️ Deleting member from Supabase...");
       const { error } = await membersService.delete(id);
       
       if (error) {
         if (error.code === 'TABLE_NOT_FOUND') {
           // Table doesn't exist - fallback to localStorage for development
-          console.warn("⚠️ Members table doesn't exist. Deleting from localStorage only.");
           const filtered = localMembers.filter((m) => m.id !== id);
     membersManager.saveAll(filtered);
           return true;
         }
         
         // Other errors - throw to show to user
-        console.error("❌ Failed to delete member from Supabase:", error);
         throw new Error(`Failed to delete member: ${error.message || 'Unknown error'}`);
       }
       
-      console.log("✅ Member successfully deleted from Supabase");
       
       // Update localStorage cache
       const filtered = localMembers.filter((m) => m.id !== id);
       membersManager.saveAll(filtered);
-      console.log("✅ Member removed from localStorage cache");
 
     return true;
     } catch (err) {
-      console.error("❌ Exception deleting member from Supabase:", err);
       // Re-throw to let caller handle the error
       throw err;
     }
@@ -1095,7 +981,6 @@ export const membersManager = {
       membersManager._subscription.unsubscribe();
     }
 
-    console.log("🔔 Setting up real-time subscription for members...");
     
     membersManager._subscription = supabase
       .channel('members-changes')
@@ -1107,7 +992,6 @@ export const membersManager = {
           table: 'members'
         },
         async (payload) => {
-          console.log('🔔 Real-time member change detected:', payload.eventType, payload);
           
           try {
             // Refresh members from Supabase
@@ -1133,20 +1017,15 @@ export const membersManager = {
                 callback(normalizedMembers, payload);
               }
               
-              console.log('✅ Real-time update applied:', payload.eventType);
             } else {
-              console.warn('⚠️ Failed to refresh members after real-time change:', error);
             }
           } catch (err) {
-            console.error('❌ Exception handling real-time change:', err);
           }
         }
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time subscription active for members');
         } else if (status === 'CHANNEL_ERROR') {
-          console.warn('⚠️ Real-time subscription error - table may not exist');
         }
       });
 
@@ -1155,7 +1034,6 @@ export const membersManager = {
       if (membersManager._subscription) {
         membersManager._subscription.unsubscribe();
         membersManager._subscription = null;
-        console.log('🔕 Real-time subscription unsubscribed');
       }
     };
   },
@@ -1165,7 +1043,6 @@ export const membersManager = {
     if (membersManager._subscription) {
       membersManager._subscription.unsubscribe();
       membersManager._subscription = null;
-      console.log('🔕 Real-time subscription unsubscribed');
     }
   },
 
@@ -1189,7 +1066,6 @@ export const membersManager = {
 
     membersSyncPromise = (async () => {
       try {
-        console.log("🔄 Starting member sync from Supabase...");
         const { data, error } = await membersService.getAll();
 
         if (error) {
@@ -1198,9 +1074,6 @@ export const membersManager = {
             error.code === "TABLE_NOT_FOUND" ||
             error.message?.includes("Table does not exist")
           ) {
-            console.warn(
-              "Members table does not exist in Supabase. Please create it using the SQL script from SUPABASE_SETUP.md"
-            );
             return {
               synced: false,
               error: {
@@ -1210,7 +1083,6 @@ export const membersManager = {
               },
             };
           }
-          console.error("❌ Failed to fetch members from Supabase:", error);
           return { synced: false, error };
         }
 
@@ -1322,14 +1194,6 @@ export const membersManager = {
           return wasSyncedBefore && !existsInSupabase;
         });
 
-        console.log("✅ Sync result:", {
-          supabaseCount: supabaseMembers.length,
-          localCount: localMembers.length,
-          finalCount: uniqueMembers.length,
-          removed: removedMembers.length,
-          removedMemberIds: removedMembers.map((m) => m.id),
-          removedMemberNames: removedMembers.map((m) => m.name || m.email),
-        });
 
         // Save all members to local storage
         membersManager.saveAll(uniqueMembers);
@@ -1342,7 +1206,6 @@ export const membersManager = {
         }
 
         lastMembersSyncTime = Date.now();
-        console.log("✅ Member sync completed successfully");
 
         return {
           synced: true,
@@ -1352,7 +1215,6 @@ export const membersManager = {
           error: null,
         };
       } catch (err) {
-        console.error("❌ Exception syncing from Supabase:", err);
         return { 
           synced: false, 
           error: {
@@ -1363,7 +1225,6 @@ export const membersManager = {
       } finally {
         // Always clear the promise, even if there was an error
         membersSyncPromise = null;
-        console.log("🔄 Sync promise cleared");
       }
     })();
 
@@ -1373,14 +1234,12 @@ export const membersManager = {
   // Push local members to Supabase (for initial sync)
   syncToSupabase: async () => {
     try {
-      console.log("🔄 Starting member sync to Supabase...");
       const localMembers = membersManager._getAllFromLocalStorage();
       let syncedCount = 0;
       let errorCount = 0;
       const errors = [];
 
       if (localMembers.length === 0) {
-        console.log("ℹ️ No local members to sync");
         return {
           synced: true,
           syncedCount: 0,
@@ -1390,7 +1249,6 @@ export const membersManager = {
         };
       }
 
-      console.log(`📤 Syncing ${localMembers.length} member(s) to Supabase...`);
 
       for (const member of localMembers) {
         try {
@@ -1403,7 +1261,6 @@ export const membersManager = {
             );
             if (error && error.code !== "PGRST116") {
               // PGRST116 is "not found", which is fine
-              console.warn(`Error checking member by userId:`, error);
             } else {
               existingMember = data;
             }
@@ -1425,32 +1282,26 @@ export const membersManager = {
             );
             if (!error) {
               syncedCount++;
-              console.log(`✅ Updated member: ${member.name || member.email}`);
             } else if (error.code !== "TABLE_NOT_FOUND") {
               errorCount++;
               errors.push({ member: member.name || member.email, error });
-              console.warn(`❌ Failed to update member ${member.name || member.email}:`, error);
             }
           } else {
             // Add new member
             const { error } = await membersService.add(member);
             if (!error) {
               syncedCount++;
-              console.log(`✅ Added member: ${member.name || member.email}`);
             } else if (error.code !== "TABLE_NOT_FOUND") {
               errorCount++;
               errors.push({ member: member.name || member.email, error });
-              console.warn(`❌ Failed to add member ${member.name || member.email}:`, error);
             }
           }
         } catch (memberErr) {
           errorCount++;
           errors.push({ member: member.name || member.email, error: memberErr });
-          console.error(`❌ Exception syncing member ${member.name || member.email}:`, memberErr);
         }
       }
 
-      console.log(`✅ Sync to Supabase completed: ${syncedCount} synced, ${errorCount} errors`);
 
       return {
         synced: true,
@@ -1464,7 +1315,6 @@ export const membersManager = {
             : null,
       };
     } catch (err) {
-      console.error("❌ Exception syncing to Supabase:", err);
       return { 
         synced: false, 
         error: {
@@ -1526,16 +1376,13 @@ export const eventsManager = {
           if (timeSinceLastFetch >= minFetchInterval) {
             eventsManager._lastFetchTime = now;
             // Return cached data immediately, then refresh in background
-            eventsManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
-              console.warn('Background refresh failed:', err);
-            });
+            eventsManager.getAll({ forceRefresh: true, useCache: false }).catch(() => {});
           }
           return {
             upcoming: Array.isArray(cachedEvents.upcoming) ? cachedEvents.upcoming : [],
             past: Array.isArray(cachedEvents.past) ? cachedEvents.past : [],
           };
         } catch (e) {
-          console.error('Error parsing cached events:', e);
         }
       }
     }
@@ -1545,18 +1392,15 @@ export const eventsManager = {
     
     // Fetch from Supabase (source of truth)
     try {
-      console.log("🔄 Fetching events from Supabase...");
       const { data, error } = await eventsService.getAll();
       
       if (error) {
         // If table doesn't exist, fall back to localStorage
         if (error.code === "TABLE_NOT_FOUND") {
-          console.warn("⚠️ Events table not found in Supabase. Using localStorage fallback.");
           return eventsManager._getAllFromLocalStorage();
         }
         
         // Other errors - log and fall back to localStorage
-        console.error("❌ Error fetching from Supabase:", error);
         return eventsManager._getAllFromLocalStorage();
       }
       
@@ -1576,10 +1420,8 @@ export const eventsManager = {
       // Save to localStorage as cache
       eventsManager.saveAll(events);
       
-      console.log(`✅ Fetched ${supabaseEvents.length} events from Supabase (${upcoming.length} upcoming, ${past.length} past)`);
       return events;
     } catch (err) {
-      console.error("❌ Exception fetching from Supabase:", err);
       return eventsManager._getAllFromLocalStorage();
     }
   },
@@ -1606,7 +1448,6 @@ export const eventsManager = {
           past: Array.isArray(parsed.past) ? parsed.past : [],
         };
       } catch (e) {
-        console.error("Error parsing events from localStorage:", e);
         return { upcoming: [], past: [] };
       }
     }
@@ -1685,13 +1526,11 @@ export const eventsManager = {
 
     // Save to Supabase FIRST (source of truth)
     try {
-      console.log("💾 Saving event to Supabase...");
       const { data, error } = await eventsService.add(newEvent);
       
       if (error) {
         // Handle table not found error - allow local storage fallback for development
         if (error.code === 'TABLE_NOT_FOUND') {
-          console.warn("⚠️ Events table doesn't exist in Supabase. Saving to localStorage only.");
           const localEvents = eventsManager._getAllFromLocalStorage();
           const upcoming = localEvents.upcoming || [];
           if (newEvent.status === "upcoming") {
@@ -1708,7 +1547,6 @@ export const eventsManager = {
         }
         
         // Other errors - throw to show to user
-        console.error("❌ Failed to save event to Supabase:", error);
         throw new Error(`Failed to save event: ${error.message || 'Unknown error'}`);
       }
       
@@ -1716,7 +1554,6 @@ export const eventsManager = {
         throw new Error('No data returned from Supabase');
       }
       
-      console.log("✅ Event successfully saved to Supabase:", data);
       
       // Update localStorage cache with the new event
       const localEvents = eventsManager._getAllFromLocalStorage();
@@ -1730,7 +1567,6 @@ export const eventsManager = {
           localEvents.past = [...(localEvents.past || []), data];
         }
             eventsManager.saveAll(localEvents);
-        console.log("✅ Event added to localStorage cache");
       } else {
         // Update existing event
         if (data.status === "upcoming") {
@@ -1753,12 +1589,10 @@ export const eventsManager = {
           }
         }
         eventsManager.saveAll(localEvents);
-        console.log("✅ Event updated in localStorage cache");
       }
       
       return data;
     } catch (err) {
-      console.error("❌ Exception saving event to Supabase:", err);
       // Re-throw to let caller handle the error
       throw err;
     }
@@ -1781,7 +1615,6 @@ export const eventsManager = {
     }
 
     if (!existingEvent) {
-      console.error('Event not found with id:', id);
       throw new Error(`Event with id ${id} not found`);
     }
 
@@ -1795,16 +1628,13 @@ export const eventsManager = {
 
     // Update in Supabase FIRST (source of truth)
     try {
-      console.log("💾 Updating event in Supabase...");
       const { data, error } = await eventsService.update(id, completeEvent);
       
       if (error) {
         // If event doesn't exist in Supabase, try to add it
         if (error.code === 'PGRST116' && error.details?.includes('0 rows')) {
-          console.log("Event not found in Supabase, attempting to add instead...");
           const addResult = await eventsService.add(completeEvent);
           if (addResult.data && !addResult.error) {
-            console.log("✅ Successfully added event to Supabase (was missing)");
             // Update localStorage with the new data
             const localEvents = eventsManager._getAllFromLocalStorage();
             if (addResult.data.status === "upcoming") {
@@ -1819,7 +1649,6 @@ export const eventsManager = {
           } else if (addResult.error) {
             if (addResult.error.code === 'TABLE_NOT_FOUND') {
               // Table doesn't exist - fallback to localStorage for development
-              console.warn("⚠️ Events table doesn't exist. Saving to localStorage only.");
               const localEvents = eventsManager._getAllFromLocalStorage();
               const upcoming = localEvents.upcoming || [];
               const past = localEvents.past || [];
@@ -1843,7 +1672,6 @@ export const eventsManager = {
           }
         } else if (error.code === 'TABLE_NOT_FOUND') {
           // Table doesn't exist - fallback to localStorage for development
-          console.warn("⚠️ Events table doesn't exist. Saving to localStorage only.");
           const localEvents = eventsManager._getAllFromLocalStorage();
           const upcoming = localEvents.upcoming || [];
           const past = localEvents.past || [];
@@ -1865,7 +1693,6 @@ export const eventsManager = {
         }
         
         // Other errors (400, 406, etc.) - throw to show to user
-        console.error("❌ Failed to update event in Supabase:", error);
         throw new Error(`Failed to update event: ${error.message || 'Unknown error'}`);
       }
       
@@ -1873,7 +1700,6 @@ export const eventsManager = {
         throw new Error('No data returned from Supabase');
       }
       
-      console.log("✅ Event successfully updated in Supabase:", data);
       
       // Update localStorage cache
       const localEvents = eventsManager._getAllFromLocalStorage();
@@ -1918,11 +1744,9 @@ export const eventsManager = {
       upcoming: finalUpcoming,
       past: finalPast,
     });
-      console.log("✅ Event updated in localStorage cache");
       
       return data;
     } catch (err) {
-      console.error("❌ Exception updating event in Supabase:", err);
       // Re-throw to let caller handle the error
       throw err;
     }
@@ -1936,7 +1760,6 @@ export const eventsManager = {
                          (localEvents.past || []).find((e) => e.id === id);
     
     if (!eventToDelete) {
-      console.warn(`Event with id ${id} not found in cache`);
       // Still try to delete from Supabase in case it exists there
     }
     
@@ -1944,22 +1767,18 @@ export const eventsManager = {
     if (eventToDelete && eventToDelete.heroImagePath) {
       try {
         await eventsService.deleteImage(eventToDelete.heroImagePath);
-        console.log('✅ Deleted event image from storage');
       } catch (deleteError) {
-        console.warn('Could not delete event image from storage:', deleteError);
         // Continue with event deletion even if image deletion fails
       }
     }
 
     // Delete from Supabase FIRST (source of truth)
     try {
-      console.log("🗑️ Deleting event from Supabase...");
       const { error } = await eventsService.delete(id);
       
       if (error) {
         if (error.code === 'TABLE_NOT_FOUND') {
           // Table doesn't exist - fallback to localStorage for development
-          console.warn("⚠️ Events table doesn't exist. Deleting from localStorage only.");
           const upcoming = (localEvents.upcoming || []).filter((e) => e.id !== id);
           const past = (localEvents.past || []).filter((e) => e.id !== id);
     eventsManager.saveAll({ upcoming, past });
@@ -1967,21 +1786,17 @@ export const eventsManager = {
         }
         
         // Other errors - throw to show to user
-        console.error("❌ Failed to delete event from Supabase:", error);
         throw new Error(`Failed to delete event: ${error.message || 'Unknown error'}`);
       }
       
-      console.log("✅ Event successfully deleted from Supabase");
       
       // Update localStorage cache
       const upcoming = (localEvents.upcoming || []).filter((e) => e.id !== id);
       const past = (localEvents.past || []).filter((e) => e.id !== id);
       eventsManager.saveAll({ upcoming, past });
-      console.log("✅ Event removed from localStorage cache");
 
     return true;
     } catch (err) {
-      console.error("❌ Exception deleting event from Supabase:", err);
       // Re-throw to let caller handle the error
       throw err;
     }
@@ -2007,13 +1822,11 @@ export const eventsManager = {
 
     // Update in Supabase FIRST (source of truth)
     try {
-      console.log("💾 Moving event to past in Supabase...");
       const { data, error } = await eventsService.update(id, updatedEvent);
       
       if (error) {
         if (error.code === 'TABLE_NOT_FOUND') {
           // Table doesn't exist - fallback to localStorage for development
-          console.warn("⚠️ Events table doesn't exist. Moving to past in localStorage only.");
     const updatedUpcoming = upcoming.filter((e) => e.id !== id);
     const updatedPast = [...past, updatedEvent];
           eventsManager.saveAll({ upcoming: updatedUpcoming, past: updatedPast });
@@ -2026,17 +1839,14 @@ export const eventsManager = {
         throw new Error('No data returned from Supabase');
       }
       
-      console.log("✅ Event successfully moved to past in Supabase");
       
       // Update localStorage cache
       const updatedUpcoming = upcoming.filter((e) => e.id !== id);
       const updatedPast = [...past, data];
       eventsManager.saveAll({ upcoming: updatedUpcoming, past: updatedPast });
-      console.log("✅ Event moved to past in localStorage cache");
       
       return data;
     } catch (err) {
-      console.error("❌ Exception moving event to past:", err);
       throw err;
     }
   },
@@ -2063,13 +1873,11 @@ export const eventsManager = {
 
     // Update in Supabase FIRST (source of truth)
     try {
-      console.log("💾 Moving event to upcoming in Supabase...");
       const { data, error } = await eventsService.update(id, updatedEvent);
       
       if (error) {
         if (error.code === 'TABLE_NOT_FOUND') {
           // Table doesn't exist - fallback to localStorage for development
-          console.warn("⚠️ Events table doesn't exist. Moving to upcoming in localStorage only.");
     const updatedPast = past.filter((e) => e.id !== id);
     const updatedUpcoming = [...upcoming, updatedEvent];
           eventsManager.saveAll({ upcoming: updatedUpcoming, past: updatedPast });
@@ -2082,17 +1890,14 @@ export const eventsManager = {
         throw new Error('No data returned from Supabase');
       }
       
-      console.log("✅ Event successfully moved to upcoming in Supabase");
       
       // Update localStorage cache
       const updatedPast = past.filter((e) => e.id !== id);
       const updatedUpcoming = [...upcoming, data];
       eventsManager.saveAll({ upcoming: updatedUpcoming, past: updatedPast });
-      console.log("✅ Event moved to upcoming in localStorage cache");
       
       return data;
     } catch (err) {
-      console.error("❌ Exception moving event to upcoming:", err);
       throw err;
     }
   },
@@ -2104,7 +1909,6 @@ export const eventsManager = {
       eventsManager._subscription.unsubscribe();
     }
 
-    console.log("🔔 Setting up real-time subscription for events...");
     
     // Real-time subscription - refetch from Supabase and update cache
     eventsManager._subscription = supabase
@@ -2117,7 +1921,6 @@ export const eventsManager = {
           table: 'events'
         },
         async (payload) => {
-          console.log('🔔 Real-time event change detected:', payload.eventType, payload);
           
           try {
             const { data, error } = await eventsService.getAll();
@@ -2136,20 +1939,15 @@ export const eventsManager = {
                 callback(events, payload);
               }
               
-              console.log('✅ Real-time update applied:', payload.eventType);
             } else {
-              console.warn('⚠️ Failed to refresh events after real-time change:', error);
             }
           } catch (err) {
-            console.error('❌ Exception handling real-time event change:', err);
           }
         }
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time subscription active for events');
         } else if (status === 'CHANNEL_ERROR') {
-          console.warn('⚠️ Real-time subscription error - table may not exist');
         }
       });
 
@@ -2158,7 +1956,6 @@ export const eventsManager = {
       if (eventsManager._subscription) {
         eventsManager._subscription.unsubscribe();
         eventsManager._subscription = null;
-        console.log('🔕 Real-time subscription unsubscribed');
       }
     };
   },
@@ -2168,7 +1965,6 @@ export const eventsManager = {
     if (eventsManager._subscription) {
       eventsManager._subscription.unsubscribe();
       eventsManager._subscription = null;
-      console.log('🔕 Real-time subscription unsubscribed');
     }
   },
 
@@ -2180,7 +1976,6 @@ export const eventsManager = {
     // If sync was called recently, skip it to prevent excessive requests
     if (timeSinceLastSync < eventsManager._syncCooldown) {
       const secondsLeft = Math.ceil((eventsManager._syncCooldown - timeSinceLastSync) / 1000);
-      console.log(`⏱️ Events sync cooldown active (${secondsLeft}s remaining). Skipping sync.`);
       return {
         synced: false,
         skipped: true,
@@ -2198,9 +1993,6 @@ export const eventsManager = {
           error.code === "TABLE_NOT_FOUND" ||
           error.message?.includes("Table does not exist")
         ) {
-          console.warn(
-            "Events table does not exist in Supabase. Please create it using the SQL script from EVENTS_SUPABASE_SETUP.md"
-          );
           return {
             synced: false,
             error: {
@@ -2210,7 +2002,6 @@ export const eventsManager = {
             },
           };
         }
-        console.warn("Failed to fetch events from Supabase:", error);
         return { synced: false, error };
       }
 
@@ -2288,7 +2079,6 @@ export const eventsManager = {
         error: null,
       };
     } catch (err) {
-      console.error("Exception syncing from Supabase:", err);
       return { synced: false, error: err };
     }
   },
@@ -2316,7 +2106,6 @@ export const eventsManager = {
             syncedCount++;
           } else if (error.code !== "TABLE_NOT_FOUND") {
             errorCount++;
-            console.warn(`Failed to update event ${event.title}:`, error);
           }
         } else {
           // Add new event
@@ -2325,7 +2114,6 @@ export const eventsManager = {
             syncedCount++;
           } else if (error.code !== "TABLE_NOT_FOUND") {
             errorCount++;
-            console.warn(`Failed to add event ${event.title}:`, error);
           }
         }
       }
@@ -2341,7 +2129,6 @@ export const eventsManager = {
             : null,
       };
     } catch (err) {
-      console.error("Exception syncing to Supabase:", err);
       return { synced: false, error: err };
     }
   },
@@ -2383,13 +2170,10 @@ export const articlesManager = {
           if (timeSinceLastFetch >= minFetchInterval) {
             articlesManager._lastFetchTime = now;
             // Return cached data immediately, then refresh in background
-            articlesManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
-              console.warn('Background refresh failed:', err);
-            });
+            articlesManager.getAll({ forceRefresh: true, useCache: false }).catch(() => {});
           }
           return cachedArticles;
         } catch (e) {
-          console.error('Error parsing cached articles:', e);
         }
       }
     }
@@ -2399,23 +2183,17 @@ export const articlesManager = {
     
     // Fetch from Supabase (source of truth)
     try {
-      console.log("🔄 articlesManager.getAll() - Fetching from Supabase...");
       const { data, error } = await articlesService.getAll();
       
       if (error) {
         // If table doesn't exist, fall back to localStorage
         if (error.code === "TABLE_NOT_FOUND") {
-          console.warn("⚠️ Articles table not found in Supabase. Using localStorage fallback.");
           const localArticles = articlesManager._getAllFromLocalStorage();
-          console.log(`📦 Using ${localArticles.length} articles from localStorage`);
           return localArticles;
         }
         
         // Other errors - log and fall back to localStorage
-        console.error("❌ Error fetching from Supabase:", error);
-        console.error("Error details:", { code: error.code, message: error.message, details: error.details });
         const localArticles = articlesManager._getAllFromLocalStorage();
-        console.log(`📦 Falling back to ${localArticles.length} articles from localStorage`);
         return localArticles;
       }
       
@@ -2425,7 +2203,6 @@ export const articlesManager = {
             try {
               return articlesService.mapSupabaseToLocal(a);
             } catch (mapErr) {
-              console.error('Error mapping article:', a, mapErr);
               return null;
             }
           }).filter(a => a !== null)
@@ -2434,16 +2211,11 @@ export const articlesManager = {
       // Save to localStorage as cache
       articlesManager.saveAll(supabaseArticles);
       
-      console.log(`✅ Successfully fetched and mapped ${supabaseArticles.length} articles from Supabase`);
       if (supabaseArticles.length > 0) {
-        console.log('Sample mapped article:', supabaseArticles[0]);
       }
       return supabaseArticles;
     } catch (err) {
-      console.error("❌ Exception fetching from Supabase:", err);
-      console.error("Exception stack:", err.stack);
       const localArticles = articlesManager._getAllFromLocalStorage();
-      console.log(`📦 Exception fallback to ${localArticles.length} articles from localStorage`);
       return localArticles;
     }
   },
@@ -2470,7 +2242,6 @@ export const articlesManager = {
         articlesManager._cacheTimestamp = Date.now();
         return parsed;
       } catch (e) {
-        console.error("Error parsing articles from localStorage:", e);
         return [];
       }
     }
@@ -2499,13 +2270,11 @@ export const articlesManager = {
 
     // Save to Supabase FIRST (source of truth)
     try {
-      console.log("💾 Saving article to Supabase...");
       const { data, error } = await articlesService.add(newArticle);
       
       if (error) {
         // Handle table not found error - allow local storage fallback for development
         if (error.code === 'TABLE_NOT_FOUND') {
-          console.warn("⚠️ Articles table doesn't exist in Supabase. Saving to localStorage only.");
           // For development: save to localStorage as fallback
           const localArticles = articlesManager._getAllFromLocalStorage();
           const tempId = localArticles.length > 0 ? Math.max(...localArticles.map((a) => a.id)) + 1 : 1;
@@ -2515,7 +2284,6 @@ export const articlesManager = {
         }
         
         // Other errors - throw to show to user
-        console.error("❌ Failed to save article to Supabase:", error);
         throw new Error(`Failed to save article: ${error.message || 'Unknown error'}`);
       }
       
@@ -2523,7 +2291,6 @@ export const articlesManager = {
         throw new Error('No data returned from Supabase');
       }
       
-      console.log("✅ Article successfully saved to Supabase:", data);
       
       // Update localStorage cache with the new article
       const localArticles = articlesManager._getAllFromLocalStorage();
@@ -2531,20 +2298,17 @@ export const articlesManager = {
       
       if (!exists) {
         articlesManager.saveAll([...localArticles, data]);
-        console.log("✅ Article added to localStorage cache");
       } else {
         // Update existing article
         const index = localArticles.findIndex(a => a.id === data.id);
         if (index >= 0) {
           localArticles[index] = data;
           articlesManager.saveAll(localArticles);
-          console.log("✅ Article updated in localStorage cache");
         }
       }
       
       return data;
     } catch (err) {
-      console.error("❌ Exception saving article to Supabase:", err);
       // Re-throw to let caller handle the error
       throw err;
     }
@@ -2562,7 +2326,6 @@ export const articlesManager = {
     });
 
     if (!existingArticle) {
-      console.error('Article not found with id:', id, 'Available IDs:', localArticles.map(a => a.id));
       throw new Error(`Article with id ${id} not found`);
     }
 
@@ -2576,16 +2339,13 @@ export const articlesManager = {
 
     // Update in Supabase FIRST (source of truth)
     try {
-      console.log("💾 Updating article in Supabase...");
       const { data, error } = await articlesService.update(id, completeArticle);
       
       if (error) {
         // If article doesn't exist in Supabase, try to add it
         if (error.code === 'PGRST116' || error.message?.includes('No rows found') || error.message?.includes('not found')) {
-          console.log("Article not found in Supabase, attempting to add instead...");
           const addResult = await articlesService.add(completeArticle);
           if (addResult.data && !addResult.error) {
-            console.log("✅ Successfully added article to Supabase (was missing)");
             // Update localStorage with the new data
             const localArticles = articlesManager._getAllFromLocalStorage();
             const index = localArticles.findIndex(a => a.id === id);
@@ -2599,7 +2359,6 @@ export const articlesManager = {
           } else if (addResult.error) {
             if (addResult.error.code === 'TABLE_NOT_FOUND') {
               // Table doesn't exist - fallback to localStorage for development
-              console.warn("⚠️ Articles table doesn't exist. Saving to localStorage only.");
               const localArticles = articlesManager._getAllFromLocalStorage();
               const index = localArticles.findIndex((a) => a.id === id);
               if (index >= 0) {
@@ -2612,7 +2371,6 @@ export const articlesManager = {
           }
         } else if (error.code === 'TABLE_NOT_FOUND') {
           // Table doesn't exist - fallback to localStorage for development
-          console.warn("⚠️ Articles table doesn't exist. Saving to localStorage only.");
           const localArticles = articlesManager._getAllFromLocalStorage();
           const index = localArticles.findIndex((a) => a.id === id);
           if (index >= 0) {
@@ -2623,7 +2381,6 @@ export const articlesManager = {
         }
         
         // Other errors - throw to show to user
-        console.error("❌ Failed to update article in Supabase:", error);
         throw new Error(`Failed to update article: ${error.message || 'Unknown error'}`);
       }
       
@@ -2631,7 +2388,6 @@ export const articlesManager = {
         throw new Error('No data returned from Supabase');
       }
       
-      console.log("✅ Article successfully updated in Supabase:", data);
       
       // Clear cache to force fresh fetch on next getAll()
       articlesManager._cache = null;
@@ -2648,16 +2404,13 @@ export const articlesManager = {
       if (index >= 0) {
         localArticles[index] = data;
         articlesManager.saveAll(localArticles);
-        console.log("✅ Article updated in localStorage cache");
       } else {
         // Article was added (new ID from Supabase)
         articlesManager.saveAll([...localArticles, data]);
-        console.log("✅ Article added to localStorage cache");
       }
       
       return data;
     } catch (err) {
-      console.error("❌ Exception updating article in Supabase:", err);
       // Re-throw to let caller handle the error
       throw err;
     }
@@ -2670,7 +2423,6 @@ export const articlesManager = {
     const articleToDelete = localArticles.find((a) => a.id === id);
     
     if (!articleToDelete) {
-      console.warn(`Article with id ${id} not found in cache`);
       // Still try to delete from Supabase in case it exists there
     }
     
@@ -2678,42 +2430,34 @@ export const articlesManager = {
     if (articleToDelete && articleToDelete.imagePath) {
       try {
         await articlesService.deleteImage(articleToDelete.imagePath);
-        console.log('✅ Deleted article image from storage');
       } catch (deleteError) {
-        console.warn('Could not delete article image from storage:', deleteError);
         // Continue with article deletion even if image deletion fails
       }
     }
 
     // Delete from Supabase FIRST (source of truth)
     try {
-      console.log("🗑️ Deleting article from Supabase...");
       const { error } = await articlesService.delete(id);
       
       if (error) {
         if (error.code === 'TABLE_NOT_FOUND') {
           // Table doesn't exist - fallback to localStorage for development
-          console.warn("⚠️ Articles table doesn't exist. Deleting from localStorage only.");
           const filtered = localArticles.filter((a) => a.id !== id);
           articlesManager.saveAll(filtered);
           return true;
         }
         
         // Other errors - throw to show to user
-        console.error("❌ Failed to delete article from Supabase:", error);
         throw new Error(`Failed to delete article: ${error.message || 'Unknown error'}`);
       }
       
-      console.log("✅ Article successfully deleted from Supabase");
       
       // Update localStorage cache
       const filtered = localArticles.filter((a) => a.id !== id);
       articlesManager.saveAll(filtered);
-      console.log("✅ Article removed from localStorage cache");
       
       return true;
     } catch (err) {
-      console.error("❌ Exception deleting article from Supabase:", err);
       // Re-throw to let caller handle the error
       throw err;
     }
@@ -2738,7 +2482,6 @@ export const articlesManager = {
       articlesManager._subscription.unsubscribe();
     }
 
-    console.log("🔔 Setting up real-time subscription for articles...");
     
     articlesManager._subscription = supabase
       .channel('articles-changes')
@@ -2750,7 +2493,6 @@ export const articlesManager = {
           table: 'articles'
         },
         async (payload) => {
-          console.log('🔔 Real-time article change detected:', payload.eventType, payload);
           
           try {
             // Refresh articles from Supabase
@@ -2767,20 +2509,15 @@ export const articlesManager = {
                 callback(supabaseArticles, payload);
               }
               
-              console.log('✅ Real-time update applied:', payload.eventType);
             } else {
-              console.warn('⚠️ Failed to refresh articles after real-time change:', error);
             }
           } catch (err) {
-            console.error('❌ Exception handling real-time change:', err);
           }
         }
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time subscription active for articles');
         } else if (status === 'CHANNEL_ERROR') {
-          console.warn('⚠️ Real-time subscription error - table may not exist');
         }
       });
 
@@ -2789,7 +2526,6 @@ export const articlesManager = {
       if (articlesManager._subscription) {
         articlesManager._subscription.unsubscribe();
         articlesManager._subscription = null;
-        console.log('🔕 Real-time subscription unsubscribed');
       }
     };
   },
@@ -2799,7 +2535,6 @@ export const articlesManager = {
     if (articlesManager._subscription) {
       articlesManager._subscription.unsubscribe();
       articlesManager._subscription = null;
-      console.log('🔕 Real-time subscription unsubscribed');
     }
   },
 
@@ -2813,9 +2548,6 @@ export const articlesManager = {
           error.code === "TABLE_NOT_FOUND" ||
           error.message?.includes("Table does not exist")
         ) {
-          console.warn(
-            "Articles table does not exist in Supabase. Please create it using the SQL script from ARTICLES_SUPABASE_SETUP.md"
-          );
           return {
             synced: false,
             error: {
@@ -2825,7 +2557,6 @@ export const articlesManager = {
             },
           };
         }
-        console.warn("Failed to fetch articles from Supabase:", error);
         return { synced: false, error };
       }
 
@@ -2850,7 +2581,6 @@ export const articlesManager = {
         error: null,
       };
     } catch (err) {
-      console.error("Exception syncing from Supabase:", err);
       return { synced: false, error: err };
     }
   },
@@ -2877,7 +2607,6 @@ export const articlesManager = {
             syncedCount++;
           } else if (error.code !== "TABLE_NOT_FOUND") {
             errorCount++;
-            console.warn(`Failed to update article ${article.titleEn}:`, error);
           }
         } else {
           // Add new article
@@ -2886,7 +2615,6 @@ export const articlesManager = {
             syncedCount++;
           } else if (error.code !== "TABLE_NOT_FOUND") {
             errorCount++;
-            console.warn(`Failed to add article ${article.titleEn}:`, error);
           }
         }
       }
@@ -2902,7 +2630,6 @@ export const articlesManager = {
             : null,
       };
     } catch (err) {
-      console.error("Exception syncing to Supabase:", err);
       return { synced: false, error: err };
     }
   },
@@ -2948,13 +2675,10 @@ export const therapyProgramsManager = {
           if (timeSinceLastFetch >= minFetchInterval) {
             therapyProgramsManager._lastFetchTime = now;
             // Return cached data immediately, then refresh in background
-            therapyProgramsManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
-              console.warn('Background refresh failed:', err);
-            });
+            therapyProgramsManager.getAll({ forceRefresh: true, useCache: false }).catch(() => {});
           }
           return cachedPrograms;
         } catch (e) {
-          console.error('Error parsing cached therapy programs:', e);
         }
       }
     }
@@ -2964,18 +2688,15 @@ export const therapyProgramsManager = {
     
     // Fetch from Supabase (source of truth)
     try {
-      console.log("🔄 Fetching therapy programs from Supabase...");
       const { data, error } = await therapyProgramsService.getAll();
       
       if (error) {
         // If table doesn't exist, fall back to localStorage
         if (error.code === "TABLE_NOT_FOUND") {
-          console.warn("⚠️ Therapy programs table not found in Supabase. Using localStorage fallback.");
           return therapyProgramsManager._getAllFromLocalStorage();
         }
         
         // Other errors - log and fall back to localStorage
-        console.error("❌ Error fetching from Supabase:", error);
         return therapyProgramsManager._getAllFromLocalStorage();
       }
       
@@ -2987,10 +2708,8 @@ export const therapyProgramsManager = {
       // Save to localStorage as cache
       therapyProgramsManager.saveAll(supabasePrograms);
       
-      console.log(`✅ Fetched ${supabasePrograms.length} therapy programs from Supabase`);
       return supabasePrograms;
     } catch (err) {
-      console.error("❌ Exception fetching from Supabase:", err);
       return therapyProgramsManager._getAllFromLocalStorage();
     }
   },
@@ -3017,7 +2736,6 @@ export const therapyProgramsManager = {
         therapyProgramsManager._cacheTimestamp = Date.now();
         return parsed;
       } catch (e) {
-        console.error("Error parsing therapy programs from localStorage:", e);
         return [];
       }
     }
@@ -3046,13 +2764,11 @@ export const therapyProgramsManager = {
 
     // Save to Supabase FIRST (source of truth)
     try {
-      console.log("💾 Saving therapy program to Supabase...");
       const { data, error } = await therapyProgramsService.add(newProgram);
       
       if (error) {
         // Handle table not found error - allow local storage fallback for development
         if (error.code === 'TABLE_NOT_FOUND') {
-          console.warn("⚠️ Therapy programs table doesn't exist in Supabase. Saving to localStorage only.");
           // For development: save to localStorage as fallback
           const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
           const tempId = localPrograms.length > 0 ? Math.max(...localPrograms.map((p) => p.id)) + 1 : 1;
@@ -3062,7 +2778,6 @@ export const therapyProgramsManager = {
         }
         
         // Other errors - throw to show to user
-        console.error("❌ Failed to save therapy program to Supabase:", error);
         throw new Error(`Failed to save therapy program: ${error.message || 'Unknown error'}`);
       }
       
@@ -3070,7 +2785,6 @@ export const therapyProgramsManager = {
         throw new Error('No data returned from Supabase');
       }
       
-      console.log("✅ Therapy program successfully saved to Supabase:", data);
       
       // Update localStorage cache with the new program
       const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
@@ -3078,20 +2792,17 @@ export const therapyProgramsManager = {
       
       if (!exists) {
         therapyProgramsManager.saveAll([...localPrograms, data]);
-        console.log("✅ Therapy program added to localStorage cache");
       } else {
         // Update existing program
         const index = localPrograms.findIndex(p => p.id === data.id);
         if (index >= 0) {
           localPrograms[index] = data;
           therapyProgramsManager.saveAll(localPrograms);
-          console.log("✅ Therapy program updated in localStorage cache");
         }
       }
       
       return data;
     } catch (err) {
-      console.error("❌ Exception saving therapy program to Supabase:", err);
       // Re-throw to let caller handle the error
       throw err;
     }
@@ -3104,7 +2815,6 @@ export const therapyProgramsManager = {
     const existingProgram = localPrograms.find((p) => p.id === id);
 
     if (!existingProgram) {
-      console.error('Therapy program not found with id:', id);
       throw new Error(`Therapy program with id ${id} not found`);
     }
 
@@ -3118,16 +2828,13 @@ export const therapyProgramsManager = {
 
     // Update in Supabase FIRST (source of truth)
     try {
-      console.log("💾 Updating therapy program in Supabase...");
       const { data, error } = await therapyProgramsService.update(id, completeProgram);
       
       if (error) {
         // If program doesn't exist in Supabase, try to add it
         if (error.code === 'PGRST116' && error.details?.includes('0 rows')) {
-          console.log("Therapy program not found in Supabase, attempting to add instead...");
           const addResult = await therapyProgramsService.add(completeProgram);
           if (addResult.data && !addResult.error) {
-            console.log("✅ Successfully added therapy program to Supabase (was missing)");
             // Update localStorage with the new data
             const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
             const index = localPrograms.findIndex(p => p.id === id);
@@ -3141,7 +2848,6 @@ export const therapyProgramsManager = {
           } else if (addResult.error) {
             if (addResult.error.code === 'TABLE_NOT_FOUND') {
               // Table doesn't exist - fallback to localStorage for development
-              console.warn("⚠️ Therapy programs table doesn't exist. Saving to localStorage only.");
               const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
               const index = localPrograms.findIndex((p) => p.id === id);
               if (index >= 0) {
@@ -3154,7 +2860,6 @@ export const therapyProgramsManager = {
           }
         } else if (error.code === 'TABLE_NOT_FOUND') {
           // Table doesn't exist - fallback to localStorage for development
-          console.warn("⚠️ Therapy programs table doesn't exist. Saving to localStorage only.");
           const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
           const index = localPrograms.findIndex((p) => p.id === id);
           if (index >= 0) {
@@ -3165,7 +2870,6 @@ export const therapyProgramsManager = {
         }
         
         // Other errors (400, 406, etc.) - throw to show to user
-        console.error("❌ Failed to update therapy program in Supabase:", error);
         throw new Error(`Failed to update therapy program: ${error.message || 'Unknown error'}`);
       }
       
@@ -3173,7 +2877,6 @@ export const therapyProgramsManager = {
         throw new Error('No data returned from Supabase');
       }
       
-      console.log("✅ Therapy program successfully updated in Supabase:", data);
       
       // Update localStorage cache
       const localPrograms = therapyProgramsManager._getAllFromLocalStorage();
@@ -3181,16 +2884,13 @@ export const therapyProgramsManager = {
       if (index >= 0) {
         localPrograms[index] = data;
         therapyProgramsManager.saveAll(localPrograms);
-        console.log("✅ Therapy program updated in localStorage cache");
       } else {
         // Program was added (new ID from Supabase)
         therapyProgramsManager.saveAll([...localPrograms, data]);
-        console.log("✅ Therapy program added to localStorage cache");
       }
       
       return data;
     } catch (err) {
-      console.error("❌ Exception updating therapy program in Supabase:", err);
       // Re-throw to let caller handle the error
       throw err;
     }
@@ -3203,7 +2903,6 @@ export const therapyProgramsManager = {
     const programToDelete = localPrograms.find((p) => p.id === id);
     
     if (!programToDelete) {
-      console.warn(`Therapy program with id ${id} not found in cache`);
       // Still try to delete from Supabase in case it exists there
     }
     
@@ -3211,42 +2910,34 @@ export const therapyProgramsManager = {
     if (programToDelete && programToDelete.imagePath) {
       try {
         await therapyProgramsService.deleteImage(programToDelete.imagePath);
-        console.log('✅ Deleted therapy program image from storage');
       } catch (deleteError) {
-        console.warn('Could not delete therapy program image from storage:', deleteError);
         // Continue with program deletion even if image deletion fails
       }
     }
 
     // Delete from Supabase FIRST (source of truth)
     try {
-      console.log("🗑️ Deleting therapy program from Supabase...");
       const { error } = await therapyProgramsService.delete(id);
       
       if (error) {
         if (error.code === 'TABLE_NOT_FOUND') {
           // Table doesn't exist - fallback to localStorage for development
-          console.warn("⚠️ Therapy programs table doesn't exist. Deleting from localStorage only.");
           const filtered = localPrograms.filter((p) => p.id !== id);
           therapyProgramsManager.saveAll(filtered);
           return true;
         }
         
         // Other errors - throw to show to user
-        console.error("❌ Failed to delete therapy program from Supabase:", error);
         throw new Error(`Failed to delete therapy program: ${error.message || 'Unknown error'}`);
       }
       
-      console.log("✅ Therapy program successfully deleted from Supabase");
       
       // Update localStorage cache
       const filtered = localPrograms.filter((p) => p.id !== id);
       therapyProgramsManager.saveAll(filtered);
-      console.log("✅ Therapy program removed from localStorage cache");
       
       return true;
     } catch (err) {
-      console.error("❌ Exception deleting therapy program from Supabase:", err);
       // Re-throw to let caller handle the error
       throw err;
     }
@@ -3271,7 +2962,6 @@ export const therapyProgramsManager = {
       therapyProgramsManager._subscription.unsubscribe();
     }
 
-    console.log("🔔 Setting up real-time subscription for therapy programs...");
     
     therapyProgramsManager._subscription = supabase
       .channel('therapy-programs-changes')
@@ -3283,7 +2973,6 @@ export const therapyProgramsManager = {
           table: 'therapy_programs'
         },
         async (payload) => {
-          console.log('🔔 Real-time therapy program change detected:', payload.eventType, payload);
           
           try {
             const { data, error } = await therapyProgramsService.getAll();
@@ -3298,20 +2987,15 @@ export const therapyProgramsManager = {
                 callback(supabasePrograms, payload);
               }
               
-              console.log('✅ Real-time update applied:', payload.eventType);
             } else {
-              console.warn('⚠️ Failed to refresh therapy programs after real-time change:', error);
             }
           } catch (err) {
-            console.error('❌ Exception handling real-time therapy program change:', err);
           }
         }
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time subscription active for therapy programs');
         } else if (status === 'CHANNEL_ERROR') {
-          console.warn('⚠️ Real-time subscription error - table may not exist');
         }
       });
 
@@ -3320,7 +3004,6 @@ export const therapyProgramsManager = {
       if (therapyProgramsManager._subscription) {
         therapyProgramsManager._subscription.unsubscribe();
         therapyProgramsManager._subscription = null;
-        console.log('🔕 Real-time subscription unsubscribed');
       }
     };
   },
@@ -3330,7 +3013,6 @@ export const therapyProgramsManager = {
     if (therapyProgramsManager._subscription) {
       therapyProgramsManager._subscription.unsubscribe();
       therapyProgramsManager._subscription = null;
-      console.log('🔕 Real-time subscription unsubscribed');
     }
   },
 
@@ -3342,7 +3024,6 @@ export const therapyProgramsManager = {
     // If sync was called recently, skip it to prevent excessive requests
     if (timeSinceLastSync < therapyProgramsManager._syncCooldown) {
       const secondsLeft = Math.ceil((therapyProgramsManager._syncCooldown - timeSinceLastSync) / 1000);
-      console.log(`⏱️ Therapy programs sync cooldown active (${secondsLeft}s remaining). Skipping sync.`);
       return {
         synced: false,
         skipped: true,
@@ -3360,9 +3041,6 @@ export const therapyProgramsManager = {
           error.code === "TABLE_NOT_FOUND" ||
           error.message?.includes("Table does not exist")
         ) {
-          console.warn(
-            "Therapy programs table does not exist in Supabase. Please create it using the SQL script from THERAPY_PROGRAMS_SUPABASE_SETUP.md"
-          );
           return {
             synced: false,
             error: {
@@ -3372,7 +3050,6 @@ export const therapyProgramsManager = {
             },
           };
         }
-        console.warn("Failed to fetch therapy programs from Supabase:", error);
         return { synced: false, error };
       }
 
@@ -3434,7 +3111,6 @@ export const therapyProgramsManager = {
         error: null,
       };
     } catch (err) {
-      console.error("Exception syncing from Supabase:", err);
       return { synced: false, error: err };
     }
   },
@@ -3462,7 +3138,6 @@ export const therapyProgramsManager = {
             syncedCount++;
           } else if (error.code !== "TABLE_NOT_FOUND") {
             errorCount++;
-            console.warn(`Failed to update therapy program ${program.title}:`, error);
           }
         } else {
           // Add new program
@@ -3471,7 +3146,6 @@ export const therapyProgramsManager = {
             syncedCount++;
           } else if (error.code !== "TABLE_NOT_FOUND") {
             errorCount++;
-            console.warn(`Failed to add therapy program ${program.title}:`, error);
           }
         }
       }
@@ -3487,7 +3161,6 @@ export const therapyProgramsManager = {
             : null,
       };
     } catch (err) {
-      console.error("Exception syncing to Supabase:", err);
       return { synced: false, error: err };
     }
   },
@@ -3533,13 +3206,10 @@ export const forParentsManager = {
           if (timeSinceLastFetch >= minFetchInterval) {
             forParentsManager._lastFetchTime = now;
             // Return cached data immediately, then refresh in background
-            forParentsManager.getAll({ forceRefresh: true, useCache: false }).catch(err => {
-              console.warn('Background refresh failed:', err);
-            });
+            forParentsManager.getAll({ forceRefresh: true, useCache: false }).catch(() => {});
           }
           return cachedArticles;
         } catch (e) {
-          console.error('Error parsing cached for parents articles:', e);
         }
       }
     }
@@ -3549,18 +3219,15 @@ export const forParentsManager = {
     
     // Fetch from Supabase (source of truth)
     try {
-      console.log("🔄 Fetching for parents articles from Supabase...");
       const { data, error } = await forParentsService.getAll();
       
       if (error) {
         // If table doesn't exist, fall back to localStorage
         if (error.code === "TABLE_NOT_FOUND") {
-          console.warn("⚠️ For parents table not found in Supabase. Using localStorage fallback.");
           return forParentsManager._getAllFromLocalStorage();
         }
         
         // Other errors - log and fall back to localStorage
-        console.error("❌ Error fetching from Supabase:", error);
         return forParentsManager._getAllFromLocalStorage();
       }
       
@@ -3572,10 +3239,8 @@ export const forParentsManager = {
       // Save to localStorage as cache
       forParentsManager.saveAll(supabaseArticles);
       
-      console.log(`✅ Fetched ${supabaseArticles.length} for parents articles from Supabase`);
       return supabaseArticles;
     } catch (err) {
-      console.error("❌ Exception fetching from Supabase:", err);
       return forParentsManager._getAllFromLocalStorage();
     }
   },
@@ -3602,7 +3267,6 @@ export const forParentsManager = {
         forParentsManager._cacheTimestamp = Date.now();
         return parsed;
       } catch (e) {
-        console.error("Error parsing for parents articles from localStorage:", e);
         return [];
       }
     }
@@ -3631,13 +3295,11 @@ export const forParentsManager = {
 
     // Save to Supabase FIRST (source of truth)
     try {
-      console.log("💾 Saving for parents article to Supabase...");
       const { data, error } = await forParentsService.add(newArticle);
       
       if (error) {
         // Handle table not found error - allow local storage fallback for development
         if (error.code === 'TABLE_NOT_FOUND') {
-          console.warn("⚠️ For parents table doesn't exist in Supabase. Saving to localStorage only.");
           // For development: save to localStorage as fallback
           const localArticles = forParentsManager._getAllFromLocalStorage();
           const tempId = localArticles.length > 0 ? Math.max(...localArticles.map((a) => a.id)) + 1 : 1;
@@ -3647,7 +3309,6 @@ export const forParentsManager = {
         }
         
         // Other errors - throw to show to user
-        console.error("❌ Failed to save for parents article to Supabase:", error);
         throw new Error(`Failed to save article: ${error.message || 'Unknown error'}`);
       }
       
@@ -3655,7 +3316,6 @@ export const forParentsManager = {
         throw new Error('No data returned from Supabase');
       }
       
-      console.log("✅ For parents article successfully saved to Supabase:", data);
       
       // Update localStorage cache with the new article
       const localArticles = forParentsManager._getAllFromLocalStorage();
@@ -3663,20 +3323,17 @@ export const forParentsManager = {
       
       if (!exists) {
         forParentsManager.saveAll([...localArticles, data]);
-        console.log("✅ For parents article added to localStorage cache");
       } else {
         // Update existing article
         const index = localArticles.findIndex(a => a.id === data.id);
         if (index >= 0) {
           localArticles[index] = data;
           forParentsManager.saveAll(localArticles);
-          console.log("✅ For parents article updated in localStorage cache");
         }
       }
       
       return data;
     } catch (err) {
-      console.error("❌ Exception saving for parents article to Supabase:", err);
       // Re-throw to let caller handle the error
       throw err;
     }
@@ -3689,7 +3346,6 @@ export const forParentsManager = {
     const existingArticle = localArticles.find((a) => a.id === id);
 
     if (!existingArticle) {
-      console.error('For parents article not found with id:', id);
       throw new Error(`Article with id ${id} not found`);
     }
 
@@ -3703,16 +3359,13 @@ export const forParentsManager = {
 
     // Update in Supabase FIRST (source of truth)
     try {
-      console.log("💾 Updating for parents article in Supabase...");
       const { data, error } = await forParentsService.update(id, completeArticle);
       
       if (error) {
         // If article doesn't exist in Supabase, try to add it
         if (error.code === 'PGRST116' && error.details?.includes('0 rows')) {
-          console.log("For parents article not found in Supabase, attempting to add instead...");
           const addResult = await forParentsService.add(completeArticle);
           if (addResult.data && !addResult.error) {
-            console.log("✅ Successfully added for parents article to Supabase (was missing)");
             // Update localStorage with the new data
             const localArticles = forParentsManager._getAllFromLocalStorage();
             const index = localArticles.findIndex(a => a.id === id);
@@ -3726,7 +3379,6 @@ export const forParentsManager = {
           } else if (addResult.error) {
             if (addResult.error.code === 'TABLE_NOT_FOUND') {
               // Table doesn't exist - fallback to localStorage for development
-              console.warn("⚠️ For parents table doesn't exist. Saving to localStorage only.");
               const localArticles = forParentsManager._getAllFromLocalStorage();
               const index = localArticles.findIndex((a) => a.id === id);
               if (index >= 0) {
@@ -3739,7 +3391,6 @@ export const forParentsManager = {
           }
         } else if (error.code === 'TABLE_NOT_FOUND') {
           // Table doesn't exist - fallback to localStorage for development
-          console.warn("⚠️ For parents table doesn't exist. Saving to localStorage only.");
           const localArticles = forParentsManager._getAllFromLocalStorage();
           const index = localArticles.findIndex((a) => a.id === id);
           if (index >= 0) {
@@ -3750,7 +3401,6 @@ export const forParentsManager = {
         }
         
         // Other errors - throw to show to user
-        console.error("❌ Failed to update for parents article in Supabase:", error);
         throw new Error(`Failed to update article: ${error.message || 'Unknown error'}`);
       }
       
@@ -3758,7 +3408,6 @@ export const forParentsManager = {
         throw new Error('No data returned from Supabase');
       }
       
-      console.log("✅ For parents article successfully updated in Supabase:", data);
       
       // Update localStorage cache
       const localArticles = forParentsManager._getAllFromLocalStorage();
@@ -3766,16 +3415,13 @@ export const forParentsManager = {
       if (index >= 0) {
         localArticles[index] = data;
         forParentsManager.saveAll(localArticles);
-        console.log("✅ For parents article updated in localStorage cache");
       } else {
         // Article was added (new ID from Supabase)
         forParentsManager.saveAll([...localArticles, data]);
-        console.log("✅ For parents article added to localStorage cache");
       }
       
       return data;
     } catch (err) {
-      console.error("❌ Exception updating for parents article in Supabase:", err);
       // Re-throw to let caller handle the error
       throw err;
     }
@@ -3788,7 +3434,6 @@ export const forParentsManager = {
     const articleToDelete = localArticles.find((a) => a.id === id);
     
     if (!articleToDelete) {
-      console.warn(`For parents article with id ${id} not found in cache`);
       // Still try to delete from Supabase in case it exists there
     }
     
@@ -3796,42 +3441,34 @@ export const forParentsManager = {
     if (articleToDelete && articleToDelete.imagePath) {
       try {
         await forParentsService.deleteImage(articleToDelete.imagePath);
-        console.log('✅ Deleted for parents article image from storage');
       } catch (deleteError) {
-        console.warn('Could not delete for parents article image from storage:', deleteError);
         // Continue with article deletion even if image deletion fails
       }
     }
 
     // Delete from Supabase FIRST (source of truth)
     try {
-      console.log("🗑️ Deleting for parents article from Supabase...");
       const { error } = await forParentsService.delete(id);
       
       if (error) {
         if (error.code === 'TABLE_NOT_FOUND') {
           // Table doesn't exist - fallback to localStorage for development
-          console.warn("⚠️ For parents table doesn't exist. Deleting from localStorage only.");
           const filtered = localArticles.filter((a) => a.id !== id);
           forParentsManager.saveAll(filtered);
           return true;
         }
         
         // Other errors - throw to show to user
-        console.error("❌ Failed to delete for parents article from Supabase:", error);
         throw new Error(`Failed to delete article: ${error.message || 'Unknown error'}`);
       }
       
-      console.log("✅ For parents article successfully deleted from Supabase");
       
       // Update localStorage cache
       const filtered = localArticles.filter((a) => a.id !== id);
       forParentsManager.saveAll(filtered);
-      console.log("✅ For parents article removed from localStorage cache");
       
       return true;
     } catch (err) {
-      console.error("❌ Exception deleting for parents article from Supabase:", err);
       // Re-throw to let caller handle the error
       throw err;
     }
@@ -3856,7 +3493,6 @@ export const forParentsManager = {
       forParentsManager._subscription.unsubscribe();
     }
 
-    console.log("🔔 Setting up real-time subscription for for parents articles...");
     
     forParentsManager._subscription = supabase
       .channel('for-parents-changes')
@@ -3868,7 +3504,6 @@ export const forParentsManager = {
           table: 'for_parents'
         },
         async (payload) => {
-          console.log('🔔 Real-time for parents article change detected:', payload.eventType, payload);
           
           try {
             const { data, error } = await forParentsService.getAll();
@@ -3883,20 +3518,15 @@ export const forParentsManager = {
                 callback(supabaseArticles, payload);
               }
               
-              console.log('✅ Real-time update applied:', payload.eventType);
             } else {
-              console.warn('⚠️ Failed to refresh for parents articles after real-time change:', error);
             }
           } catch (err) {
-            console.error('❌ Exception handling real-time for parents change:', err);
           }
         }
       )
       .subscribe((status) => {
         if (status === 'SUBSCRIBED') {
-          console.log('✅ Real-time subscription active for for parents articles');
         } else if (status === 'CHANNEL_ERROR') {
-          console.warn('⚠️ Real-time subscription error - table may not exist');
         }
       });
 
@@ -3905,7 +3535,6 @@ export const forParentsManager = {
       if (forParentsManager._subscription) {
         forParentsManager._subscription.unsubscribe();
         forParentsManager._subscription = null;
-        console.log('🔕 Real-time subscription unsubscribed');
       }
     };
   },
@@ -3915,7 +3544,6 @@ export const forParentsManager = {
     if (forParentsManager._subscription) {
       forParentsManager._subscription.unsubscribe();
       forParentsManager._subscription = null;
-      console.log('🔕 Real-time subscription unsubscribed');
     }
   },
 
@@ -3927,7 +3555,6 @@ export const forParentsManager = {
     // If sync was called recently, skip it to prevent excessive requests
     if (timeSinceLastSync < forParentsManager._syncCooldown) {
       const secondsLeft = Math.ceil((forParentsManager._syncCooldown - timeSinceLastSync) / 1000);
-      console.log(`⏱️ For parents articles sync cooldown active (${secondsLeft}s remaining). Skipping sync.`);
       return {
         synced: false,
         skipped: true,
@@ -3945,9 +3572,6 @@ export const forParentsManager = {
           error.code === "TABLE_NOT_FOUND" ||
           error.message?.includes("Table does not exist")
         ) {
-          console.warn(
-            "For parents table does not exist in Supabase. Please create it using the SQL script from FOR_PARENTS_SUPABASE_SETUP.md"
-          );
           return {
             synced: false,
             error: {
@@ -3957,7 +3581,6 @@ export const forParentsManager = {
             },
           };
         }
-        console.warn("Failed to fetch parent articles from Supabase:", error);
         return { synced: false, error };
       }
 
@@ -4019,7 +3642,6 @@ export const forParentsManager = {
         error: null,
       };
     } catch (err) {
-      console.error("Exception syncing from Supabase:", err);
       return { synced: false, error: err };
     }
   },
@@ -4052,11 +3674,9 @@ export const forParentsManager = {
             const { error } = await forParentsService.update(article.id, articleData);
             if (!error) {
               syncedCount++;
-              console.log(`✅ Synced parent article: ${article.title}`);
             } else if (error.code !== "TABLE_NOT_FOUND") {
               errorCount++;
               const errorMsg = `Failed to update parent article ${article.title}: ${error.message}`;
-              console.warn(errorMsg);
               errors.push(errorMsg);
             }
           } else {
@@ -4067,7 +3687,6 @@ export const forParentsManager = {
             const { data, error } = await forParentsService.add(articleToAdd);
             if (!error && data) {
               syncedCount++;
-              console.log(`✅ Added parent article to Supabase: ${article.title}`);
               
               // Update local article with Supabase ID
               const localArticles = forParentsManager._getAllFromLocalStorage();
@@ -4079,14 +3698,12 @@ export const forParentsManager = {
             } else if (error && error.code !== "TABLE_NOT_FOUND") {
               errorCount++;
               const errorMsg = `Failed to add parent article ${article.title}: ${error.message}`;
-              console.warn(errorMsg);
               errors.push(errorMsg);
             }
           }
         } catch (err) {
           errorCount++;
           const errorMsg = `Exception processing parent article ${article.title}: ${err.message}`;
-          console.error(errorMsg);
           errors.push(errorMsg);
         }
       }
@@ -4103,7 +3720,6 @@ export const forParentsManager = {
             : null,
       };
     } catch (err) {
-      console.error("Exception syncing to Supabase:", err);
       return { synced: false, error: err };
     }
   },

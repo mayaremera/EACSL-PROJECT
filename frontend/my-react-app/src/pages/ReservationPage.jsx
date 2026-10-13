@@ -82,7 +82,6 @@ const ReservationPage = () => {
       // Dispatch event to notify dashboard
       window.dispatchEvent(new CustomEvent('reservationsUpdated', { detail: [result.data] }));
       
-      console.log('Reservation submitted successfully:', result.data);
       setSubmittedData({
         kidsName: formData.kidsName,
         yourName: formData.yourName,
@@ -91,7 +90,6 @@ const ReservationPage = () => {
       });
       setIsSubmitted(true);
     } catch (error) {
-      console.error('Error submitting reservation:', error);
       toast.error(
         `Failed to save your reservation: ${error.message || 'Unknown error'}\n\n` +
         'Please try again or contact support if the issue persists.'

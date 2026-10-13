@@ -32,7 +32,6 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
 
   useEffect(() => {
     if (article) {
-      console.log('📝 ArticleEditForm - Loading article data:', article);
       const formDataToSet = {
         titleEn: article.titleEn || '',
         category: article.category || 'Autism',
@@ -46,17 +45,14 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
         excerptEn: article.excerptEn || '',
         url: article.url || ''
       };
-      console.log('📝 ArticleEditForm - Setting form data:', formDataToSet);
       setFormData(formDataToSet);
       
       // Set preview if image exists (check all possible image sources)
       const previewImage = article.imageUrl || article.image || (article.imagePath ? 
         `https://jwhvfugznhwtpfurdkxm.supabase.co/storage/v1/object/public/ArticlesBucket/${article.imagePath}` : null);
       if (previewImage) {
-        console.log('📝 ArticleEditForm - Setting image preview:', previewImage);
         setImagePreview(previewImage);
       } else {
-        console.log('📝 ArticleEditForm - No image found for preview');
         setImagePreview(null);
       }
       
@@ -64,14 +60,11 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
       const previewModalImage = article.modalImageUrl || article.modalImage || (article.modalImagePath ? 
         `https://jwhvfugznhwtpfurdkxm.supabase.co/storage/v1/object/public/ArticlesBucket/${article.modalImagePath}` : null);
       if (previewModalImage) {
-        console.log('📝 ArticleEditForm - Setting modal image preview:', previewModalImage);
         setModalImagePreview(previewModalImage);
       } else {
-        console.log('📝 ArticleEditForm - No modal image found for preview');
         setModalImagePreview(null);
       }
     } else {
-      console.log('📝 ArticleEditForm - No article provided (adding new)');
       // Reset form when no article (adding new)
       setFormData({
         titleEn: '',
@@ -326,12 +319,8 @@ const ArticleEditForm = ({ article, onSave, onCancel }) => {
         modalImagePath: finalModalImagePath
       };
 
-      console.log('💾 ArticleEditForm - Saving article data:', dataToSave);
-      console.log('💾 ArticleEditForm - Article ID:', article?.id);
       await onSave(dataToSave);
-      console.log('✅ ArticleEditForm - Save completed');
     } catch (error) {
-      console.error('Error uploading image:', error);
       alert(getUploadErrorMessage(error));
     } finally {
       setIsUploading(false);

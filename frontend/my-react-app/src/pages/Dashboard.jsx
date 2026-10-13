@@ -54,7 +54,6 @@ const formsManager = {
                     this.data = [];
                 }
             } catch (e) {
-                console.error('Error parsing stored forms:', e);
                 this.data = [];
             }
         } else {
@@ -116,7 +115,6 @@ const eventRegistrationsManager = {
         try {
             // Ensure supabase is available
             if (!supabase) {
-                console.error('Supabase client is not available');
                 return this.getAllFromLocalStorage();
             }
             
@@ -129,10 +127,8 @@ const eventRegistrationsManager = {
             if (error) {
                 // If table doesn't exist, fall back to localStorage
                 if (error.code === 'PGRST116' || error.message?.includes('does not exist')) {
-                    console.warn('Event registrations table not found in Supabase. Using localStorage fallback.');
                     return this.getAllFromLocalStorage();
                 }
-                console.error('Error fetching event registrations from Supabase:', error);
                 return this.getAllFromLocalStorage();
             }
 
@@ -143,12 +139,10 @@ const eventRegistrationsManager = {
             try {
                 localStorage.setItem('eventRegistrations', JSON.stringify(this.data));
             } catch (e) {
-                console.warn('Could not save to localStorage backup:', e);
             }
             
             return this.data;
         } catch (err) {
-            console.error('Exception fetching event registrations:', err);
             return this.getAllFromLocalStorage();
         }
     },
@@ -162,7 +156,6 @@ const eventRegistrationsManager = {
                     this.data = [];
                 }
             } catch (e) {
-                console.error('Error parsing stored event registrations:', e);
                 this.data = [];
             }
         } else {
@@ -180,7 +173,6 @@ const eventRegistrationsManager = {
         try {
             // Ensure supabase is available
             if (!supabase) {
-                console.error('Supabase client is not available');
                 // Fall back to localStorage
                 const registration = this.data.find(r => r.id === id);
                 if (registration) {
@@ -203,7 +195,6 @@ const eventRegistrationsManager = {
                 .eq('id', parseInt(id));
 
             if (error) {
-                console.error('Error updating registration status in Supabase:', error);
                 // Fall back to localStorage
                 const registration = this.data.find(r => r.id === id);
                 if (registration) {
@@ -226,7 +217,6 @@ const eventRegistrationsManager = {
                 window.dispatchEvent(new CustomEvent('eventRegistrationsUpdated', { detail: this.data }));
             }
         } catch (err) {
-            console.error('Exception updating registration status:', err);
             // Fall back to localStorage
             const registration = this.data.find(r => r.id === id);
             if (registration) {
@@ -242,7 +232,6 @@ const eventRegistrationsManager = {
         try {
             // Ensure supabase is available
             if (!supabase) {
-                console.error('Supabase client is not available');
                 // Fall back to localStorage
                 this.data = this.data.filter(r => r.id !== id);
                 this.save();
@@ -256,7 +245,6 @@ const eventRegistrationsManager = {
                 .eq('id', parseInt(id));
 
             if (error) {
-                console.error('Error deleting registration from Supabase:', error);
                 // Fall back to localStorage
                 this.data = this.data.filter(r => r.id !== id);
                 this.save();
@@ -267,7 +255,6 @@ const eventRegistrationsManager = {
                 window.dispatchEvent(new CustomEvent('eventRegistrationsUpdated', { detail: this.data }));
             }
         } catch (err) {
-            console.error('Exception deleting registration:', err);
             // Fall back to localStorage
             this.data = this.data.filter(r => r.id !== id);
             this.save();
@@ -288,7 +275,6 @@ const contactFormsManager = {
                     this.data = [];
                 }
             } catch (e) {
-                console.error('Error parsing stored contact forms:', e);
                 this.data = [];
             }
         } else {
@@ -340,7 +326,6 @@ const reservationsManager = {
                     this.data = [];
                 }
             } catch (e) {
-                console.error('Error parsing stored reservations:', e);
                 this.data = [];
             }
         } else {
@@ -438,7 +423,6 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
             if (file.storagePath) {
                 // Use the statically imported supabase instead of dynamic import
                 if (!supabase) {
-                    console.error('Supabase client is not available');
                     return;
                 }
                 const { data, error } = await supabase.storage
@@ -463,7 +447,6 @@ const FormDetailsModal = ({ form, onClose, onApprove, onReject }) => {
 
             toast.warning('File data not available. This file was submitted before the download feature was added.');
         } catch (error) {
-            console.error('Error downloading file:', error);
             toast.error('Error downloading file. Please try again.');
         }
     };
@@ -1186,38 +1169,25 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     useEffect(() => {
         initializeData();
         // loadCourses() is now async and fetches from Supabase first
-        loadCourses().catch(err => {
-            console.error('Failed to load courses:', err);
-        });
+        loadCourses().catch(() => {});
         // loadMembers() is now async and fetches from Supabase first
-        loadMembers().catch(err => {
-            console.error('Failed to load members:', err);
-        });
+        loadMembers().catch(() => {});
         loadForms();
         loadEventRegistrations();
         loadContactForms();
         // Load events after initialization (now async, fetches from Supabase first)
         setTimeout(() => {
-            loadEvents().catch(err => {
-                console.error('Failed to load events:', err);
-            });
+            loadEvents().catch(() => {});
         }, 100);
-        loadArticles().catch(err => {
-            console.error('Failed to load articles:', err);
-        });
-        loadTherapyPrograms().catch(err => {
-            console.error('Failed to load therapy programs:', err);
-        });
-        loadForParentsArticles().catch(err => {
-            console.error('Failed to load for parents articles:', err);
-        });
+        loadArticles().catch(() => {});
+        loadTherapyPrograms().catch(() => {});
+        loadForParentsArticles().catch(() => {});
 
         // Sync event registrations from Supabase on initial load (silently fail if table doesn't exist)
         setTimeout(async () => {
             try {
                 await loadEventRegistrations();
             } catch (err) {
-                console.warn('Could not load event registrations on initial load:', err);
             }
         }, 600);
 
@@ -1252,16 +1222,16 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     // Reload tab data when switching tabs (realtime + window events keep data fresh)
     useEffect(() => {
         if (activeTab === 'events') {
-            loadEvents().catch(err => console.error('Failed to load events:', err));
+            loadEvents().catch(() => {});
         }
         if (activeTab === 'articles') {
-            loadArticles().catch(err => console.error('Failed to load articles:', err));
+            loadArticles().catch(() => {});
         }
         if (activeTab === 'therapy-programs') {
-            loadTherapyPrograms().catch(err => console.error('Failed to load therapy programs:', err));
+            loadTherapyPrograms().catch(() => {});
         }
         if (activeTab === 'for-parents') {
-            loadForParentsArticles().catch(err => console.error('Failed to load for parents articles:', err));
+            loadForParentsArticles().catch(() => {});
         }
         if (activeTab === 'applications') {
             loadForms();
@@ -1325,7 +1295,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             const allArticles = await articlesManager.getAll({ forceRefresh: true, useCache: false });
             setArticles(allArticles || []);
         } catch (error) {
-            console.error('Error loading articles:', error);
             setArticles(articlesManager._getAllFromLocalStorage() || []);
         }
     };  
@@ -1335,7 +1304,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             const allPrograms = await therapyProgramsManager.getAll({ forceRefresh: true, useCache: false });
             setTherapyPrograms(allPrograms || []);
         } catch (error) {
-            console.error('Error loading therapy programs:', error);
             setTherapyPrograms(therapyProgramsManager._getAllFromLocalStorage() || []);
         }
     };
@@ -1345,7 +1313,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             const allArticles = await forParentsManager.getAll({ forceRefresh: true, useCache: false });
             setForParentsArticles(allArticles || []);
         } catch (error) {
-            console.error('Error loading for parents articles:', error);
             setForParentsArticles(forParentsManager._getAllFromLocalStorage() || []);
         }
     };
@@ -1355,7 +1322,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             const allCourses = await coursesManager.getAll({ forceRefresh: true, useCache: false });
             setCourses(allCourses);
         } catch (error) {
-            console.error('Error loading courses:', error);
             // Fallback to cached data
             const cachedCourses = coursesManager._getAllFromLocalStorage();
             setCourses(cachedCourses);
@@ -1367,7 +1333,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             const allMembers = await membersManager.getAll({ forceRefresh: true, useCache: false });
             setMembers(allMembers);
         } catch (error) {
-            console.error('Error loading members:', error);
             // Fallback to cached data
             const cachedMembers = membersManager._getAllFromLocalStorage();
             setMembers(cachedMembers);
@@ -1386,7 +1351,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 return;
             }
         } catch (error) {
-            console.warn('Could not load forms from Supabase, using localStorage:', error);
         }
         
         // Fallback to localStorage
@@ -1427,7 +1391,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 toast.info('No forms found in Supabase.');
             }
         } catch (error) {
-            console.error('Error syncing forms from Supabase:', error);
             toast.error(`Error syncing forms: ${error.message || 'Unknown error'}`);
         }
     };
@@ -1437,7 +1400,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             const allRegistrations = await eventRegistrationsManager.getAll();
             setEventRegistrations(allRegistrations);
         } catch (error) {
-            console.error('Error loading event registrations:', error);
             // Fallback to localStorage if async call fails
             const allRegistrations = eventRegistrationsManager.getAllFromLocalStorage();
             setEventRegistrations(allRegistrations);
@@ -1453,7 +1415,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             // Show success message
             toast.success('Event registrations synced successfully from Supabase!');
         } catch (error) {
-            console.error('Error syncing event registrations:', error);
             toast.error('Failed to sync event registrations. Please check the console for details.');
         } finally {
             setIsSyncingEventRegistrations(false);
@@ -1475,7 +1436,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 setContactForms(allContactForms);
             }
         } catch (error) {
-            console.warn('Error loading contact forms from Supabase, using localStorage:', error);
             // Fallback to localStorage
             const allContactForms = contactFormsManager.getAll();
             setContactForms(allContactForms);
@@ -1515,7 +1475,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 toast.info('No contact forms found in Supabase.');
             }
         } catch (error) {
-            console.error('Error syncing contact forms from Supabase:', error);
             toast.error(`Error syncing contact forms: ${error.message || 'Unknown error'}`);
         }
     };
@@ -1532,7 +1491,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 return;
             }
         } catch (error) {
-            console.warn('Could not load reservations from Supabase, using localStorage:', error);
         }
         
         // Fallback to localStorage
@@ -1573,7 +1531,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 toast.info('No reservations found in Supabase.');
             }
         } catch (error) {
-            console.error('Error syncing reservations from Supabase:', error);
             toast.error(`Error syncing reservations: ${error.message || 'Unknown error'}`);
         }
     };
@@ -1621,14 +1578,12 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 results.memberForms.skipped++;
                             } else {
                                 results.memberForms.errors++;
-                                console.error('Error syncing member form:', result.error);
                             }
                         } else {
                             results.memberForms.synced++;
                         }
                     } catch (error) {
                         results.memberForms.errors++;
-                        console.error('Error syncing member form:', error);
                     }
                 }
             }
@@ -1670,13 +1625,11 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                         const result = await contactFormsService.add(form);
                         if (result.error) {
                             results.contactForms.errors++;
-                            console.error('Error syncing contact form:', result.error);
                         } else {
                             results.contactForms.synced++;
                         }
                     } catch (error) {
                         results.contactForms.errors++;
-                        console.error('Error syncing contact form:', error);
                     }
                 }
             }
@@ -1712,13 +1665,11 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                         const result = await reservationsService.add(reservation);
                         if (result.error) {
                             results.reservations.errors++;
-                            console.error('Error syncing reservation:', result.error);
                         } else {
                             results.reservations.synced++;
                         }
                     } catch (error) {
                         results.reservations.errors++;
-                        console.error('Error syncing reservation:', error);
                     }
                 }
             }
@@ -1736,7 +1687,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                         existingRegistrations = data;
                     }
                 } catch (err) {
-                    console.warn('Could not fetch existing event registrations:', err);
                 }
 
                 const existingEmails = new Set();
@@ -1786,13 +1736,11 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 break;
                             }
                             results.eventRegistrations.errors++;
-                            console.error('Error syncing event registration:', error);
                         } else {
                             results.eventRegistrations.synced++;
                         }
                     } catch (error) {
                         results.eventRegistrations.errors++;
-                        console.error('Error syncing event registration:', error);
                     }
                 }
             }
@@ -1836,7 +1784,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             await loadEventRegistrations();
 
         } catch (error) {
-            console.error('Error syncing to Supabase:', error);
             toast.error(`Error syncing to Supabase: ${error.message || 'Unknown error'}`);
         }
     };
@@ -1849,7 +1796,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 past: Array.isArray(allEvents.past) ? allEvents.past : []
             });
         } catch (error) {
-            console.error('Error loading events:', error);
             const cachedEvents = eventsManager._getAllFromLocalStorage();
             setEvents({
                 upcoming: Array.isArray(cachedEvents.upcoming) ? cachedEvents.upcoming : [],
@@ -1867,7 +1813,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 form = result.data;
             }
         } catch (error) {
-            console.warn('Could not fetch form from Supabase, trying localStorage:', error);
         }
 
         // Fallback to localStorage if Supabase fails
@@ -1923,7 +1868,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 try {
                     await membershipFormsService.updateStatus(parseInt(id), 'approved', notes);
                 } catch (error) {
-                    console.warn('Could not update form status in Supabase, updating localStorage:', error);
                 formsManager.updateStatus(id, 'approved', notes);
                 }
                 
@@ -1944,7 +1888,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 toast.error(`Failed to approve application:\n\n${result.error}\n\nPlease try again or contact support.`);
             }
         } catch (error) {
-            console.error('Error approving application:', error);
             toast.error(`Error approving application:\n\n${error.message}\n\nPlease try again.`);
         }
     };
@@ -1955,7 +1898,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             await membershipFormsService.updateStatus(parseInt(id), 'rejected', notes);
             loadForms();
         } catch (error) {
-            console.warn('Could not update form status in Supabase, updating localStorage:', error);
         formsManager.updateStatus(id, 'rejected', notes);
         loadForms();
         }
@@ -1968,7 +1910,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 await membershipFormsService.delete(parseInt(id));
                 loadForms();
             } catch (error) {
-                console.warn('Could not delete form from Supabase, deleting from localStorage:', error);
             formsManager.delete(id);
             loadForms();
             }
@@ -1998,7 +1939,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             await contactFormsService.updateStatus(parseInt(id), 'approved', notes);
             loadContactForms();
         } catch (error) {
-            console.warn('Could not update contact form status in Supabase, updating localStorage:', error);
         contactFormsManager.updateStatus(id, 'approved', notes);
         loadContactForms();
         }
@@ -2010,7 +1950,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             await contactFormsService.updateStatus(parseInt(id), 'rejected', notes);
             loadContactForms();
         } catch (error) {
-            console.warn('Could not update contact form status in Supabase, updating localStorage:', error);
         contactFormsManager.updateStatus(id, 'rejected', notes);
         loadContactForms();
         }
@@ -2027,18 +1966,15 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 
                 if (result.error) {
                     // If Supabase delete failed, try localStorage as fallback
-                    console.warn('Could not delete contact form from Supabase, deleting from localStorage:', result.error);
                     contactFormsManager.delete(id.toString()); // Ensure string for localStorage
                 } else {
                     // Successfully deleted from Supabase, also remove from localStorage
-                    console.log('✅ Successfully deleted contact form from Supabase');
                     contactFormsManager.delete(id.toString()); // Ensure string for localStorage
                 }
                 
                 // Reload contact forms to reflect changes (will reload from Supabase)
                 await loadContactForms();
             } catch (error) {
-                console.error('Exception deleting contact form:', error);
                 // Fallback to localStorage
                 contactFormsManager.delete(id.toString());
                 await loadContactForms();
@@ -2052,7 +1988,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             await reservationsService.updateStatus(parseInt(id), 'approved', notes);
             loadReservations();
         } catch (error) {
-            console.warn('Could not update reservation status in Supabase, updating localStorage:', error);
             reservationsManager.updateStatus(id, 'approved', notes);
             loadReservations();
         }
@@ -2064,7 +1999,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             await reservationsService.updateStatus(parseInt(id), 'rejected', notes);
             loadReservations();
         } catch (error) {
-            console.warn('Could not update reservation status in Supabase, updating localStorage:', error);
             reservationsManager.updateStatus(id, 'rejected', notes);
             loadReservations();
         }
@@ -2077,7 +2011,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 await reservationsService.delete(parseInt(id));
                 loadReservations();
             } catch (error) {
-                console.warn('Could not delete reservation from Supabase, deleting from localStorage:', error);
                 reservationsManager.delete(id);
                 loadReservations();
             }
@@ -2095,7 +2028,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             setEditingCourse(null);
             setIsAddingCourse(false);
         } catch (error) {
-            console.error('Error saving course:', error);
             alert(
                 `Failed to save course: ${error.message || 'Unknown error'}\n\n` +
                 'Please check the console for more details and try again.'
@@ -2110,22 +2042,16 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             await coursesManager.delete(id);
             await loadCourses();
         } catch (error) {
-            console.error('Error deleting course:', error);
         }
     };
 
     const handleSaveMember = async (memberData) => {
-        console.log('handleSaveMember called with:', memberData);
-        console.log('Editing member:', editingMember);
         
         const { createAuthAccount, ...memberDataWithoutFlag } = memberData;
         
         try {
             if (editingMember) {
-                console.log('Updating member with ID:', editingMember.id);
-                console.log('Update data:', memberDataWithoutFlag);
                 const result = await membersManager.update(editingMember.id, memberDataWithoutFlag);
-                console.log('Update result:', result);
                 
                 // Reload members to ensure UI updates (getAll is now async)
                 await loadMembers();
@@ -2134,7 +2060,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             } else {
                 // Add the member first
                 const createdMember = await membersManager.add(memberDataWithoutFlag);
-                console.log('Member created:', createdMember);
                 
                 // If createAuthAccount is checked, create auth account and send password email
                 if (createAuthAccount && memberData.email) {
@@ -2168,7 +2093,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                             alert(`✅ Member created successfully!\n\n⚠️ Failed to create authentication account: ${result.error || 'Unknown error'}\n\nThe member can still use "Forgot Password" to set up their account later.`);
                         }
                     } catch (error) {
-                        console.error('Error creating auth account:', error);
                         await loadMembers();
                         alert(`✅ Member created successfully!\n\n⚠️ Failed to create authentication account. The member can use "Forgot Password" to set up their account later.`);
                     }
@@ -2179,7 +2103,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 }
             }
         } catch (error) {
-            console.error('Error saving member:', error);
             const errorMessage = error.message || 'Unknown error occurred';
             alert(`❌ Failed to save member: ${errorMessage}\n\nPlease check your connection and try again.`);
             return;
@@ -2190,7 +2113,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             const allMembers = await membersManager.getAll();
             window.dispatchEvent(new CustomEvent('membersUpdated', { detail: allMembers }));
         } catch (err) {
-            console.warn('Could not dispatch membersUpdated event:', err);
         }
         
         setEditingMember(null);
@@ -2204,7 +2126,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 await loadMembers();
                 alert('✅ Member deleted successfully!');
             } catch (error) {
-                console.error('Error deleting member:', error);
                 const errorMessage = error.message || 'Unknown error occurred';
                 alert(`❌ Failed to delete member: ${errorMessage}\n\nPlease check your connection and try again.`);
             }
@@ -2267,7 +2188,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                 alert(`${errorMessage}\n\nCheck SUPABASE_SETUP.md for instructions on creating the members table.`);
             }
         } catch (err) {
-            console.error('Error syncing members:', err);
             alert(`An unexpected error occurred while syncing: ${err.message || 'Unknown error'}`);
         }
     };
@@ -2433,20 +2353,15 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
 
             let savedEvent;
             if (editingEvent) {
-                console.log('📝 Updating event:', editingEvent.id, eventData);
                 savedEvent = await eventsManager.update(editingEvent.id, eventData);
-                console.log('✅ Event updated:', savedEvent);
             } else {
-                console.log('➕ Adding new event:', eventData);
                 savedEvent = await eventsManager.add(eventData);
-                console.log('✅ Event added:', savedEvent);
             }
             await loadEvents();
 
             setEditingEvent(null);
             setIsAddingEvent(false);
         } catch (error) {
-            console.error('❌ Error saving event:', error);
             toast.error(error.message || 'Failed to save event');
         }
     };
@@ -2477,7 +2392,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
             await eventsManager.moveToUpcoming(id);
             await loadEvents();
         } catch (error) {
-            console.error('Error moving event to upcoming:', error);
             toast.error(error.message || 'Failed to move event to upcoming');
         }
     };
@@ -2485,20 +2399,15 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const handleSaveArticle = async (articleData) => {
         try {
             if (editingArticle) {
-                console.log('📝 Updating article:', editingArticle.id, articleData);
                 const updated = await articlesManager.update(editingArticle.id, articleData);
-                console.log('✅ Article updated:', updated);
             } else {
-                console.log('➕ Adding new article:', articleData);
                 const added = await articlesManager.add(articleData);
-                console.log('✅ Article added:', added);
             }
             // Wait for articles to reload from Supabase before closing form
             await loadArticles();
             setEditingArticle(null);
             setIsAddingArticle(false);
         } catch (error) {
-            console.error('❌ Error saving article:', error);
             alert(`Failed to save article: ${error.message || 'Unknown error'}`);
         }
     };
@@ -2556,20 +2465,15 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const handleSaveTherapyProgram = async (programData) => {
         try {
             if (editingTherapyProgram) {
-                console.log('📝 Updating therapy program:', editingTherapyProgram.id, programData);
                 const updated = await therapyProgramsManager.update(editingTherapyProgram.id, programData);
-                console.log('✅ Therapy program updated:', updated);
             } else {
-                console.log('➕ Adding new therapy program:', programData);
                 const added = await therapyProgramsManager.add(programData);
-                console.log('✅ Therapy program added:', added);
             }
             // Wait for programs to reload from Supabase before closing form
             await loadTherapyPrograms();
             setEditingTherapyProgram(null);
             setIsAddingTherapyProgram(false);
         } catch (error) {
-            console.error('❌ Error saving therapy program:', error);
             alert(`Failed to save therapy program: ${error.message || 'Unknown error'}`);
         }
     };
@@ -2627,20 +2531,15 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
     const handleSaveForParent = async (articleData) => {
         try {
             if (editingForParent) {
-                console.log('📝 Updating for parents article:', editingForParent.id, articleData);
                 const updated = await forParentsManager.update(editingForParent.id, articleData);
-                console.log('✅ For parents article updated:', updated);
             } else {
-                console.log('➕ Adding new for parents article:', articleData);
                 const added = await forParentsManager.add(articleData);
-                console.log('✅ For parents article added:', added);
             }
             // Wait for articles to reload from Supabase before closing form
             await loadForParentsArticles();
             setEditingForParent(null);
             setIsAddingForParent(false);
         } catch (error) {
-            console.error('❌ Error saving for parents article:', error);
             alert(`Failed to save article: ${error.message || 'Unknown error'}`);
         }
     };
@@ -2856,7 +2755,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                     alert(`Failed to sync members: ${result.error?.message || 'Unknown error'}`);
                                                 }
                                             } catch (error) {
-                                                console.error('Error syncing members to Supabase:', error);
                                                 alert(`Error syncing members: ${error.message || 'Unknown error'}`);
                                             }
                                         }}
@@ -3039,7 +2937,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                 alert(`Failed to sync members: ${result.error?.message || 'Unknown error'}`);
                                             }
                                         } catch (error) {
-                                            console.error('Error syncing members to Supabase:', error);
                                             alert(`Error syncing members: ${error.message || 'Unknown error'}`);
                                         }
                                     }}
@@ -3231,7 +3128,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                 const latestMember = allMembers.find(m => m.id === memberData.id);
                                                 setEditingMember(latestMember || memberData);
                                             } catch (err) {
-                                                console.warn('Could not refresh member data, using provided data:', err);
                                                 setEditingMember(memberData);
                                             }
                                         }}
@@ -3364,11 +3260,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                     </div>
                                 </div>
                                 {(() => {
-                                    console.log('Rendering Past Events section');
-                                    console.log('events.past:', events.past);
-                                    console.log('events.past type:', typeof events.past);
-                                    console.log('events.past is array:', Array.isArray(events.past));
-                                    console.log('events.past length:', events.past?.length);
                                     return null;
                                 })()}
                                 {events.past && Array.isArray(events.past) && events.past.length > 0 ? (
@@ -3452,7 +3343,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {articles.map((article) => {
                                         if (!article || !article.id) {
-                                            console.warn('Invalid article in list:', article);
                                             return null;
                                         }
                                         return (
@@ -4019,7 +3909,6 @@ const ReservationModal = ({ reservation, onClose, onApprove, onReject }) => {
                                                         existingRegistrations = data;
                                                     }
                                                 } catch (err) {
-                                                    console.warn('Could not fetch existing event registrations:', err);
                                                 }
 
                                                 const existingEmails = new Set();

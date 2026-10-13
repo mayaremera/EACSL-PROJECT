@@ -48,7 +48,6 @@ export const memberAuthService = {
             errorMsg.includes('exists') ||
             signUpError.status === 400) {
           // User already exists - try to send password reset email instead
-          console.log('User already exists, sending password reset email instead...');
           return await this.sendPasswordResetEmail(email);
         }
         return { success: false, error: signUpError.message || 'Failed to create authentication account' };
@@ -65,7 +64,6 @@ export const memberAuthService = {
       });
 
       if (resetError) {
-        console.warn('Failed to send password reset email:', resetError);
         // Account was created, but email sending failed
         // Still return success since the account exists and they can use "Forgot Password"
         return { 
@@ -82,7 +80,6 @@ export const memberAuthService = {
       };
 
     } catch (err) {
-      console.error('Exception creating auth account:', err);
       return { success: false, error: err.message || 'An unexpected error occurred' };
     }
   },
@@ -107,7 +104,6 @@ export const memberAuthService = {
         message: 'Password setup email sent successfully. The user can set their password via the email link.'
       };
     } catch (err) {
-      console.error('Exception sending password reset email:', err);
       return { success: false, error: err.message || 'An unexpected error occurred' };
     }
   },
@@ -158,7 +154,6 @@ export const memberAuthService = {
       // If no error, account exists (shouldn't happen with dummy password)
       return { exists: true };
     } catch (err) {
-      console.error('Exception checking auth account:', err);
       return { exists: false, error: err.message };
     }
   }

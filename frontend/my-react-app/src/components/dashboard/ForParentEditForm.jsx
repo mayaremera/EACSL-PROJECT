@@ -163,7 +163,6 @@ const ForParentEditForm = ({ article, onSave, onCancel }) => {
 
       await onSave(dataToSave);
     } catch (error) {
-      console.error('Error uploading image:', error);
       alert(getUploadErrorMessage(error));
     } finally {
       setIsUploading(false);

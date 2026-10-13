@@ -28,7 +28,6 @@ function MembersOverviewPage() {
         const allMembers = await membersManager.getAll(SUPABASE_FETCH_OPTIONS);
         if (mounted) setMembers(allMembers);
       } catch (error) {
-        console.error('Error loading members:', error);
       } finally {
         if (mounted) setIsLoading(false);
       }

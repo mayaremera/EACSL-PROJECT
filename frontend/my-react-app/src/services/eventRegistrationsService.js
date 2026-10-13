@@ -25,9 +25,6 @@ export const eventRegistrationsService = {
           error.message?.includes("does not exist") ||
           error.message?.includes("schema cache")
         ) {
-          console.warn(
-            "Event registrations table does not exist. Please create the table first."
-          );
           return {
             data: [],
             error: {
@@ -37,7 +34,6 @@ export const eventRegistrationsService = {
             },
           };
         }
-        console.error("Error fetching event registrations from Supabase:", error);
         return { data: null, error };
       }
 
@@ -48,7 +44,6 @@ export const eventRegistrationsService = {
 
       return { data: mappedData, error: null };
     } catch (err) {
-      console.error("Exception fetching event registrations:", err);
       return { data: null, error: err };
     }
   },
@@ -67,13 +62,11 @@ export const eventRegistrationsService = {
         .single();
 
       if (error) {
-        console.error("Error fetching event registration from Supabase:", error);
         return { data: null, error };
       }
 
       return { data: this.mapSupabaseToLocal(data), error: null };
     } catch (err) {
-      console.error("Exception fetching event registration:", err);
       return { data: null, error: err };
     }
   },
@@ -101,9 +94,6 @@ export const eventRegistrationsService = {
           error.message?.includes("relation") ||
           error.message?.includes("does not exist")
         ) {
-          console.warn(
-            "Event registrations table does not exist. Please create the table first."
-          );
           return {
             data: null,
             error: {
@@ -128,13 +118,12 @@ export const eventRegistrationsService = {
             },
           };
         }
-        console.error("Error adding event registration to Supabase:", error);
         return { data: null, error };
       }
 
       return { data: this.mapSupabaseToLocal(data), error: null };
     } catch (err) {
-      console.error("Exception adding event registration:", err); 
+ 
       return { data: null, error: err };
     }
   },
@@ -170,13 +159,11 @@ export const eventRegistrationsService = {
         .single();``
 
       if (error) {
-        console.error("Error updating event registration status:", error);
         return { data: null, error };
       }
 
       return { data: this.mapSupabaseToLocal(data), error: null };
     } catch (err) {
-      console.error("Exception updating event registration status:", err);
       return { data: null, error: err };
     }
   },
@@ -194,13 +181,11 @@ export const eventRegistrationsService = {
         .eq("id", id);
 
       if (error) {
-        console.error("Error deleting event registration:", error);
         return { data: null, error };
       }
 
       return { data: { id }, error: null };
     } catch (err) {
-      console.error("Exception deleting event registration:", err);
       return { data: null, error: err };
     }
   },

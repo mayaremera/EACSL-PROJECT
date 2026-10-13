@@ -31,13 +31,11 @@ export const membersService = {
             },
           };
         }
-        console.error("Error fetching members from Supabase:", error);
         return { data: null, error };
       }
 
       return { data: data || [], error: null };
     } catch (err) {
-      console.error("Exception fetching members:", err);
       return { data: null, error: err };
     }
   },
@@ -52,13 +50,11 @@ export const membersService = {
         .single();
 
       if (error) {
-        console.error("Error fetching member from Supabase:", error);
         return { data: null, error };
       }
 
       return { data, error: null };
     } catch (err) {
-      console.error("Exception fetching member:", err);
       return { data: null, error: err };
     }
   },
@@ -74,13 +70,11 @@ export const membersService = {
 
       if (error && error.code !== "PGRST116") {
         // PGRST116 is "not found"
-        console.error("Error fetching member by user ID:", error);
         return { data: null, error };
       }
 
       return { data, error: null };
     } catch (err) {
-      console.error("Exception fetching member by user ID:", err);
       return { data: null, error: err };
     }
   },
@@ -116,7 +110,6 @@ export const membersService = {
             },
           };
         }
-        console.error("Error adding member to Supabase:", error);
         return { data: null, error };
       }
 
@@ -124,7 +117,6 @@ export const membersService = {
       const localMember = this.mapSupabaseToLocal(data);
       return { data: localMember, error: null };
     } catch (err) {
-      console.error("Exception adding member:", err);
       return { data: null, error: err };
     }
   },
@@ -134,10 +126,6 @@ export const membersService = {
     try {
       // Map local member structure to Supabase structure
       const supabaseMember = this.mapLocalToSupabase(member);
-      console.log("📤 Supabase member data to save:", supabaseMember);
-      console.log("📤 Certificates in supabaseMember:", supabaseMember.certificates);
-      console.log("📤 Specialty in supabaseMember:", supabaseMember.specialty);
-      console.log("📤 Custom courses in supabaseMember:", supabaseMember.custom_courses);
 
       const { data, error } = await supabase
         .from("members")
@@ -166,19 +154,13 @@ export const membersService = {
             },
           };
         }
-        console.error("Error updating member in Supabase:", error);
         return { data: null, error };
       }
 
       // Map back to local structure
       const localMember = this.mapSupabaseToLocal(data);
-      console.log("📥 Mapped member from Supabase:", localMember);
-      console.log("📥 Certificates in mapped member:", localMember.certificates);
-      console.log("📥 Specialty in mapped member:", localMember.specialty);
-      console.log("📥 Custom courses in mapped member:", localMember.customCourses);
       return { data: localMember, error: null };
     } catch (err) {
-      console.error("Exception updating member:", err);
       return { data: null, error: err };
     }
   },
@@ -206,13 +188,11 @@ export const membersService = {
             },
           };
         }
-        console.error("Error deleting member from Supabase:", error);
         return { error };
       }
 
       return { error: null };
     } catch (err) {
-      console.error("Exception deleting member:", err);
       return { error: err };
     }
   },
@@ -226,13 +206,11 @@ export const membersService = {
         .eq("is_active", true);
 
       if (error) {
-        console.error("Error getting active members count:", error);
         return { count: 0, error };
       }
 
       return { count: count || 0, error: null };
     } catch (err) {
-      console.error("Exception getting active members count:", err);
       return { count: 0, error: err };
     }
   },
@@ -310,7 +288,6 @@ export const membersService = {
   async uploadImage(file) {
     try {
       if (!file || !(file instanceof File)) {
-        console.error('Invalid file provided to uploadImage');
         return { data: null, error: { message: 'Invalid file' } };
       }
 
@@ -321,13 +298,6 @@ export const membersService = {
 
       const filePath = buildStorageFilePath('', file);
 
-      console.log('📤 Uploading file to dashboardmemberimages:', {
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type,
-        filePath: filePath,
-        bucket: 'dashboardmemberimages'
-      });
 
       const { data, error } = await supabase.storage
         .from('dashboardmemberimages')
@@ -337,22 +307,13 @@ export const membersService = {
         });
 
       if (error) {
-        console.error('❌ Error uploading image to dashboardmemberimages:', error);
-        console.error('Error details:', {
-          message: error.message,
-          statusCode: error.statusCode,
-          error: error.error,
-          code: error.code
-        });
         return { data: null, error };
       }
 
       if (!data) {
-        console.error('❌ Upload returned no data');
         return { data: null, error: { message: 'Upload returned no data' } };
       }
 
-      console.log('✅ Upload successful, data:', data);
 
       // Get public URL
       const { data: urlData } = supabase.storage
@@ -360,10 +321,8 @@ export const membersService = {
         .getPublicUrl(filePath);
 
       const publicUrl = urlData?.publicUrl;
-      console.log('✅ Public URL generated:', publicUrl);
 
       if (!publicUrl) {
-        console.error('❌ Failed to get public URL');
         return { data: null, error: { message: 'Failed to get public URL' } };
       }
 
@@ -375,7 +334,6 @@ export const membersService = {
         error: null 
       };
     } catch (err) {
-      console.error('❌ Exception uploading image:', err);
       return { data: null, error: err };
     }
   },
@@ -399,13 +357,11 @@ export const membersService = {
         .remove([pathToDelete]);
 
       if (error) {
-        console.error('Error deleting image from dashboardmemberimages:', error);
         return { error };
       }
 
       return { error: null };
     } catch (err) {
-      console.error('Exception deleting image:', err);
       return { error: err };
     }
   },

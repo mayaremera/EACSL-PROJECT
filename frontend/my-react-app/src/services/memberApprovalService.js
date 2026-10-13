@@ -82,7 +82,6 @@ export const memberApprovalService = {
       });
 
       if (authError) {
-        console.error('Error creating authentication account:', authError);
         // Check if user already exists
         if (authError.message?.includes('already registered') || authError.message?.includes('already exists')) {
           return { 
@@ -104,7 +103,6 @@ export const memberApprovalService = {
       }
 
       const authUserId = authData.user.id;
-      console.log('Authentication account created:', authUserId);
 
       // STEP 2: Create member record in members table (linked to auth account)
       const currentDate = new Date();
@@ -147,7 +145,6 @@ export const memberApprovalService = {
       const { data: memberResult, error: memberError } = await membersService.add(memberData);
       
       if (memberError && memberError.code !== 'TABLE_NOT_FOUND') {
-        console.error('Error creating member record:', memberError);
         return { 
           success: false, 
           error: `Failed to create member record: ${memberError.message}` 
@@ -210,7 +207,6 @@ export const memberApprovalService = {
       };
 
     } catch (error) {
-      console.error('Exception in approveApplication:', error);
       return { 
         success: false, 
         error: error.message || 'An unexpected error occurred while approving the application' 

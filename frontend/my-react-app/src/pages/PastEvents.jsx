@@ -21,7 +21,6 @@ const PastEvents = () => {
         const { past } = await eventsManager.getAll(SUPABASE_FETCH_OPTIONS);
         if (mounted) setPastEvents(past);
       } catch (error) {
-        console.error('Error loading past events:', error);
       } finally {
         if (mounted) setIsLoading(false);
       }

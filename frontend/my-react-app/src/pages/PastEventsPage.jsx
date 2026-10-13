@@ -27,7 +27,6 @@ export default function PastEventsPage() {
         const { past } = await eventsManager.getAll(SUPABASE_FETCH_OPTIONS);
         if (mounted) setPastEvents(past);
       } catch (error) {
-        console.error('Error loading past events:', error);
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -84,7 +83,6 @@ export default function PastEventsPage() {
               }
             })
             .catch(error => {
-              console.error('Error loading participants:', error);
               loadingParticipants.current.delete(eventId);
             });
           

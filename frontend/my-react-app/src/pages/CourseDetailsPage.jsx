@@ -111,7 +111,6 @@ const CourseDetailPage = () => {
                     setCourseData(null);
                 }
             } catch (error) {
-                console.error('Error loading course from Supabase:', error);
                 if (!forceRefresh) setCourseData(null);
             } finally {
                 if (!forceRefresh) setIsLoadingCourse(false);

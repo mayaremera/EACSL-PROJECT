@@ -25,9 +25,6 @@ export const contactFormsService = {
           error.message?.includes("does not exist") ||
           error.message?.includes("schema cache")
         ) {
-          console.warn(
-            "Contact forms table does not exist. Please create the table first."
-          );
           return {
             data: [],
             error: {
@@ -37,7 +34,6 @@ export const contactFormsService = {
             },
           };
         }
-        console.error("Error fetching contact forms from Supabase:", error);
         return { data: null, error };
       }
 
@@ -48,7 +44,6 @@ export const contactFormsService = {
 
       return { data: mappedData, error: null };
     } catch (err) {
-      console.error("Exception fetching contact forms:", err);
       return { data: null, error: err };
     }
   },
@@ -67,13 +62,11 @@ export const contactFormsService = {
         .single();
 
       if (error) {
-        console.error("Error fetching contact form from Supabase:", error);
         return { data: null, error };
       }
 
       return { data: this.mapSupabaseToLocal(data), error: null };
     } catch (err) {
-      console.error("Exception fetching contact form:", err);
       return { data: null, error: err };
     }
   },
@@ -101,9 +94,6 @@ export const contactFormsService = {
           error.message?.includes("relation") ||
           error.message?.includes("does not exist")
         ) {
-          console.warn(
-            "Contact forms table does not exist. Please create the table first."
-          );
           return {
             data: null,
             error: {
@@ -113,13 +103,11 @@ export const contactFormsService = {
             },
           };
         }
-        console.error("Error adding contact form to Supabase:", error);
         return { data: null, error };
       }
 
       return { data: this.mapSupabaseToLocal(data), error: null };
     } catch (err) {
-      console.error("Exception adding contact form:", err);
       return { data: null, error: err };
     }
   },
@@ -155,13 +143,11 @@ export const contactFormsService = {
         .single();
 
       if (error) {
-        console.error("Error updating contact form status:", error);
         return { data: null, error };
       }
 
       return { data: this.mapSupabaseToLocal(data), error: null };
     } catch (err) {
-      console.error("Exception updating contact form status:", err);
       return { data: null, error: err };
     }
   },
@@ -179,13 +165,11 @@ export const contactFormsService = {
         .eq("id", id);
 
       if (error) {
-        console.error("Error deleting contact form:", error);
         return { data: null, error };
       }
 
       return { data: { id }, error: null };
     } catch (err) {
-      console.error("Exception deleting contact form:", err);
       return { data: null, error: err };
     }
   },

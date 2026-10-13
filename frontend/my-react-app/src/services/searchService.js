@@ -84,7 +84,6 @@ export const searchService = {
         }))
         .slice(0, 5); // Limit to 5 results
     } catch (error) {
-      console.error("Error searching members:", error);
       return [];
     }
   },
@@ -132,7 +131,6 @@ export const searchService = {
         }))
         .slice(0, 5);
     } catch (error) {
-      console.error("Error searching events:", error);
       return [];
     }
   },
@@ -178,7 +176,6 @@ export const searchService = {
         }))
         .slice(0, 5);
     } catch (error) {
-      console.error("Error searching articles:", error);
       return [];
     }
   },
@@ -225,7 +222,6 @@ export const searchService = {
         }))
         .slice(0, 5);
     } catch (error) {
-      console.error("Error searching courses:", error);
       return [];
     }
   },
@@ -268,7 +264,6 @@ export const searchService = {
         }))
         .slice(0, 5);
     } catch (error) {
-      console.error("Error searching therapy programs:", error);
       return [];
     }
   },
@@ -311,7 +306,6 @@ export const searchService = {
         }))
         .slice(0, 5);
     } catch (error) {
-      console.error("Error searching for parents:", error);
       return [];
     }
   },
@@ -337,27 +331,21 @@ export const searchService = {
       // Use Promise.allSettled to prevent one failure from breaking all searches
       const results = await Promise.allSettled([
         this.searchMembers(query).catch(err => {
-          console.error("Error searching members:", err);
           return [];
         }),
         this.searchEvents(query).catch(err => {
-          console.error("Error searching events:", err);
           return [];
         }),
         this.searchArticles(query).catch(err => {
-          console.error("Error searching articles:", err);
           return [];
         }),
         this.searchCourses(query).catch(err => {
-          console.error("Error searching courses:", err);
           return [];
         }),
         this.searchTherapyPrograms(query).catch(err => {
-          console.error("Error searching therapy programs:", err);
           return [];
         }),
         this.searchForParents(query).catch(err => {
-          console.error("Error searching for parents:", err);
           return [];
         }),
       ]);
@@ -388,7 +376,6 @@ export const searchService = {
         total,
       };
     } catch (error) {
-      console.error("Error performing search:", error);
       return {
         members: [],
         events: [],

@@ -11,7 +11,6 @@ export const setToastInstance = (instance) => {
 export const showToast = (message, type = 'info', title = null) => {
   if (!toastInstance) {
     // Fallback to alert if toast is not available
-    console.warn('Toast not available, falling back to alert');
     alert(message);
     return;
   }

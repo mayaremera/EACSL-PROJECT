@@ -117,13 +117,6 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
       }
       
       // Debug logging for specialty
-      console.log('🔍 Loading member data:', {
-        memberId: member.id,
-        memberName: member.name,
-        specialtyFromMember: member.specialty,
-        specialtyType: typeof member.specialty,
-        isArray: Array.isArray(member.specialty)
-      });
       
       setFormData({
         name: member.name || '',
@@ -274,7 +267,6 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
       // Reset form
       setNewCertificate({ title: '', imageFile: null, imagePreview: null });
     } catch (error) {
-      console.error('Error uploading certificate image:', error);
       alert(getUploadErrorMessage(error));
     } finally {
       setIsUploadingCertificateImage(false);
@@ -312,7 +304,6 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
           try {
             await membersService.deleteImage(certificate.imagePath);
           } catch (err) {
-            console.warn('Could not delete old image:', err);
           }
         }
 
@@ -348,7 +339,6 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
       setEditingCertificate(null);
       setNewCertificate({ title: '', imageFile: null, imagePreview: null });
     } catch (error) {
-      console.error('Error updating certificate:', error);
       alert('Failed to update certificate. Please try again.');
     } finally {
       setIsUploadingCertificateImage(false);
@@ -367,7 +357,6 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
       try {
         await membersService.deleteImage(certificate.imagePath);
       } catch (err) {
-        console.warn('Could not delete certificate image:', err);
       }
     }
 
@@ -511,7 +500,6 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
       // Reset form
       setNewCustomCourse({ title: '', imageFile: null, imagePreview: null });
     } catch (error) {
-      console.error('Error uploading custom course image:', error);
       alert(getUploadErrorMessage(error));
     } finally {
       setIsUploadingCustomCourseImage(false);
@@ -549,7 +537,6 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
           try {
             await membersService.deleteImage(course.imagePath);
           } catch (err) {
-            console.warn('Could not delete old image:', err);
           }
         }
 
@@ -585,7 +572,6 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
       setEditingCustomCourse(null);
       setNewCustomCourse({ title: '', imageFile: null, imagePreview: null });
     } catch (error) {
-      console.error('Error updating custom course:', error);
       alert('Failed to update course. Please try again.');
     } finally {
       setIsUploadingCustomCourseImage(false);
@@ -604,7 +590,6 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
       try {
         await membersService.deleteImage(course.imagePath);
       } catch (err) {
-        console.warn('Could not delete course image:', err);
       }
     }
 
@@ -682,10 +667,8 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         // Image is in storage - delete it (async, don't wait)
         membersService.deleteImage(member.image)
           .then(() => {
-            console.log('✅ Deleted image from storage');
           })
           .catch((deleteError) => {
-            console.warn('Could not delete image from storage:', deleteError);
             // Don't show error to user - image is already removed from form
           });
       }
@@ -711,13 +694,10 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
     setIsLoading(true);
     setEmailExistsError(null); // Reset error state
     
-    console.log('Form submitted with data:', formData);
-    console.log('Member being edited:', member);
     
     try {
       // Check if email already exists (only when adding new member, not editing)
       if (!member) {
-        console.log('Checking if email exists before adding member...');
         
         // Check in existing members (use cached data for fast access)
         const existingMembers = membersManager._getAllFromLocalStorage();
@@ -726,7 +706,6 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         );
         
         if (existingMember) {
-          console.log('Email already exists in members:', existingMember);
           setIsLoading(false);
           setEmailExistsError('member');
           return;
@@ -744,14 +723,12 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
             );
             
             if (pendingApplication) {
-              console.log('Email already has pending application:', pendingApplication);
               setIsLoading(false);
               setEmailExistsError('pending');
               return;
             }
           }
         } catch (error) {
-          console.warn('Error checking pending applications:', error);
           // Continue with save if we can't check
         }
       }
@@ -761,22 +738,13 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
       if (formData.image instanceof File) {
         // New file uploaded - try to upload to Supabase Storage
         try {
-          console.log('📤 Uploading image to Supabase Storage...');
-          console.log('File details:', {
-            name: formData.image.name,
-            size: formData.image.size,
-            type: formData.image.type
-          });
           
           const uploadResult = await membersService.uploadImage(formData.image);
           
-          console.log('Upload result:', uploadResult);
           
           if (uploadResult.data && uploadResult.data.url) {
             // Successfully uploaded to Supabase Storage
             imageDataUrl = uploadResult.data.url;
-            console.log('✅ Image uploaded to Supabase Storage:', imageDataUrl);
-            console.log('✅ Image path:', uploadResult.data.path);
             
             // If member had an old image, delete it (from storage or it will be replaced in localStorage)
             if (member && member.image) {
@@ -784,13 +752,10 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
                 // Old image is in storage - delete it
                 try {
                   await membersService.deleteImage(member.image);
-                  console.log('✅ Deleted old image from storage');
                 } catch (deleteError) {
-                  console.warn('Could not delete old image from storage:', deleteError);
                 }
               } else if (member.image.startsWith('data:image')) {
                 // Old image is base64 - it will be replaced in localStorage (no need to delete separately)
-                console.log('✅ Old base64 image will be replaced in localStorage');
               }
             }
           } else {
@@ -798,30 +763,25 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
             const error = uploadResult.error;
             const errorMessage = error?.message || error?.error || 'Unknown error';
             
-            console.error('Upload failed. Full error:', error);
             
             if (errorMessage.includes('Bucket not found') || 
                 errorMessage.includes('not found') ||
                 error?.statusCode === 404) {
-              console.warn('Supabase Storage bucket "dashboardmemberimages" not found.');
               alert('⚠️ Storage bucket not found.\n\nTo fix:\n1. Go to Supabase Dashboard → Storage\n2. Create bucket "dashboardmemberimages"\n3. Set it to Public\n4. Try uploading again');
               imageDataUrl = '';
             } else if (errorMessage.includes('row-level security') || 
                        errorMessage.includes('RLS') ||
                        errorMessage.includes('policy') ||
                        error?.statusCode === 403) {
-              console.warn('RLS policy blocking upload.');
               alert('⚠️ Upload blocked: Bucket is Private\n\nTo fix:\n1. Go to Supabase Dashboard → Storage\n2. Find "dashboardmemberimages" bucket\n3. Click Settings icon (⚙️) next to the bucket\n4. Toggle "Public bucket" to ON\n5. Click Save\n6. Refresh and try again\n\nSee FIX_RLS_ERROR.md for detailed steps.');
               imageDataUrl = '';
             } else {
               // Other error - show the actual error
-              console.warn('Failed to upload to Supabase Storage:', error);
               alert(`⚠️ Upload failed: ${errorMessage}\n\nPlease check:\n1. Bucket "dashboardmemberimages" exists\n2. Bucket is set to Public\n3. Check browser console for details`);
               imageDataUrl = '';
             }
           }
         } catch (uploadError) {
-          console.error('Exception uploading image. Image will not be saved:', uploadError);
           // Don't save to avoid localStorage quota issues
           alert('⚠️ Error uploading image. Please create the "dashboardmemberimages" bucket in Supabase Storage.\n\nImage will show placeholder.');
           imageDataUrl = '';
@@ -831,9 +791,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         if (member && member.image && member.image.includes('dashboardmemberimages')) {
           try {
             await membersService.deleteImage(member.image);
-            console.log('✅ Deleted removed image from storage');
           } catch (deleteError) {
-            console.warn('Could not delete removed image from storage:', deleteError);
           }
         }
         imageDataUrl = '';
@@ -877,13 +835,7 @@ const MemberEditForm = ({ member, onSave, onCancel }) => {
         createAuthAccount: !member && createAuthAccount // Only for new members
       };
       
-      console.log('Data to save:', dataToSave);
-      console.log('Certificates being saved:', dataToSave.certificates);
-      console.log('Number of certificates:', dataToSave.certificates.length);
-      console.log('Specialty being saved:', dataToSave.specialty);
-      console.log('Number of specialties:', dataToSave.specialty.length);
       await onSave(dataToSave);
-      console.log('Save completed');
     } finally {
       setIsLoading(false);
     }

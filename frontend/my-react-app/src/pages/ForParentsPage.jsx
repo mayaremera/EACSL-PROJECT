@@ -25,7 +25,6 @@ const ForParentsPage = () => {
         const allArticles = await forParentsManager.getAll(SUPABASE_FETCH_OPTIONS);
         if (mounted) setArticles(allArticles);
       } catch (error) {
-        console.error('Error loading for parents articles:', error);
       } finally {
         if (mounted) setIsLoading(false);
       }

@@ -158,7 +158,6 @@ const Header = () => {
         setIsSearching(false);
         setShowSearchDropdown(true);
       } catch (error) {
-        console.error('Search error:', error);
         setSearchResults({
           members: [],
           events: [],
@@ -245,7 +244,6 @@ const Header = () => {
     try {
       await signOut();
     } catch (err) {
-      console.error('Unexpected error during sign out:', err);
     } finally {
       setUserDropdownOpen(false);
       setIsMenuOpen(false);

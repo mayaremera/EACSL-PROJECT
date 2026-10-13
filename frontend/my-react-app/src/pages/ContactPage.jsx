@@ -69,10 +69,8 @@ const ContactPage = () => {
       // Dispatch event to notify dashboard
       window.dispatchEvent(new CustomEvent('contactFormsUpdated', { detail: [result.data] }));
       
-      console.log('Form submitted successfully:', result.data);
       setIsSubmitted(true);
     } catch (error) {
-      console.error('Error submitting contact form:', error);
       alert(
         `Failed to save your message: ${error.message || 'Unknown error'}\n\n` +
         'Please try again or contact support if the issue persists.'

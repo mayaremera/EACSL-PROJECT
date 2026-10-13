@@ -325,7 +325,6 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
       const existingInstructorImagePath = course?.instructor_image_path || null;
 
       if (formData.image instanceof File) {
-        console.log('📤 Uploading course image to storage...');
         const uploadResult = await coursesService.uploadCourseImage(formData.image);
         if (uploadResult.error) {
           alert(`Failed to upload course image: ${uploadResult.error.message || 'Unknown error'}`);
@@ -337,16 +336,13 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
         if (existingImagePath && existingImagePath !== imagePath) {
           await coursesService.deleteImage(existingImagePath);
         }
-        console.log('✅ Course image uploaded:', { url: imageUrl, path: imagePath });
       } else if (!imageUrl && existingImagePath) {
         await coursesService.deleteImage(existingImagePath);
         imagePath = '';
       } else if (typeof formData.image === 'string' && formData.image.startsWith('data:')) {
-        console.warn('⚠️ Course image is a data URL. Consider uploading to storage.');
       }
 
       if (formData.instructorImage instanceof File) {
-        console.log('📤 Uploading instructor image to storage...');
         const uploadResult = await coursesService.uploadInstructorImage(formData.instructorImage);
         if (uploadResult.error) {
           alert(`Failed to upload instructor image: ${uploadResult.error.message || 'Unknown error'}`);
@@ -358,12 +354,10 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
         if (existingInstructorImagePath && existingInstructorImagePath !== instructorImagePath) {
           await coursesService.deleteImage(existingInstructorImagePath);
         }
-        console.log('✅ Instructor image uploaded:', { url: instructorImageUrl, path: instructorImagePath });
       } else if (!instructorImageUrl && existingInstructorImagePath) {
         await coursesService.deleteImage(existingInstructorImagePath);
         instructorImagePath = '';
       } else if (typeof formData.instructorImage === 'string' && formData.instructorImage.startsWith('data:')) {
-        console.warn('⚠️ Instructor image is a data URL. Consider uploading to storage.');
       }
 
       // Clean price: if it's '0', empty, or just whitespace, set it to empty string
@@ -385,7 +379,6 @@ const CourseEditForm = ({ course, onSave, onCancel }) => {
       
       await onSave(dataToSave);
     } catch (error) {
-      console.error('Error submitting course form:', error);
       alert(`Failed to save course: ${error.message || 'Unknown error'}`);
       // Re-throw so Dashboard can handle it
       throw error;

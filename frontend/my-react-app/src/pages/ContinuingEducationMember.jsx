@@ -71,7 +71,6 @@ function ContinuingEducationMember() {
             return;
           }
         } catch (error) {
-          console.warn('Could not fetch members from Supabase:', error);
           // Already set from cache above, so no need to do anything
         }
         
@@ -91,7 +90,6 @@ function ContinuingEducationMember() {
             return;
           }
         } catch (error) {
-          console.warn('Could not fetch member from Supabase:', error);
         }
         
         // If still not found, create temporary member for logged-in users immediately
@@ -142,7 +140,6 @@ function ContinuingEducationMember() {
             setMember(memberData);
           }
         } catch (error) {
-          console.warn('Could not fetch members from Supabase:', error);
           // Already set from cache above, so no need to do anything
         } finally {
           if (!cachedMember) {
@@ -164,7 +161,6 @@ function ContinuingEducationMember() {
       // If update was called recently, skip it to prevent excessive requests
       if (timeSinceLastUpdate < updateCooldown) {
         const secondsLeft = Math.ceil((updateCooldown - timeSinceLastUpdate) / 1000);
-        console.log(`⏱️ Member update cooldown active (${secondsLeft}s remaining). Using cached data.`);
         
         // Use cached data or event data instead
         let updatedMember = null;
@@ -232,7 +228,6 @@ function ContinuingEducationMember() {
           setMember(refreshedMember);
         }
       } catch (error) {
-        console.warn('Could not refresh member from Supabase:', error);
         // Already updated from event data or cache above, so no need to do anything
       }
     };
@@ -253,7 +248,6 @@ function ContinuingEducationMember() {
       </div>
     );
   }
-
 
   if (!member) {
     if (!user) {

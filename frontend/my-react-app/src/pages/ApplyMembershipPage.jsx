@@ -41,7 +41,6 @@ const ApplyMembershipPage = () => {
       
       return null;
     } catch (error) {
-      console.error('Exception uploading file to storage:', error);
       return null;
     }
   };
@@ -79,7 +78,6 @@ const ApplyMembershipPage = () => {
         storageUploadFailed = files.some((file, index) => file && !uploads[index]);
         
       } catch (storageError) {
-        console.error('Storage upload error:', storageError);
         storageUploadFailed = true;
       }
 
@@ -199,7 +197,6 @@ const ApplyMembershipPage = () => {
       // Return success - form component will show success message
       return { success: true };
     } catch (error) {
-      console.error('Form submission error:', error);
       // Re-throw the error so the form component can handle it
       throw error;
     }

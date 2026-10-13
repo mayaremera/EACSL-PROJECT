@@ -18,10 +18,8 @@ export const eventParticipantsService = {
             error.message?.includes('relation') || 
             error.message?.includes('does not exist') || 
             error.message?.includes('schema cache')) {
-          console.warn('Event participants table does not exist in Supabase. Please run CREATE_EVENT_PARTICIPANTS_TABLE.sql');
           return { data: [], error: { message: 'Table does not exist. Please create the event_participants table first.', code: 'TABLE_NOT_FOUND' } };
         }
-        console.error('Error fetching event participants from Supabase:', error);
         return { data: null, error };
       }
       
@@ -45,7 +43,6 @@ export const eventParticipantsService = {
       
       return { data: grouped, error: null };
     } catch (err) {
-      console.error('Exception fetching event participants:', err);
       return { data: null, error: err };
     }
   },
@@ -68,13 +65,11 @@ export const eventParticipantsService = {
             error.message?.includes('schema cache')) {
           return { data: [], error: { message: 'Table does not exist. Please create the event_participants table first.', code: 'TABLE_NOT_FOUND' } };
         }
-        console.error('Error fetching event participants from Supabase:', error);
         return { data: null, error };
       }
       
       return { data: (data || []).map(p => this.mapSupabaseToLocal(p)), error: null };
     } catch (err) {
-      console.error('Exception fetching event participants:', err);
       return { data: null, error: err };
     }
   },
@@ -102,16 +97,13 @@ export const eventParticipantsService = {
       if (error) {
         if (error.code === 'PGRST205' || 
             (error.code === 'PGRST116' && error.message?.includes('schema cache'))) {
-          console.warn('Event participants table does not exist in Supabase.');
           return { data: null, error: { message: 'Table does not exist. Please create the event_participants table first.', code: 'TABLE_NOT_FOUND' } };
         }
-        console.error('Error adding event participant to Supabase:', error);
         return { data: null, error };
       }
       
       return { data: this.mapSupabaseToLocal(data), error: null };
     } catch (err) {
-      console.error('Exception adding event participant:', err);
       return { data: null, error: err };
     }
   },
@@ -139,16 +131,13 @@ export const eventParticipantsService = {
       if (error) {
         if (error.code === 'PGRST205' || 
             (error.code === 'PGRST116' && error.message?.includes('schema cache'))) {
-          console.warn('Event participants table does not exist in Supabase.');
           return { data: null, error: { message: 'Table does not exist. Please create the event_participants table first.', code: 'TABLE_NOT_FOUND' } };
         }
-        console.error('Error updating event participant in Supabase:', error);
         return { data: null, error };
       }
       
       return { data: this.mapSupabaseToLocal(data), error: null };
     } catch (err) {
-      console.error('Exception updating event participant:', err);
       return { data: null, error: err };
     }
   },
@@ -166,16 +155,13 @@ export const eventParticipantsService = {
             error.message?.includes('relation') || 
             error.message?.includes('does not exist') || 
             error.message?.includes('schema cache')) {
-          console.warn('Event participants table does not exist in Supabase.');
           return { error: { message: 'Table does not exist. Please create the event_participants table first.', code: 'TABLE_NOT_FOUND' } };
         }
-        console.error('Error deleting event participant from Supabase:', error);
         return { error };
       }
       
       return { error: null };
     } catch (err) {
-      console.error('Exception deleting event participant:', err);
       return { error: err };
     }
   },
@@ -198,7 +184,6 @@ export const eventParticipantsService = {
         });
 
       if (error) {
-        console.error('Error uploading participant image to EventBucket:', error);
         return { data: null, error };
       }
 
@@ -215,7 +200,6 @@ export const eventParticipantsService = {
         error: null 
       };
     } catch (err) {
-      console.error('Exception uploading participant image:', err);
       return { data: null, error: err };
     }
   },
@@ -228,13 +212,11 @@ export const eventParticipantsService = {
         .remove([filePath]);
 
       if (error) {
-        console.error('Error deleting participant image from EventBucket:', error);
         return { error };
       }
 
       return { error: null };
     } catch (err) {
-      console.error('Exception deleting participant image:', err);
       return { error: err };
     }
   },

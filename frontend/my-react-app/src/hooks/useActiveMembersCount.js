@@ -17,11 +17,9 @@ export const useActiveMembersCount = () => {
         const activeCount = members.filter(m => m.isActive === true).length;
         setCount(activeCount);
       } else {
-        console.warn('Members is not an array:', members);
         setCount(0);
       }
     } catch (error) {
-      console.error('Error updating active members count:', error);
       // Fallback to cached data
       try {
         const cachedMembers = membersManager._getAllFromLocalStorage();
@@ -32,7 +30,6 @@ export const useActiveMembersCount = () => {
           setCount(0);
         }
       } catch (fallbackError) {
-        console.error('Error getting cached members:', fallbackError);
         setCount(0);
       }
     } finally {

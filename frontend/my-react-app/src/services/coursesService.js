@@ -17,16 +17,13 @@ export const coursesService = {
             error.message?.includes('relation') || 
             error.message?.includes('does not exist') ||
             error.message?.includes('schema cache')) {
-          console.warn('Courses table does not exist in Supabase. Please run the SQL script from ENABLE_PUBLIC_READ_ACCESS.sql');
           return { data: [], error: { message: 'Table does not exist. Please create the courses table first.', code: 'TABLE_NOT_FOUND' } };
         }
-        console.error('Error fetching courses from Supabase:', error);
         return { data: null, error };
       }
       
       return { data: data || [], error: null };
     } catch (err) {
-      console.error('Exception fetching courses:', err);
       return { data: null, error: err };
     }
   },
@@ -44,13 +41,11 @@ export const coursesService = {
         if (error.code === 'PGRST116') {
           return { data: null, error: { message: 'Course not found', code: 'NOT_FOUND' } };
         }
-        console.error('Error fetching course from Supabase:', error);
         return { data: null, error };
       }
       
       return { data, error: null };
     } catch (err) {
-      console.error('Exception fetching course:', err);
       return { data: null, error: err };
     }
   },
@@ -73,7 +68,6 @@ export const coursesService = {
           error.message?.includes('does not exist') ||
           error.message?.includes('schema cache')
         ) {
-          console.warn('Courses table does not exist in Supabase. Please create the table first.');
           return {
             data: null,
             error: {
@@ -82,13 +76,11 @@ export const coursesService = {
             },
           };
         }
-        console.error('Error adding course to Supabase:', error);
         return { data: null, error };
       }
       
       return { data, error: null };
     } catch (err) {
-      console.error('Exception adding course:', err);
       return { data: null, error: err };
     }
   },
@@ -112,7 +104,6 @@ export const coursesService = {
           error.message?.includes('does not exist') ||
           error.message?.includes('schema cache')
         ) {
-          console.warn('Courses table does not exist in Supabase. Please create the table first.');
           return {
             data: null,
             error: {
@@ -131,13 +122,11 @@ export const coursesService = {
             },
           };
         }
-        console.error('Error updating course in Supabase:', error);
         return { data: null, error };
       }
       
       return { data, error: null };
     } catch (err) {
-      console.error('Exception updating course:', err);
       return { data: null, error: err };
     }
   },
@@ -151,13 +140,11 @@ export const coursesService = {
         .eq('id', id);
       
       if (error) {
-        console.error('Error deleting course from Supabase:', error);
         return { error };
       }
       
       return { error: null };
     } catch (err) {
-      console.error('Exception deleting course:', err);
       return { error: err };
     }
   },
@@ -166,7 +153,6 @@ export const coursesService = {
   async uploadCourseImage(file) {
     try {
       if (!file || !(file instanceof File)) {
-        console.error('Invalid file provided to uploadCourseImage');
         return { data: null, error: { message: 'Invalid file' } };
       }
 
@@ -177,13 +163,6 @@ export const coursesService = {
 
       const filePath = buildStorageFilePath('course-images/', file);
 
-      console.log('📤 Uploading course image to CoursesBucket:', {
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type,
-        filePath: filePath,
-        bucket: 'CoursesBucket'
-      });
 
       const { data, error } = await supabase.storage
         .from('CoursesBucket')
@@ -193,7 +172,6 @@ export const coursesService = {
         });
 
       if (error) {
-        console.error('❌ Error uploading course image to CoursesBucket:', error);
         return { data: null, error };
       }
 
@@ -210,7 +188,6 @@ export const coursesService = {
         error: null
       };
     } catch (err) {
-      console.error('Exception uploading course image:', err);
       return { data: null, error: err };
     }
   },
@@ -219,7 +196,6 @@ export const coursesService = {
   async uploadInstructorImage(file) {
     try {
       if (!file || !(file instanceof File)) {
-        console.error('Invalid file provided to uploadInstructorImage');
         return { data: null, error: { message: 'Invalid file' } };
       }
 
@@ -230,13 +206,6 @@ export const coursesService = {
 
       const filePath = buildStorageFilePath('instructor-images/', file);
 
-      console.log('📤 Uploading instructor image to CoursesBucket:', {
-        fileName: file.name,
-        fileSize: file.size,
-        fileType: file.type,
-        filePath: filePath,
-        bucket: 'CoursesBucket'
-      });
 
       const { data, error } = await supabase.storage
         .from('CoursesBucket')
@@ -246,7 +215,6 @@ export const coursesService = {
         });
 
       if (error) {
-        console.error('❌ Error uploading instructor image to CoursesBucket:', error);
         return { data: null, error };
       }
 
@@ -263,7 +231,6 @@ export const coursesService = {
         error: null
       };
     } catch (err) {
-      console.error('Exception uploading instructor image:', err);
       return { data: null, error: err };
     }
   },
@@ -280,13 +247,11 @@ export const coursesService = {
         .remove([filePath]);
 
       if (error) {
-        console.error('Error deleting image from CoursesBucket:', error);
         return { error };
       }
 
       return { error: null };
     } catch (err) {
-      console.error('Exception deleting image:', err);
       return { error: err };
     }
   },

@@ -5,8 +5,8 @@ import Breadcrumbs from '../components/ui/Breadcrumbs';
 import ImagePlaceholder from '../components/ui/ImagePlaceholder';
 import { getDisplayRole } from '../utils/roleDisplay';
 import { useAuth } from '../contexts/AuthContext';
-import SaharAAlsamahi from '../assets/MembersImages/sahar-samahi.png';
-import OsamaElsayed from '../assets/MembersImages/osama-sayed.avif';
+import MaiDewedar from '../assets/MembersImages/mai-dewedar.jpg';
+import OsamaElsayed from '../assets/MembersImages/osama-elsayed.jpg';
 import RehamAli from '../assets/MembersImages/reham-ali.avif';
 import EmanMostafa from '../assets/MembersImages/eman-moustafa.avif';
 import MohamedBahaa from '../assets/MembersImages/mohamed-bahaa.avif';
@@ -24,7 +24,7 @@ import AlshaimaaSalem from '../assets/MembersImages/image.avif';
 const AboutPage = () => {
   const { user } = useAuth();
   const boardMembers = [
-    { name: "Sahar A.Alsamahi", role: "EACSL President/ SLP", image: SaharAAlsamahi },
+    { name: "Mai Dewedar", role: "EACSL President/ SLP", image: MaiDewedar },
     { name: "Osama Elsayed", role: "Board member/SLP", image: OsamaElsayed },
     { name: "Reham Ali", role: "Board member/SLP", image: RehamAli },
     { name: "Eman Mostafa", role: "Board member/SLP", image: EmanMostafa },
